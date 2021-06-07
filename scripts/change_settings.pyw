@@ -92,7 +92,7 @@ class Root2(Tk):
         self.saved_text = ttk.Label(self, text='saved')
         self.search_text = ttk.Label(self, text='search for config options')
         self.search_text.place(x=0, y=450)
-        self.search_contents = StringVar()
+        self.search_contents = StringVar(self)
         self.search_contents.trace_add('write', self.search)
         self.search_entry = Entry(self, textvariable=self.search_contents)
         self.search_entry.place(x=0, y=480)
