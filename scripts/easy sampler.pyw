@@ -44,9 +44,6 @@ class Root(Tk):
         super(Root, self).__init__()
         self.title("Easy Sampler")
         self.minsize(1000, 550)
-        self.lift()
-        self.attributes("-topmost", True)
-        self.attributes('-topmost', 0)
 
         style = ttk.Style()
         style.configure('TButton', font=(font_type, font_size))
@@ -302,6 +299,9 @@ def open_main_window():
     current_start_window.destroy()
     global root
     root = Root()
+    root.lift()
+    root.attributes("-topmost", True)
+    root.attributes('-topmost', 0)
     root.mainloop()
 
 
