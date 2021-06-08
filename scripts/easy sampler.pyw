@@ -2,13 +2,19 @@ with open('scripts/settings.py', encoding='utf-8-sig') as f:
     exec(f.read())
 
 
-def load(dic, path, file_format, volume):
-    wavedict = {
-        i: pygame.mixer.Sound(f'{path}/{dic[i]}.{file_format}')
-        for i in dic
-    }
+def load(dic, path, file_format, volume, first_time=True):
+    wavedict = {}
+    for i in dic:
+        try:
+            current_sound = pygame.mixer.Sound(
+                f'{path}/{dic[i]}.{file_format}')
+            wavedict[i] = current_sound
+        except:
+            wavedict[i] = None
+        if not first_time:
+            root.update()
     if volume != None:
-        [wavedict[x].set_volume(volume) for x in wavedict]
+        [wavedict[x].set_volume(volume) for x in wavedict if wavedict[x]]
     return wavedict
 
 
@@ -87,14 +93,11 @@ class Root(Tk):
         self.current_playing = []
 
         self.msg = ttk.Label(self, text='')
-        self.msg.place(x=0, y=600)
+        self.msg.place(x=130, y=600)
 
         self.set_sound_path_button = ttk.Button(
             self, text='Change Sound Path', command=self.set_sound_path_func)
-        self.set_sound_path_button.place(x=0, y=250)
-        self.set_sound_path_entry = ttk.Entry(self, width=100)
-        self.set_sound_path_entry.insert(END, sound_path)
-        self.set_sound_path_entry.place(x=130, y=250)
+        self.set_sound_path_button.place(x=700, y=150)
 
         self.set_sound_format_button = ttk.Button(
             self,
@@ -114,38 +117,71 @@ class Root(Tk):
 
         self.change_settings_button = ttk.Button(
             self, text='Change Settings', command=self.open_change_settings)
-        self.change_settings_button.place(x=620, y=200)
+        self.change_settings_button.place(x=0, y=600)
         self.open_settings = False
-        
+
         self.choose_tracks_bar = Scrollbar(self)
-        self.choose_tracks_bar.place(x=225, y=165, height=125, anchor=CENTER)
-        self.choose_tracks = Listbox(
-            self, yscrollcommand=self.choose_tracks_bar.set, height=7)        
+        self.choose_tracks_bar.place(x=225, y=215, height=125, anchor=CENTER)
+        self.choose_tracks = Listbox(self,
+                                     yscrollcommand=self.choose_tracks_bar.set,
+                                     height=7)
         self.choose_tracks.bind('<<ListboxSelect>>',
-                                        lambda e: self.show_current_track())        
-        self.choose_tracks.place(x=0, y=100, width=220)
-        self.choose_tracks_bar.config(
-            command=self.choose_tracks.yview)        
-        
+                                lambda e: self.show_current_track())
+        self.choose_tracks.place(x=0, y=150, width=220)
+        self.choose_tracks_bar.config(command=self.choose_tracks.yview)
+
         self.choose_tracks.insert(END, 'Track 1')
-        self.choose_tracks.insert(END, 'Track 2')
-        self.tracks = []
-        self.track_names = ['Track 1', 'Track 2']
-        self.track_sound_modules_name = [sound_path, '']
-        self.track_sound_modules = [note_sounds, '']
+        self.track_names = ['Track 1']
+        self.track_sound_modules_name = [sound_path]
+        self.track_sound_modules = [note_sounds]
+        self.track_note_sounds_path = [note_sounds_path]
         self.track_num = 1
         self.current_track_name_label = ttk.Label(self, text='Track Name')
         self.current_track_name_entry = ttk.Entry(self, width=20)
-        self.current_track_name_label.place(x=250, y=100)
-        self.current_track_name_entry.place(x=350, y=100)
-        
-        self.current_track_sound_modules_label = ttk.Label(self, text='Track Sound Modules')
+        self.current_track_name_label.place(x=250, y=150)
+        self.current_track_name_entry.place(x=350, y=150)
+
+        self.current_track_sound_modules_label = ttk.Label(
+            self, text='Track Sound Modules')
         self.current_track_sound_modules_entry = ttk.Entry(self, width=82)
-        self.current_track_sound_modules_label.place(x=250, y=150)
-        self.current_track_sound_modules_entry.place(x=400, y=150)        
-        
-        self.change_current_track_name_button = ttk.Button(self, text='Change Track Name', command=self.change_current_track_name)
-        self.change_current_track_name_button.place(x=550, y=100)
+        self.current_track_sound_modules_label.place(x=250, y=200)
+        self.current_track_sound_modules_entry.place(x=400, y=200)
+
+        self.change_current_track_name_button = ttk.Button(
+            self,
+            text='Change Track Name',
+            command=self.change_current_track_name)
+        self.change_current_track_name_button.place(x=550, y=150)
+
+        self.add_new_track_button = ttk.Button(self,
+                                               text='Add New Track',
+                                               command=self.add_new_track)
+        self.add_new_track_button.place(x=250, y=250)
+
+        self.delete_new_track_button = ttk.Button(self,
+                                                  text='Delete Track',
+                                                  command=self.delete_track)
+        self.delete_new_track_button.place(x=370, y=250)
+
+        self.piece_playing = []
+
+    def delete_track(self):
+        current_ind = self.choose_tracks.index(ANCHOR)
+        self.choose_tracks.delete(current_ind)
+        del self.track_names[current_ind]
+        del self.track_sound_modules_name[current_ind]
+        del self.track_sound_modules[current_ind]
+        del self.track_note_sounds_path[current_ind]
+        self.track_num -= 1
+
+    def add_new_track(self):
+        self.track_num += 1
+        current_track_name = f'Track {self.track_num}'
+        self.choose_tracks.insert(END, current_track_name)
+        self.track_names.append(current_track_name)
+        self.track_sound_modules_name.append('')
+        self.track_sound_modules.append(None)
+        self.track_note_sounds_path.append(None)
 
     def change_current_track_name(self):
         current_ind = self.choose_tracks.index(ANCHOR)
@@ -155,14 +191,16 @@ class Root(Tk):
         self.choose_tracks.selection_anchor(current_ind)
         self.choose_tracks.selection_set(current_ind)
         self.track_names[current_ind] = current_track_name
-    
+
     def show_current_track(self):
         current_ind = self.choose_tracks.index(ANCHOR)
         self.current_track_name_entry.delete(0, END)
-        self.current_track_name_entry.insert(END, self.track_names[current_ind])
+        self.current_track_name_entry.insert(END,
+                                             self.track_names[current_ind])
         self.current_track_sound_modules_entry.delete(0, END)
-        self.current_track_sound_modules_entry.insert(END, self.track_sound_modules_name[current_ind])
-    
+        self.current_track_sound_modules_entry.insert(
+            END, self.track_sound_modules_name[current_ind])
+
     def load_midi_file_func(self):
         self.msg.configure(text='')
         filename = filedialog.askopenfilename(initialdir='.',
@@ -193,26 +231,39 @@ class Root(Tk):
         self.msg.configure(text=f'Set sound format to {current_sound_format}')
 
     def set_sound_path_func(self):
+        current_ind = self.choose_tracks.index(ANCHOR)
         self.msg.configure(text='')
         directory = filedialog.askdirectory(
             initialdir='.',
             title="Choose Sound Path",
         )
         if directory:
-            self.set_sound_path_entry.delete(0, END)
-            self.set_sound_path_entry.insert(END, directory)
-
             try:
-                global sound_path
-                global note_sounds
-                global note_sounds_path
+                self.msg.configure(
+                    text=
+                    f'Loading the sounds of {self.track_names[current_ind]} ...'
+                )
+                self.update()
                 sound_path = directory
-                note_sounds = load(notedict, sound_path, sound_format,
-                                   global_volume)
+                note_sounds = load(notedict,
+                                   sound_path,
+                                   sound_format,
+                                   global_volume,
+                                   first_time=False)
                 note_sounds_path = load_sounds(notedict, sound_path,
                                                sound_format)
-                self.msg.configure(text=f'The sound path has changed')
-                self.stop_playing()
+                self.track_sound_modules[current_ind] = note_sounds
+                self.track_note_sounds_path[current_ind] = note_sounds_path
+                self.track_sound_modules_name[current_ind] = sound_path
+                self.current_track_sound_modules_entry.delete(0, END)
+                self.current_track_sound_modules_entry.insert(END, sound_path)
+                self.msg.configure(
+                    text=
+                    f'The sound path of {self.track_names[current_ind]} has changed'
+                )
+                self.choose_tracks.selection_anchor(current_ind)
+                self.choose_tracks.selection_set(current_ind)
+                #self.stop_playing()
             except:
                 self.msg.configure(
                     text=
@@ -234,28 +285,44 @@ class Root(Tk):
             self.msg.configure(text=f'Error: invalid BPM')
             pass
 
-    def play_note_func(self, name, duration, volume):
+    def play_note_func(self, name, duration, volume, track=0):
+        note_sounds_path = self.track_note_sounds_path[track]
+        note_sounds = self.track_sound_modules[track]
         if name in note_sounds_path:
-            current_sound = pygame.mixer.Sound(
-                note_sounds[name]
-            )  #current_sound = pygame.mixer.Sound(note_sounds_path[name])
-            current_sound.set_volume(global_volume * volume / 127)
-            duration_time = self.bar_to_real_time(duration, self.current_bpm)
-            current_sound.play()
-            current_id = self.after(
-                duration_time, lambda: current_sound.fadeout(fadeout_time))
-            self.current_playing.append(current_id)
+            current_sound = note_sounds[name]
+            if current_sound:
+                #current_sound = pygame.mixer.Sound(current_sound)
+                #current_sound = pygame.mixer.Sound(note_sounds_path[name])
+                current_sound.set_volume(global_volume * volume / 127)
+                duration_time = self.bar_to_real_time(duration,
+                                                      self.current_bpm)
+                current_sound.play()
+                current_id = self.after(
+                    duration_time, lambda: current_sound.fadeout(fadeout_time))
+                self.current_playing.append(current_id)
 
     def stop_playing(self):
         pygame.mixer.stop()
-        for each in self.current_playing:
-            self.after_cancel(each)
-        self.current_playing.clear()
+        if self.current_playing:
+            for each in self.current_playing:
+                self.after_cancel(each)
+            self.current_playing.clear()
+        if self.piece_playing:
+            for each in self.piece_playing:
+                self.after_cancel(each)
+            self.piece_playing.clear()
 
     def play_current_musicpy_code(self):
         self.msg.configure(text='')
+        if not self.track_sound_modules:
+            self.msg.configure(
+                text=
+                'You need at least 1 track with loaded sound modules to play')
+            return
+
         self.stop_playing()
         current_notes = self.set_musicpy_code_entry.get('1.0', 'end-1c')
+        current_track_num = 0
         try:
             current_chord = eval(current_notes)
         except:
@@ -268,8 +335,13 @@ class Root(Tk):
                 current_notes = '\n'.join(lines)
                 exec(current_notes, globals(), globals())
                 current_chord = globals()['current_chord']
-                if type(current_chord) == tuple and len(current_chord) > 1:
-                    current_chord, current_bpm = current_chord
+                length = len(current_chord)
+                if type(current_chord) == tuple and length > 1:
+                    if length == 2:
+                        current_chord, current_bpm = current_chord
+                    elif length == 3:
+                        current_chord, current_bpm, current_track_num = current_chord
+                        current_track_num -= 1
                     self.set_bpm_entry.delete(0, END)
                     self.set_bpm_entry.insert(END, current_bpm)
                     self.set_bpm_func()
@@ -287,31 +359,60 @@ class Root(Tk):
                 type(i) == chord for i in current_chord):
             current_chord = concat(current_chord, mode='|')
         if type(current_chord) == chord:
-            current_chord = current_chord.only_notes()
-            current_intervals = current_chord.interval
-            current_durations = current_chord.get_duration()
-            current_volumes = current_chord.get_volume()
-            current_time = 0
-            for i in range(len(current_chord)):
-                each = current_chord.notes[i]
-                if i == 0:
-                    self.play_note_func(
-                        f'{standardize_note(each.name)}{each.num}',
-                        current_durations[i], current_volumes[i])
-                else:
-                    duration = current_durations[i]
-                    volume = current_volumes[i]
-                    current_time += self.bar_to_real_time(
-                        current_intervals[i - 1], self.current_bpm)
-                    current_id = self.after(
-                        current_time,
-                        lambda each=each, duration=duration, volume=volume:
-                        self.play_note_func(
-                            f'{standardize_note(each.name)}{each.num}',
-                            duration, volume))
-                    self.current_playing.append(current_id)
+            self.play_track(current_chord, current_track_num)
         elif type(current_chord) == piece:
-            pass
+            current_tracks = current_chord.tracks
+            current_track_nums = current_chord.channels if current_chord.channels else [
+                i for i in range(len(current_chord))
+            ]
+            current_bpm = current_chord.tempo
+            current_start_times = current_chord.start_times
+            self.set_bpm_entry.delete(0, END)
+            self.set_bpm_entry.insert(END, current_bpm)
+            self.set_bpm_func()
+            for each in range(len(current_chord)):
+                current_id = self.after(
+                    self.bar_to_real_time(current_start_times[each],
+                                          self.current_bpm),
+                    lambda track=current_tracks[each], current_track_num=
+                    current_track_nums[each]: self.play_track(
+                        track, current_track_num))
+            self.piece_playing.append(current_id)
+
+    def play_track(self, current_chord, current_track_num=0):
+        if len(self.track_sound_modules) <= current_track_num:
+            self.msg.configure(text=f'Cannot find Track {current_track_num+1}')
+            return
+        if not self.track_sound_modules[current_track_num]:
+            self.msg.configure(
+                text=
+                f'Track {current_track_num+1} has not loaded any sounds yet')
+            return
+        current_chord = current_chord.only_notes()
+        current_intervals = current_chord.interval
+        current_durations = current_chord.get_duration()
+        current_volumes = current_chord.get_volume()
+        current_time = 0
+        for i in range(len(current_chord)):
+            each = current_chord.notes[i]
+            if i == 0:
+                self.play_note_func(f'{standardize_note(each.name)}{each.num}',
+                                    current_durations[i],
+                                    current_volumes[i],
+                                    track=current_track_num)
+            else:
+                duration = current_durations[i]
+                volume = current_volumes[i]
+                current_time += self.bar_to_real_time(current_intervals[i - 1],
+                                                      self.current_bpm)
+                current_id = self.after(
+                    current_time,
+                    lambda each=each, duration=duration, volume=volume: self.
+                    play_note_func(f'{standardize_note(each.name)}{each.num}',
+                                   duration,
+                                   volume,
+                                   track=current_track_num))
+                self.current_playing.append(current_id)
 
     def play_current_chord(self):
         self.msg.configure(text='')
