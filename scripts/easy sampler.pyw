@@ -36,14 +36,14 @@ def start_load():
     note_sounds = load(notedict, sound_path, sound_format, global_volume)
     note_sounds_path = load_sounds(notedict, sound_path, sound_format)
     current_start_window.loading_label.configure(text='loading complete')
-    current_start_window.after(1000, open_main_window)
+    current_start_window.after(500, open_main_window)
 
 
 class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
         self.title("Easy Sampler")
-        self.minsize(1000, 550)
+        self.minsize(1000, 650)
 
         style = ttk.Style()
         style.configure('TButton', font=(font_type, font_size))
@@ -52,7 +52,7 @@ class Root(Tk):
         self.set_chord_button = ttk.Button(self,
                                            text='Enter Notes',
                                            command=self.play_current_chord)
-        self.set_chord_button.place(x=0, y=200)
+        self.set_chord_button.place(x=0, y=350)
         self.set_chord_entry = Text(self,
                                     width=50,
                                     height=5,
@@ -60,13 +60,13 @@ class Root(Tk):
                                     undo=True,
                                     autoseparators=True,
                                     maxundo=-1)
-        self.set_chord_entry.place(x=100, y=200)
+        self.set_chord_entry.place(x=100, y=350)
 
         self.set_musicpy_code_button = ttk.Button(
             self,
             text='Enter Musicpy Code',
             command=self.play_current_musicpy_code)
-        self.set_musicpy_code_button.place(x=0, y=300)
+        self.set_musicpy_code_button.place(x=0, y=450)
         self.set_musicpy_code_entry = Text(self,
                                            width=120,
                                            height=10,
@@ -74,49 +74,95 @@ class Root(Tk):
                                            undo=True,
                                            autoseparators=True,
                                            maxundo=-1)
-        self.set_musicpy_code_entry.place(x=130, y=300)
+        self.set_musicpy_code_entry.place(x=130, y=450)
 
         self.set_bpm_button = ttk.Button(self,
                                          text='Change BPM',
                                          command=self.set_bpm_func)
-        self.set_bpm_button.place(x=0, y=150)
+        self.set_bpm_button.place(x=0, y=300)
         self.set_bpm_entry = ttk.Entry(self, width=10)
         self.set_bpm_entry.insert(END, '120')
-        self.set_bpm_entry.place(x=100, y=150)
+        self.set_bpm_entry.place(x=100, y=300)
         self.current_bpm = 120
         self.current_playing = []
 
         self.msg = ttk.Label(self, text='')
-        self.msg.place(x=0, y=500)
+        self.msg.place(x=0, y=600)
 
         self.set_sound_path_button = ttk.Button(
             self, text='Change Sound Path', command=self.set_sound_path_func)
-        self.set_sound_path_button.place(x=0, y=100)
+        self.set_sound_path_button.place(x=0, y=250)
         self.set_sound_path_entry = ttk.Entry(self, width=100)
         self.set_sound_path_entry.insert(END, sound_path)
-        self.set_sound_path_entry.place(x=130, y=100)
+        self.set_sound_path_entry.place(x=130, y=250)
 
         self.set_sound_format_button = ttk.Button(
             self,
             text='Change Sound Format',
             command=self.set_sound_format_func)
-        self.set_sound_format_button.place(x=400, y=150)
+        self.set_sound_format_button.place(x=400, y=300)
         self.set_sound_format_entry = ttk.Entry(self, width=20)
         self.set_sound_format_entry.insert(END, sound_format)
-        self.set_sound_format_entry.place(x=560, y=150)
+        self.set_sound_format_entry.place(x=560, y=300)
 
         self.load_midi_file_button = ttk.Button(
             self, text='Load Midi Files', command=self.load_midi_file_func)
-        self.load_midi_file_button.place(x=500, y=200)
+        self.load_midi_file_button.place(x=500, y=350)
         self.load_midi_file_entry = ttk.Entry(self, width=50)
         self.load_midi_file_entry.insert(END, '')
-        self.load_midi_file_entry.place(x=620, y=200)
+        self.load_midi_file_entry.place(x=620, y=350)
 
         self.change_settings_button = ttk.Button(
             self, text='Change Settings', command=self.open_change_settings)
-        self.change_settings_button.place(x=620, y=50)
+        self.change_settings_button.place(x=620, y=200)
         self.open_settings = False
+        
+        self.choose_tracks_bar = Scrollbar(self)
+        self.choose_tracks_bar.place(x=225, y=165, height=125, anchor=CENTER)
+        self.choose_tracks = Listbox(
+            self, yscrollcommand=self.choose_tracks_bar.set, height=7)        
+        self.choose_tracks.bind('<<ListboxSelect>>',
+                                        lambda e: self.show_current_track())        
+        self.choose_tracks.place(x=0, y=100, width=220)
+        self.choose_tracks_bar.config(
+            command=self.choose_tracks.yview)        
+        
+        self.choose_tracks.insert(END, 'Track 1')
+        self.choose_tracks.insert(END, 'Track 2')
+        self.tracks = []
+        self.track_names = ['Track 1', 'Track 2']
+        self.track_sound_modules_name = [sound_path, '']
+        self.track_sound_modules = [note_sounds, '']
+        self.track_num = 1
+        self.current_track_name_label = ttk.Label(self, text='Track Name')
+        self.current_track_name_entry = ttk.Entry(self, width=20)
+        self.current_track_name_label.place(x=250, y=100)
+        self.current_track_name_entry.place(x=350, y=100)
+        
+        self.current_track_sound_modules_label = ttk.Label(self, text='Track Sound Modules')
+        self.current_track_sound_modules_entry = ttk.Entry(self, width=82)
+        self.current_track_sound_modules_label.place(x=250, y=150)
+        self.current_track_sound_modules_entry.place(x=400, y=150)        
+        
+        self.change_current_track_name_button = ttk.Button(self, text='Change Track Name', command=self.change_current_track_name)
+        self.change_current_track_name_button.place(x=550, y=100)
 
+    def change_current_track_name(self):
+        current_ind = self.choose_tracks.index(ANCHOR)
+        current_track_name = self.current_track_name_entry.get()
+        self.choose_tracks.delete(current_ind)
+        self.choose_tracks.insert(current_ind, current_track_name)
+        self.choose_tracks.selection_anchor(current_ind)
+        self.choose_tracks.selection_set(current_ind)
+        self.track_names[current_ind] = current_track_name
+    
+    def show_current_track(self):
+        current_ind = self.choose_tracks.index(ANCHOR)
+        self.current_track_name_entry.delete(0, END)
+        self.current_track_name_entry.insert(END, self.track_names[current_ind])
+        self.current_track_sound_modules_entry.delete(0, END)
+        self.current_track_sound_modules_entry.insert(END, self.track_sound_modules_name[current_ind])
+    
     def load_midi_file_func(self):
         self.msg.configure(text='')
         filename = filedialog.askopenfilename(initialdir='.',
