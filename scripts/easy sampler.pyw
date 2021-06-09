@@ -13,6 +13,8 @@ def load(dic, path, file_format, volume, first_time=True):
             wavedict[i] = None
         if not first_time:
             root.update()
+        else:
+            current_start_window.update()
     if volume != None:
         [wavedict[x].set_volume(volume) for x in wavedict if wavedict[x]]
     return wavedict
@@ -103,10 +105,12 @@ class Root(Tk):
             self,
             text='Change Sound Format',
             command=self.set_sound_format_func)
-        self.set_sound_format_button.place(x=400, y=300)
+        self.set_sound_format_button.place(x=850, y=150)
+        self.current_sound_format_label = ttk.Label(self,
+                                                    text='Track Sound Format')
+        self.current_sound_format_label.place(x=520, y=250)
         self.set_sound_format_entry = ttk.Entry(self, width=20)
-        self.set_sound_format_entry.insert(END, sound_format)
-        self.set_sound_format_entry.place(x=560, y=300)
+        self.set_sound_format_entry.place(x=660, y=250)
 
         self.load_midi_file_button = ttk.Button(
             self, text='Load Midi Files', command=self.load_midi_file_func)
@@ -124,7 +128,8 @@ class Root(Tk):
         self.choose_tracks_bar.place(x=225, y=215, height=125, anchor=CENTER)
         self.choose_tracks = Listbox(self,
                                      yscrollcommand=self.choose_tracks_bar.set,
-                                     height=7)
+                                     height=7,
+                                     exportselection=False)
         self.choose_tracks.bind('<<ListboxSelect>>',
                                 lambda e: self.show_current_track())
         self.choose_tracks.place(x=0, y=150, width=220)
@@ -135,6 +140,8 @@ class Root(Tk):
         self.track_sound_modules_name = [sound_path]
         self.track_sound_modules = [note_sounds]
         self.track_note_sounds_path = [note_sounds_path]
+        self.track_sound_format = ['wav']
+        self.track_dict = [notedict]
         self.track_num = 1
         self.current_track_name_label = ttk.Label(self, text='Track Name')
         self.current_track_name_entry = ttk.Entry(self, width=20)
@@ -163,43 +170,238 @@ class Root(Tk):
                                                   command=self.delete_track)
         self.delete_new_track_button.place(x=370, y=250)
 
+        self.change_track_dict_button = ttk.Button(
+            self, text='Change Track Dict', command=self.change_track_dict)
+        self.change_track_dict_button.place(x=830, y=250)
+
         self.piece_playing = []
+
+        self.open_change_track_dict = False
 
     def delete_track(self):
         current_ind = self.choose_tracks.index(ANCHOR)
-        self.choose_tracks.delete(current_ind)
-        del self.track_names[current_ind]
-        del self.track_sound_modules_name[current_ind]
-        del self.track_sound_modules[current_ind]
-        del self.track_note_sounds_path[current_ind]
-        self.track_num -= 1
+        if current_ind < self.track_num:
+            self.choose_tracks.delete(current_ind)
+            new_ind = min(current_ind, self.track_num - 2)
+            self.choose_tracks.see(new_ind)
+            self.choose_tracks.selection_anchor(new_ind)
+            self.choose_tracks.selection_set(new_ind)
+            del self.track_names[current_ind]
+            del self.track_sound_modules_name[current_ind]
+            del self.track_sound_modules[current_ind]
+            del self.track_note_sounds_path[current_ind]
+            del self.track_sound_format[current_ind]
+            del self.track_dict[current_ind]
+            self.track_num -= 1
 
     def add_new_track(self):
         self.track_num += 1
         current_track_name = f'Track {self.track_num}'
         self.choose_tracks.insert(END, current_track_name)
+        self.choose_tracks.selection_clear(ANCHOR)
+        self.choose_tracks.see(END)
+        self.choose_tracks.selection_anchor(END)
+        self.choose_tracks.selection_set(END)
         self.track_names.append(current_track_name)
         self.track_sound_modules_name.append('')
         self.track_sound_modules.append(None)
         self.track_note_sounds_path.append(None)
+        self.track_sound_format.append('wav')
+        self.track_dict.append(copy(notedict))
+
+    def change_track_dict(self):
+        if self.open_change_track_dict:
+            self.change_dict_window.focus_set()
+            return
+        else:
+            current_ind = self.choose_tracks.index(ANCHOR)
+            self.current_track_dict_num = current_ind
+            if current_ind < self.track_num:
+                self.open_change_track_dict = True
+                self.change_dict_window = Toplevel(self)
+                self.change_dict_window.protocol("WM_DELETE_WINDOW",
+                                                 self.close_change_dict_window)
+                self.change_dict_window.title('Change Track Dictionary')
+                self.change_dict_window.minsize(500, 300)
+                current_dict = self.track_dict[current_ind]
+                self.current_dict = current_dict
+                self.dict_configs_bar = Scrollbar(self.change_dict_window)
+                self.dict_configs_bar.place(x=150,
+                                            y=90,
+                                            height=185,
+                                            anchor=CENTER)
+                self.dict_configs = Listbox(
+                    self.change_dict_window,
+                    yscrollcommand=self.dict_configs_bar.set,
+                    exportselection=False)
+                self.dict_configs.bind(
+                    '<<ListboxSelect>>',
+                    lambda e: self.show_current_dict_configs())
+                self.dict_configs_bar.config(command=self.dict_configs.yview)
+                self.dict_configs.place(x=0, y=0)
+                for each in current_dict:
+                    self.dict_configs.insert(END, each)
+                self.current_note_name = ttk.Label(self.change_dict_window,
+                                                   text='Note Name')
+                self.current_note_name.place(x=200, y=0)
+                self.current_note_name_entry = ttk.Entry(
+                    self.change_dict_window, width=10)
+                self.current_note_name_entry.place(x=300, y=0)
+                self.current_note_value = ttk.Label(self.change_dict_window,
+                                                    text='Note Value')
+                self.current_note_value.place(x=200, y=50)
+                self.current_note_value_entry = ttk.Entry(
+                    self.change_dict_window, width=10)
+                self.current_note_value_entry.place(x=300, y=50)
+                self.change_current_note_name_button = ttk.Button(
+                    self.change_dict_window,
+                    text='Change Note Name',
+                    command=self.change_current_note_name)
+                self.change_current_note_value_button = ttk.Button(
+                    self.change_dict_window,
+                    text='Change Note Value',
+                    command=self.change_current_note_value)
+                self.add_new_note_button = ttk.Button(
+                    self.change_dict_window,
+                    text='Add New Note',
+                    command=self.add_new_note)
+                self.remove_note_button = ttk.Button(self.change_dict_window,
+                                                     text='Remove Note',
+                                                     command=self.remove_note)
+                self.new_note_name_entry = ttk.Entry(self.change_dict_window,
+                                                     width=10)
+                self.change_current_note_name_button.place(x=200, y=100)
+                self.change_current_note_value_button.place(x=350, y=100)
+                self.add_new_note_button.place(x=200, y=150)
+                self.new_note_name_entry.place(x=320, y=150)
+                self.remove_note_button.place(x=200, y=200)
+                self.reload_track_sounds_button = ttk.Button(
+                    self.change_dict_window,
+                    text='Reload Sound Modules',
+                    command=self.reload_track_sounds)
+                self.reload_track_sounds_button.place(x=200, y=250)
+
+    def close_change_dict_window(self):
+        self.change_dict_window.destroy()
+        self.open_change_track_dict = False
+
+    def change_current_note_name(self):
+        current_note = self.dict_configs.get(ANCHOR)
+        current_ind = self.dict_configs.index(ANCHOR)
+        current_note_name = self.current_note_name_entry.get()
+        if current_note_name and current_note_name != current_note:
+            current_keys = list(self.current_dict.keys())
+            current_keys[current_ind] = current_note_name
+            self.current_dict[current_note_name] = self.current_dict[
+                current_note]
+            del self.current_dict[current_note]
+            self.current_dict = {i: self.current_dict[i] for i in current_keys}
+            self.track_dict[self.current_track_dict_num] = self.current_dict
+            self.dict_configs.delete(0, END)
+            for each in self.current_dict:
+                self.dict_configs.insert(END, each)
+            self.dict_configs.see(current_ind)
+            self.dict_configs.selection_anchor(current_ind)
+            self.dict_configs.selection_set(current_ind)
+
+    def change_current_note_value(self):
+        current_note = self.dict_configs.get(ANCHOR)
+        if not current_note:
+            return
+        current_note_value_before = self.current_dict[current_note]
+        current_note_value = self.current_note_value_entry.get()
+        if current_note_value != current_note_value_before:
+            self.current_dict[current_note] = current_note_value
+
+    def add_new_note(self):
+        current_note_name = self.new_note_name_entry.get()
+        if current_note_name and current_note_name not in self.current_dict:
+            self.current_dict[current_note_name] = ''
+            self.dict_configs.insert(END, current_note_name)
+            self.dict_configs.see(END)
+            self.dict_configs.selection_clear(ANCHOR)
+            self.dict_configs.selection_anchor(END)
+            self.dict_configs.selection_set(END)
+
+    def remove_note(self):
+        current_note = self.dict_configs.get(ANCHOR)
+        if current_note not in self.current_dict:
+            return
+        del self.current_dict[current_note]
+        current_ind = self.dict_configs.index(ANCHOR)
+        self.dict_configs.delete(current_ind)
+        new_ind = min(current_ind, len(self.current_dict) - 1)
+        self.dict_configs.see(new_ind)
+        self.dict_configs.selection_anchor(new_ind)
+        self.dict_configs.selection_set(new_ind)
+
+    def reload_track_sounds(self):
+        self.msg.configure(text='')
+        current_ind = self.current_track_dict_num
+        try:
+            self.msg.configure(
+                text=
+                f'Loading the sounds of {self.track_names[current_ind]} ...')
+            self.update()
+            sound_path = self.track_sound_modules_name[current_ind]
+            notedict = self.track_dict[current_ind]
+            sound_format = self.track_sound_format[current_ind]
+            note_sounds = load(notedict,
+                               sound_path,
+                               sound_format,
+                               global_volume,
+                               first_time=False)
+            note_sounds_path = load_sounds(notedict, sound_path, sound_format)
+            self.track_sound_modules[current_ind] = note_sounds
+            self.track_note_sounds_path[current_ind] = note_sounds_path
+            self.current_track_sound_modules_entry.delete(0, END)
+            self.current_track_sound_modules_entry.insert(END, sound_path)
+            self.msg.configure(
+                text=
+                f'The sound path of {self.track_names[current_ind]} has changed'
+            )
+            self.choose_tracks.see(current_ind)
+            self.choose_tracks.selection_anchor(current_ind)
+            self.choose_tracks.selection_set(current_ind)
+            #self.stop_playing()
+        except Exception as e:
+            print(str(e))
+            self.msg.configure(
+                text=
+                f'Error: The sound files in the sound path do not match with settings'
+            )
+
+    def show_current_dict_configs(self):
+        current_note = self.dict_configs.get(ANCHOR)
+        self.current_note_name_entry.delete(0, END)
+        self.current_note_name_entry.insert(END, current_note)
+        self.current_note_value_entry.delete(0, END)
+        self.current_note_value_entry.insert(END,
+                                             self.current_dict[current_note])
 
     def change_current_track_name(self):
         current_ind = self.choose_tracks.index(ANCHOR)
-        current_track_name = self.current_track_name_entry.get()
-        self.choose_tracks.delete(current_ind)
-        self.choose_tracks.insert(current_ind, current_track_name)
-        self.choose_tracks.selection_anchor(current_ind)
-        self.choose_tracks.selection_set(current_ind)
-        self.track_names[current_ind] = current_track_name
+        if current_ind < self.track_num:
+            current_track_name = self.current_track_name_entry.get()
+            self.choose_tracks.delete(current_ind)
+            self.choose_tracks.insert(current_ind, current_track_name)
+            self.choose_tracks.see(current_ind)
+            self.choose_tracks.selection_anchor(current_ind)
+            self.choose_tracks.selection_set(current_ind)
+            self.track_names[current_ind] = current_track_name
 
     def show_current_track(self):
         current_ind = self.choose_tracks.index(ANCHOR)
-        self.current_track_name_entry.delete(0, END)
-        self.current_track_name_entry.insert(END,
-                                             self.track_names[current_ind])
-        self.current_track_sound_modules_entry.delete(0, END)
-        self.current_track_sound_modules_entry.insert(
-            END, self.track_sound_modules_name[current_ind])
+        if current_ind < self.track_num:
+            self.current_track_name_entry.delete(0, END)
+            self.current_track_name_entry.insert(END,
+                                                 self.track_names[current_ind])
+            self.current_track_sound_modules_entry.delete(0, END)
+            self.current_track_sound_modules_entry.insert(
+                END, self.track_sound_modules_name[current_ind])
+            self.set_sound_format_entry.delete(0, END)
+            self.set_sound_format_entry.insert(
+                END, self.track_sound_format[current_ind])
 
     def load_midi_file_func(self):
         self.msg.configure(text='')
@@ -224,51 +426,64 @@ class Root(Tk):
             )
 
     def set_sound_format_func(self):
-        self.msg.configure(text='')
-        current_sound_format = self.set_sound_format_entry.get()
-        global sound_format
-        sound_format = current_sound_format
-        self.msg.configure(text=f'Set sound format to {current_sound_format}')
+        current_ind = self.choose_tracks.index(ANCHOR)
+        if current_ind < self.track_num:
+            self.msg.configure(text='')
+            current_sound_format = self.set_sound_format_entry.get()
+            self.track_sound_format[current_ind] = current_sound_format
+            self.msg.configure(
+                text=
+                f'Set sound format of Track {current_ind+1} to {current_sound_format}'
+            )
+            self.choose_tracks.see(current_ind)
+            self.choose_tracks.selection_anchor(current_ind)
+            self.choose_tracks.selection_set(current_ind)
 
     def set_sound_path_func(self):
         current_ind = self.choose_tracks.index(ANCHOR)
-        self.msg.configure(text='')
-        directory = filedialog.askdirectory(
-            initialdir='.',
-            title="Choose Sound Path",
-        )
-        if directory:
-            try:
-                self.msg.configure(
-                    text=
-                    f'Loading the sounds of {self.track_names[current_ind]} ...'
-                )
-                self.update()
-                sound_path = directory
-                note_sounds = load(notedict,
-                                   sound_path,
-                                   sound_format,
-                                   global_volume,
-                                   first_time=False)
-                note_sounds_path = load_sounds(notedict, sound_path,
-                                               sound_format)
-                self.track_sound_modules[current_ind] = note_sounds
-                self.track_note_sounds_path[current_ind] = note_sounds_path
-                self.track_sound_modules_name[current_ind] = sound_path
-                self.current_track_sound_modules_entry.delete(0, END)
-                self.current_track_sound_modules_entry.insert(END, sound_path)
-                self.msg.configure(
-                    text=
-                    f'The sound path of {self.track_names[current_ind]} has changed'
-                )
-                self.choose_tracks.selection_anchor(current_ind)
-                self.choose_tracks.selection_set(current_ind)
-                #self.stop_playing()
-            except:
-                self.msg.configure(
-                    text=
-                    f'Error: The sound files in the sound path do not match with settings'
-                )
+        if current_ind < self.track_num:
+            self.msg.configure(text='')
+            directory = filedialog.askdirectory(
+                initialdir='.',
+                title="Choose Sound Path",
+            )
+            if directory:
+                try:
+                    self.msg.configure(
+                        text=
+                        f'Loading the sounds of {self.track_names[current_ind]} ...'
+                    )
+                    self.update()
+                    sound_path = directory
+                    notedict = self.track_dict[current_ind]
+                    sound_format = self.track_sound_format[current_ind]
+                    note_sounds = load(notedict,
+                                       sound_path,
+                                       sound_format,
+                                       global_volume,
+                                       first_time=False)
+                    note_sounds_path = load_sounds(notedict, sound_path,
+                                                   sound_format)
+                    self.track_sound_modules[current_ind] = note_sounds
+                    self.track_note_sounds_path[current_ind] = note_sounds_path
+                    self.track_sound_modules_name[current_ind] = sound_path
+                    self.current_track_sound_modules_entry.delete(0, END)
+                    self.current_track_sound_modules_entry.insert(
+                        END, sound_path)
+                    self.msg.configure(
+                        text=
+                        f'The sound path of {self.track_names[current_ind]} has changed'
+                    )
+                    self.choose_tracks.see(current_ind)
+                    self.choose_tracks.selection_anchor(current_ind)
+                    self.choose_tracks.selection_set(current_ind)
+                    #self.stop_playing()
+                except Exception as e:
+                    print(str(e))
+                    self.msg.configure(
+                        text=
+                        f'Error: The sound files in the sound path do not match with settings'
+                    )
 
     def bar_to_real_time(self, bar, bpm):
         # return time in ms
