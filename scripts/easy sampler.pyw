@@ -507,7 +507,7 @@ class Root(Tk):
             current_sound = note_sounds[name]
             if current_sound:
                 #current_sound = pygame.mixer.Sound(current_sound)
-                #current_sound = pygame.mixer.Sound(note_sounds_path[name])
+                current_sound = pygame.mixer.Sound(note_sounds_path[name])
                 current_sound.set_volume(global_volume * volume / 127)
                 duration_time = self.bar_to_real_time(duration,
                                                       self.current_bpm)
