@@ -27,7 +27,9 @@ def load_sounds(dic, path, file_format):
 
 def play_note(name):
     if name in note_sounds:
-        note_sounds[name].play(maxtime=note_play_last_time)
+        current_sound = note_sounds[name]
+        if current_sound:
+            current_sound.play(maxtime=note_play_last_time)
 
 
 def standardize_note(i):
@@ -170,6 +172,10 @@ class Root(Tk):
                                                   command=self.delete_track)
         self.delete_new_track_button.place(x=370, y=250)
 
+        self.clear_all_tracks_button = ttk.Button(
+            self, text='Clear All Tracks', command=self.clear_all_tracks)
+        self.clear_all_tracks_button.place(x=250, y=300)
+
         self.change_track_dict_button = ttk.Button(
             self, text='Change Track Dict', command=self.change_track_dict)
         self.change_track_dict_button.place(x=830, y=250)
@@ -177,6 +183,25 @@ class Root(Tk):
         self.piece_playing = []
 
         self.open_change_track_dict = False
+
+    def clear_all_tracks(self):
+        if_clear = messagebox.askyesnocancel(
+            'Clear All Tracks',
+            'Are you sure you want to clear all tracks? This will stop current playing.',
+            icon='warning')
+        if if_clear:
+            self.stop_playing()
+            self.choose_tracks.delete(0, END)
+            self.track_names.clear()
+            self.track_sound_modules_name.clear()
+            self.track_sound_modules.clear()
+            self.track_note_sounds_path.clear()
+            self.track_sound_format.clear()
+            self.track_dict.clear()
+            self.track_num = 0
+            self.current_track_name_entry.delete(0, END)
+            self.current_track_sound_modules_entry.delete(0, END)
+            self.set_sound_format_entry.delete(0, END)
 
     def delete_track(self):
         current_ind = self.choose_tracks.index(ANCHOR)
@@ -193,6 +218,12 @@ class Root(Tk):
             del self.track_sound_format[current_ind]
             del self.track_dict[current_ind]
             self.track_num -= 1
+            if self.track_num > 0:
+                self.show_current_track()
+            else:
+                self.current_track_name_entry.delete(0, END)
+                self.current_track_sound_modules_entry.delete(0, END)
+                self.set_sound_format_entry.delete(0, END)
 
     def add_new_track(self):
         self.track_num += 1
@@ -208,6 +239,7 @@ class Root(Tk):
         self.track_note_sounds_path.append(None)
         self.track_sound_format.append('wav')
         self.track_dict.append(copy(notedict))
+        self.show_current_track()
 
     def change_track_dict(self):
         if self.open_change_track_dict:
@@ -280,6 +312,17 @@ class Root(Tk):
                     text='Reload Sound Modules',
                     command=self.reload_track_sounds)
                 self.reload_track_sounds_button.place(x=200, y=250)
+                self.clear_all_notes_button = ttk.Button(
+                    self.change_dict_window,
+                    text='Clear All Notes',
+                    command=self.clear_all_notes)
+                self.clear_all_notes_button.place(x=320, y=200)
+
+    def clear_all_notes(self):
+        self.dict_configs.delete(0, END)
+        self.current_dict.clear()
+        self.current_note_name_entry.delete(0, END)
+        self.current_note_value_entry.delete(0, END)
 
     def close_change_dict_window(self):
         self.change_dict_window.destroy()
@@ -322,6 +365,7 @@ class Root(Tk):
             self.dict_configs.selection_clear(ANCHOR)
             self.dict_configs.selection_anchor(END)
             self.dict_configs.selection_set(END)
+            self.show_current_dict_configs()
 
     def remove_note(self):
         current_note = self.dict_configs.get(ANCHOR)
@@ -334,6 +378,7 @@ class Root(Tk):
         self.dict_configs.see(new_ind)
         self.dict_configs.selection_anchor(new_ind)
         self.dict_configs.selection_set(new_ind)
+        self.show_current_dict_configs()
 
     def reload_track_sounds(self):
         self.msg.configure(text='')
@@ -373,11 +418,12 @@ class Root(Tk):
 
     def show_current_dict_configs(self):
         current_note = self.dict_configs.get(ANCHOR)
-        self.current_note_name_entry.delete(0, END)
-        self.current_note_name_entry.insert(END, current_note)
-        self.current_note_value_entry.delete(0, END)
-        self.current_note_value_entry.insert(END,
-                                             self.current_dict[current_note])
+        if current_note in self.current_dict:
+            self.current_note_name_entry.delete(0, END)
+            self.current_note_name_entry.insert(END, current_note)
+            self.current_note_value_entry.delete(0, END)
+            self.current_note_value_entry.insert(
+                END, self.current_dict[current_note])
 
     def change_current_track_name(self):
         current_ind = self.choose_tracks.index(ANCHOR)
