@@ -18,6 +18,10 @@ from ast import literal_eval
 import math
 import array
 from pydub import AudioSegment
+AudioSegment.converter = "ffmpeg\\bin\\ffmpeg.exe"
+#AudioSegment.ffmpeg = "ffmpeg\bin\ffmpeg.exe"
+#AudioSegment.ffprobe ="ffmpeg\bin\ffprobe.exe"
+from io import BytesIO, StringIO
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(abs_path)

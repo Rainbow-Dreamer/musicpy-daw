@@ -204,10 +204,135 @@ class Root(Tk):
         self.export_menubar.tk_popup(x=self.winfo_pointerx(), y=self.winfo_pointery())
     
     def export_audio_file(self, mode='wav'):
-        pass
+        self.msg.configure(text='')
+        if not self.track_sound_modules:
+            self.msg.configure(
+                text=
+                'You need at least 1 track with loaded sound modules to export audio files')
+            return
+        result = self.get_current_musicpy_chords()
+        if result is None:
+            return
+        types = result[0]
+        if types == 'chord':
+            current_chord = result[1]
+            current_track_num = result[2]
+            current_bpm = self.current_bpm
+            current_start_times = 0
+            silent_audio = AudioSegment.silent(duration=int(current_chord.eval_time(current_bpm, mode='number') * 1000))
+            current_audio = self.track_to_audio(current_chord, current_track_num)
+        elif types == 'piece':
+            current_chord = result[1]
+            current_name = current_chord.name
+            current_bpm = current_chord.tempo
+            current_start_times = current_chord.start_times            
+            silent_audio = AudioSegment.silent(duration=int(current_chord.eval_time(mode='number') * 1000))
+            current_audio_list = [self.track_to_audio(current_chord.tracks[i], current_chord.channels[i]) for i in range(len(current_chord))]
+        
+    
+    def track_to_audio(self, current_chord, current_track_num=0):
+        if len(self.track_sound_modules) <= current_track_num:
+            self.msg.configure(text=f'Cannot find Track {current_track_num+1}')
+            return
+        if not self.track_sound_modules[current_track_num]:
+            self.msg.configure(
+                text=
+                f'Track {current_track_num+1} has not loaded any sounds yet')
+            return
+        current_chord = current_chord.only_notes()
+        current_intervals = current_chord.interval
+        current_durations = current_chord.get_duration()
+        current_volumes = current_chord.get_volume()
+        current_dict = self.track_dict[current_track_num]
+        current_sound_path = self.track_sound_modules_name[current_track_num]
+        current_sound_format = self.track_sound_format[current_track_num]
+        current_sounds = {}
+        for i in current_dict:
+            current_sound_obj = current_dict[i]
+            current_sound_obj_path = f'{current_sound_path}/{current_sound_obj}.{current_sound_format}'
+            if current_sound_obj:
+                current_sounds[i] = AudioSegment.from_file(current_sound_obj_path, format=current_sound_format)
+            else:
+                current_sounds[i] = None
+        print(current_sounds)
+        '''
+        current_time = 0
+        for i in range(len(current_chord)):
+            each = current_chord.notes[i]
+            if i == 0:
+                self.play_note_func(f'{standardize_note(each.name)}{each.num}',
+                                    current_durations[i],
+                                    current_volumes[i],
+                                    track=current_track_num)
+            else:
+                duration = current_durations[i]
+                volume = current_volumes[i]
+                current_time += self.bar_to_real_time(current_intervals[i - 1],
+                                                      self.current_bpm)
+                current_id = self.after(
+                    current_time,
+                    lambda each=each, duration=duration, volume=volume: self.
+                    play_note_func(f'{standardize_note(each.name)}{each.num}',
+                                   duration,
+                                   volume,
+                                   track=current_track_num))
+                self.current_playing.append(current_id)
+        '''
     
     def export_midi_file(self):
         pass
+    
+    def get_current_musicpy_chords(self):
+        current_notes = self.set_musicpy_code_entry.get('1.0', 'end-1c')
+        current_track_num = 0
+        current_bpm = self.current_bpm
+        try:
+            current_chord = eval(current_notes)
+        except:
+            try:
+                lines = current_notes.split('\n')
+                for k in range(len(lines)):
+                    each = lines[k]
+                    if each.startswith('play'):
+                        lines[k] = 'current_chord = ' + each[4:]
+                current_notes = '\n'.join(lines)
+                exec(current_notes, globals(), globals())
+                current_chord = globals()['current_chord']
+                length = len(current_chord)
+                if type(current_chord) == tuple and length > 1:
+                    if length == 2:
+                        current_chord, current_bpm = current_chord
+                    elif length == 3:
+                        current_chord, current_bpm, current_track_num = current_chord
+                        current_track_num -= 1
+                    self.set_bpm_entry.delete(0, END)
+                    self.set_bpm_entry.insert(END, current_bpm)
+                    self.set_bpm_func()
+            except Exception as e:
+                print(str(e))
+                self.msg.configure(
+                    text=
+                    f'Error: invalid musicpy code or not result in a chord instance'
+                )
+                return
+        if type(current_chord) == note:
+            current_chord = chord([current_chord])
+        elif type(current_chord) == list and all(
+                type(i) == chord for i in current_chord):
+            current_chord = concat(current_chord, mode='|')
+        if type(current_chord) == chord:
+            return 'chord', current_chord, current_track_num
+        if type(current_chord) == track:
+            current_chord = build(current_chord,
+                  bpm=current_chord.tempo if current_chord.tempo is not None else current_bpm,
+                  name=current_chord.name)            
+        if type(current_chord) == piece:
+            current_bpm = current_chord.tempo
+            current_start_times = current_chord.start_times
+            self.set_bpm_entry.delete(0, END)
+            self.set_bpm_entry.insert(END, current_bpm)
+            self.set_bpm_func()            
+            return 'piece', current_chord
     
     def clear_all_tracks(self):
         if_clear = messagebox.askyesnocancel(
@@ -609,6 +734,7 @@ class Root(Tk):
         self.stop_playing()
         current_notes = self.set_musicpy_code_entry.get('1.0', 'end-1c')
         current_track_num = 0
+        current_bpm = self.current_bpm
         try:
             current_chord = eval(current_notes)
         except:
@@ -638,7 +764,6 @@ class Root(Tk):
                     f'Error: invalid musicpy code or not result in a chord instance'
                 )
                 return
-        self.msg.configure(text=f'Start playing')
         if type(current_chord) == note:
             current_chord = chord([current_chord])
         elif type(current_chord) == list and all(
@@ -646,7 +771,11 @@ class Root(Tk):
             current_chord = concat(current_chord, mode='|')
         if type(current_chord) == chord:
             self.play_track(current_chord, current_track_num)
-        elif type(current_chord) == piece:
+        elif type(current_chord) == track:
+            current_chord = build(current_chord,
+                  bpm=current_chord.tempo if current_chord.tempo is not None else current_bpm,
+                  name=current_chord.name)
+        if type(current_chord) == piece:
             current_tracks = current_chord.tracks
             current_track_nums = current_chord.channels if current_chord.channels else [
                 i for i in range(len(current_chord))
@@ -664,6 +793,7 @@ class Root(Tk):
                     current_track_nums[each]: self.play_track(
                         track, current_track_num))
             self.piece_playing.append(current_id)
+        self.msg.configure(text=f'Start playing')
 
     def play_track(self, current_chord, current_track_num=0):
         if len(self.track_sound_modules) <= current_track_num:
