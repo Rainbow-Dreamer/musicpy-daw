@@ -17,6 +17,7 @@ from musicpy import *
 from ast import literal_eval
 import math
 import array
+from pydub import AudioSegment
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(abs_path)

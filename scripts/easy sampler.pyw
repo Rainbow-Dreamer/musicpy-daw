@@ -183,7 +183,32 @@ class Root(Tk):
         self.piece_playing = []
 
         self.open_change_track_dict = False
+        
+        self.export_button = ttk.Button(self, text='Export', command=self.open_export_menu)
+        self.export_button.place(x=500, y=400)
+        
+        self.export_menubar = Menu(self,
+                                   tearoff=False)        
+        
+        self.export_audio_file_menubar = Menu(self,
+                                   tearoff=False)        
+        self.export_audio_file_menubar.add_command(label='Wave File', command=lambda: self.export_audio_file('wav'))
+        self.export_audio_file_menubar.add_command(label='MP3 File', command=lambda: self.export_audio_file('mp3'))
+        self.export_audio_file_menubar.add_command(label='OGG File', command=lambda: self.export_audio_file('ogg'))
+        self.export_audio_file_menubar.add_command(label='Other Format', command=lambda: self.export_audio_file('other'))
+        
+        self.export_menubar.add_cascade(label='Audio File', menu=self.export_audio_file_menubar)
+        self.export_menubar.add_command(label='MIDI File', command=self.export_midi_file)        
 
+    def open_export_menu(self):
+        self.export_menubar.tk_popup(x=self.winfo_pointerx(), y=self.winfo_pointery())
+    
+    def export_audio_file(self, mode='wav'):
+        pass
+    
+    def export_midi_file(self):
+        pass
+    
     def clear_all_tracks(self):
         if_clear = messagebox.askyesnocancel(
             'Clear All Tracks',
