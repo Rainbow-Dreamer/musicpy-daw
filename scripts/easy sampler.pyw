@@ -48,6 +48,8 @@ def start_load():
     current_start_window.loading_label.configure(text='loading complete')
     current_start_window.after(500, open_main_window)
 
+def velocity_to_db(vol):
+    return math.log(vol/127, 10)*20
 
 class Root(Tk):
     def __init__(self):
@@ -220,17 +222,19 @@ class Root(Tk):
             current_bpm = self.current_bpm
             current_start_times = 0
             silent_audio = AudioSegment.silent(duration=int(current_chord.eval_time(current_bpm, mode='number') * 1000))
-            current_audio = self.track_to_audio(current_chord, current_track_num)
+            silent_audio = self.track_to_audio(current_chord, current_track_num, silent_audio, current_bpm)
+            silent_audio.export('test.wav', format=mode)
         elif types == 'piece':
             current_chord = result[1]
             current_name = current_chord.name
             current_bpm = current_chord.tempo
             current_start_times = current_chord.start_times            
             silent_audio = AudioSegment.silent(duration=int(current_chord.eval_time(mode='number') * 1000))
-            current_audio_list = [self.track_to_audio(current_chord.tracks[i], current_chord.channels[i]) for i in range(len(current_chord))]
+            for i in range(len(current_chord)):
+                silent_audio = self.track_to_audio(current_chord.tracks[i], current_chord.channels[i], silent_audio, current_bpm)
         
     
-    def track_to_audio(self, current_chord, current_track_num=0):
+    def track_to_audio(self, current_chord, current_track_num=0, silent_audio=None, current_bpm=None):
         if len(self.track_sound_modules) <= current_track_num:
             self.msg.configure(text=f'Cannot find Track {current_track_num+1}')
             return
@@ -254,30 +258,15 @@ class Root(Tk):
                 current_sounds[i] = AudioSegment.from_file(current_sound_obj_path, format=current_sound_format)
             else:
                 current_sounds[i] = None
-        print(current_sounds)
-        '''
-        current_time = 0
+        current_position = 0
         for i in range(len(current_chord)):
-            each = current_chord.notes[i]
-            if i == 0:
-                self.play_note_func(f'{standardize_note(each.name)}{each.num}',
-                                    current_durations[i],
-                                    current_volumes[i],
-                                    track=current_track_num)
-            else:
-                duration = current_durations[i]
-                volume = current_volumes[i]
-                current_time += self.bar_to_real_time(current_intervals[i - 1],
-                                                      self.current_bpm)
-                current_id = self.after(
-                    current_time,
-                    lambda each=each, duration=duration, volume=volume: self.
-                    play_note_func(f'{standardize_note(each.name)}{each.num}',
-                                   duration,
-                                   volume,
-                                   track=current_track_num))
-                self.current_playing.append(current_id)
-        '''
+            each = current_chord.notes[i]  
+            interval = self.bar_to_real_time(current_intervals[i], current_bpm)
+            duration = self.bar_to_real_time(current_durations[i], current_bpm)
+            current_sound = current_sounds[str(each)][:duration]
+            silent_audio.overlay(current_sound, position=current_position)
+            current_position += interval
+        return silent_audio
     
     def export_midi_file(self):
         pass
