@@ -49,6 +49,8 @@ def start_load():
     current_start_window.after(500, open_main_window)
 
 def velocity_to_db(vol):
+    if vol == 0:
+        return -100
     return math.log(vol/127, 10)*20
 
 class Root(Tk):
@@ -206,6 +208,8 @@ class Root(Tk):
         self.export_menubar.tk_popup(x=self.winfo_pointerx(), y=self.winfo_pointery())
     
     def export_audio_file(self, mode='wav'):
+        if mode == 'other':
+            pass
         self.msg.configure(text='')
         if not self.track_sound_modules:
             self.msg.configure(
@@ -215,6 +219,11 @@ class Root(Tk):
         result = self.get_current_musicpy_chords()
         if result is None:
             return
+        self.msg.configure(
+            text=
+            f'Start to convert current musicpy code to a {mode} file'
+        )        
+        self.update()
         types = result[0]
         if types == 'chord':
             current_chord = result[1]
@@ -223,7 +232,7 @@ class Root(Tk):
             current_start_times = 0
             silent_audio = AudioSegment.silent(duration=int(current_chord.eval_time(current_bpm, mode='number') * 1000))
             silent_audio = self.track_to_audio(current_chord, current_track_num, silent_audio, current_bpm)
-            silent_audio.export('test.wav', format=mode)
+            silent_audio.export(f'test.{mode}', format=mode)
         elif types == 'piece':
             current_chord = result[1]
             current_name = current_chord.name
@@ -232,6 +241,10 @@ class Root(Tk):
             silent_audio = AudioSegment.silent(duration=int(current_chord.eval_time(mode='number') * 1000))
             for i in range(len(current_chord)):
                 silent_audio = self.track_to_audio(current_chord.tracks[i], current_chord.channels[i], silent_audio, current_bpm)
+        self.msg.configure(
+            text=
+            f'Successfully export the {mode} file'
+        )   
         
     
     def track_to_audio(self, current_chord, current_track_num=0, silent_audio=None, current_bpm=None):
@@ -263,8 +276,9 @@ class Root(Tk):
             each = current_chord.notes[i]  
             interval = self.bar_to_real_time(current_intervals[i], current_bpm)
             duration = self.bar_to_real_time(current_durations[i], current_bpm)
-            current_sound = current_sounds[str(each)][:duration]
-            silent_audio.overlay(current_sound, position=current_position)
+            volume = velocity_to_db(current_volumes[i])
+            current_sound = current_sounds[str(each)][:duration].fade_out(duration=fadeout_time) + volume
+            silent_audio = silent_audio.overlay(current_sound, position=current_position)
             current_position += interval
         return silent_audio
     
