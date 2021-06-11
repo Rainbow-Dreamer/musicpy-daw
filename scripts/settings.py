@@ -104,3 +104,4 @@ channel = 2
 buffer = 4096
 maxinum_channels = 1000
 fadeout_time = 500
+export_audio_fadeout_time_ratio = 0.05

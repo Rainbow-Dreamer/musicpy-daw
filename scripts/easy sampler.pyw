@@ -48,10 +48,12 @@ def start_load():
     current_start_window.loading_label.configure(text='loading complete')
     current_start_window.after(500, open_main_window)
 
+
 def velocity_to_db(vol):
     if vol == 0:
         return -100
-    return math.log(vol/127, 10)*20
+    return math.log(vol / 127, 10) * 20
+
 
 class Root(Tk):
     def __init__(self):
@@ -64,7 +66,7 @@ class Root(Tk):
         style.configure('TEntry', font=(font_type, font_size))
 
         self.set_chord_button = ttk.Button(self,
-                                           text='Enter Notes',
+                                           text='Play Notes',
                                            command=self.play_current_chord)
         self.set_chord_button.place(x=0, y=350)
         self.set_chord_entry = Text(self,
@@ -78,7 +80,7 @@ class Root(Tk):
 
         self.set_musicpy_code_button = ttk.Button(
             self,
-            text='Enter Musicpy Code',
+            text='Play Musicpy Code',
             command=self.play_current_musicpy_code)
         self.set_musicpy_code_button.place(x=0, y=450)
         self.set_musicpy_code_entry = Text(self,
@@ -89,6 +91,11 @@ class Root(Tk):
                                            autoseparators=True,
                                            maxundo=-1)
         self.set_musicpy_code_entry.place(x=130, y=450)
+
+        self.stop_button = ttk.Button(self,
+                                      text='Stop',
+                                      command=self.stop_playing)
+        self.stop_button.place(x=0, y=500)
 
         self.set_bpm_button = ttk.Button(self,
                                          text='Change BPM',
@@ -187,67 +194,125 @@ class Root(Tk):
         self.piece_playing = []
 
         self.open_change_track_dict = False
-        
-        self.export_button = ttk.Button(self, text='Export', command=self.open_export_menu)
+
+        self.export_button = ttk.Button(self,
+                                        text='Export',
+                                        command=self.open_export_menu)
         self.export_button.place(x=500, y=400)
-        
-        self.export_menubar = Menu(self,
-                                   tearoff=False)        
-        
-        self.export_audio_file_menubar = Menu(self,
-                                   tearoff=False)        
-        self.export_audio_file_menubar.add_command(label='Wave File', command=lambda: self.export_audio_file('wav'))
-        self.export_audio_file_menubar.add_command(label='MP3 File', command=lambda: self.export_audio_file('mp3'))
-        self.export_audio_file_menubar.add_command(label='OGG File', command=lambda: self.export_audio_file('ogg'))
-        self.export_audio_file_menubar.add_command(label='Other Format', command=lambda: self.export_audio_file('other'))
-        
-        self.export_menubar.add_cascade(label='Audio File', menu=self.export_audio_file_menubar)
-        self.export_menubar.add_command(label='MIDI File', command=self.export_midi_file)        
+
+        self.export_menubar = Menu(self, tearoff=False)
+
+        self.export_audio_file_menubar = Menu(self, tearoff=False)
+        self.export_audio_file_menubar.add_command(
+            label='Wave File', command=lambda: self.export_audio_file('wav'))
+        self.export_audio_file_menubar.add_command(
+            label='MP3 File', command=lambda: self.export_audio_file('mp3'))
+        self.export_audio_file_menubar.add_command(
+            label='OGG File', command=lambda: self.export_audio_file('ogg'))
+        self.export_audio_file_menubar.add_command(
+            label='Other Format',
+            command=lambda: self.export_audio_file('other'))
+
+        self.export_menubar.add_cascade(label='Audio File',
+                                        menu=self.export_audio_file_menubar)
+        self.export_menubar.add_command(label='MIDI File',
+                                        command=self.export_midi_file)
 
     def open_export_menu(self):
-        self.export_menubar.tk_popup(x=self.winfo_pointerx(), y=self.winfo_pointery())
-    
+        self.export_menubar.tk_popup(x=self.winfo_pointerx(),
+                                     y=self.winfo_pointery())
+
+    def ask_other_format(self):
+        self.ask_other_format_window = Toplevel(self)
+        self.ask_other_format_window.minsize(370, 200)
+        self.ask_other_format_window.title('Other Format')
+        x = self.winfo_x()
+        y = self.winfo_y()
+        self.ask_other_format_window.geometry("+%d+%d" % (x + 100, y + 140))
+        self.ask_other_format_label = ttk.Label(
+            self.ask_other_format_window,
+            text=
+            "Enter a file format, and we'll try to convert if it is supported")
+        self.ask_other_format_label.place(x=0, y=50)
+        self.ask_other_format_entry = ttk.Entry(self.ask_other_format_window,
+                                                width=20)
+        self.ask_other_format_entry.place(x=100, y=100)
+        self.ask_other_format_ok_button = ttk.Button(
+            self.ask_other_format_window,
+            text='OK',
+            command=self.read_other_format)
+        self.ask_other_format_cancel_button = ttk.Button(
+            self.ask_other_format_window,
+            text='Cancel',
+            command=self.ask_other_format_window.destroy)
+        self.ask_other_format_ok_button.place(x=60, y=150)
+        self.ask_other_format_cancel_button.place(x=200, y=150)
+
+    def read_other_format(self):
+        current_format = self.ask_other_format_entry.get()
+        self.ask_other_format_window.destroy()
+        if current_format:
+            self.export_audio_file(mode=current_format)
+
     def export_audio_file(self, mode='wav'):
         if mode == 'other':
-            pass
+            self.ask_other_format()
+            return
         self.msg.configure(text='')
         if not self.track_sound_modules:
             self.msg.configure(
                 text=
-                'You need at least 1 track with loaded sound modules to export audio files')
+                'You need at least 1 track with loaded sound modules to export audio files'
+            )
             return
         result = self.get_current_musicpy_chords()
         if result is None:
             return
         self.msg.configure(
-            text=
-            f'Start to convert current musicpy code to a {mode} file'
-        )        
+            text=f'Start to convert current musicpy code to a {mode} file')
         self.update()
         types = result[0]
+        self.stop_playing()
         if types == 'chord':
             current_chord = result[1]
             current_track_num = result[2]
             current_bpm = self.current_bpm
             current_start_times = 0
-            silent_audio = AudioSegment.silent(duration=int(current_chord.eval_time(current_bpm, mode='number') * 1000))
-            silent_audio = self.track_to_audio(current_chord, current_track_num, silent_audio, current_bpm)
-            silent_audio.export(f'test.{mode}', format=mode)
+            silent_audio = AudioSegment.silent(duration=int(
+                current_chord.eval_time(current_bpm, mode='number') * 1000))
+            silent_audio = self.track_to_audio(current_chord,
+                                               current_track_num, silent_audio,
+                                               current_bpm)
+            try:
+                silent_audio.export(f'test.{mode}', format=mode)
+            except:
+                self.msg.configure(
+                    text=f'Error: {mode} file format is not supported')
+                return
         elif types == 'piece':
             current_chord = result[1]
             current_name = current_chord.name
             current_bpm = current_chord.tempo
-            current_start_times = current_chord.start_times            
-            silent_audio = AudioSegment.silent(duration=int(current_chord.eval_time(mode='number') * 1000))
+            current_start_times = current_chord.start_times
+            silent_audio = AudioSegment.silent(
+                duration=int(current_chord.eval_time(mode='number') * 1000))
             for i in range(len(current_chord)):
-                silent_audio = self.track_to_audio(current_chord.tracks[i], current_chord.channels[i], silent_audio, current_bpm)
-        self.msg.configure(
-            text=
-            f'Successfully export the {mode} file'
-        )   
-        
-    
-    def track_to_audio(self, current_chord, current_track_num=0, silent_audio=None, current_bpm=None):
+                silent_audio = self.track_to_audio(current_chord.tracks[i],
+                                                   current_chord.channels[i],
+                                                   silent_audio, current_bpm)
+                try:
+                    silent_audio.export(f'test.{mode}', format=mode)
+                except:
+                    self.msg.configure(
+                        text=f'Error: {mode} file format is not supported')
+                    return
+        self.msg.configure(text=f'Successfully export the {mode} file')
+
+    def track_to_audio(self,
+                       current_chord,
+                       current_track_num=0,
+                       silent_audio=None,
+                       current_bpm=None):
         if len(self.track_sound_modules) <= current_track_num:
             self.msg.configure(text=f'Cannot find Track {current_track_num+1}')
             return
@@ -264,27 +329,43 @@ class Root(Tk):
         current_sound_path = self.track_sound_modules_name[current_track_num]
         current_sound_format = self.track_sound_format[current_track_num]
         current_sounds = {}
+        current_sound_files = os.listdir(current_sound_path)
         for i in current_dict:
             current_sound_obj = current_dict[i]
-            current_sound_obj_path = f'{current_sound_path}/{current_sound_obj}.{current_sound_format}'
-            if current_sound_obj:
-                current_sounds[i] = AudioSegment.from_file(current_sound_obj_path, format=current_sound_format)
+            current_sound_name = f'{current_sound_obj}.{current_sound_format}'
+            if current_sound_obj and current_sound_name in current_sound_files:
+                current_sound_obj_path = f'{current_sound_path}/{current_sound_name}'
+                current_sounds[i] = AudioSegment.from_file(
+                    current_sound_obj_path, format=current_sound_format)
             else:
                 current_sounds[i] = None
         current_position = 0
         for i in range(len(current_chord)):
-            each = current_chord.notes[i]  
+            each = current_chord.notes[i]
             interval = self.bar_to_real_time(current_intervals[i], current_bpm)
             duration = self.bar_to_real_time(current_durations[i], current_bpm)
             volume = velocity_to_db(current_volumes[i])
-            current_sound = current_sounds[str(each)][:duration].fade_out(duration=fadeout_time) + volume
-            silent_audio = silent_audio.overlay(current_sound, position=current_position)
+            current_sound = current_sounds[str(each)][:duration].fade_out(
+                duration=int(duration *
+                             export_audio_fadeout_time_ratio)) + volume
+            silent_audio = silent_audio.overlay(current_sound,
+                                                position=current_position)
             current_position += interval
         return silent_audio
-    
+
     def export_midi_file(self):
-        pass
-    
+        self.msg.configure(text='')
+        result = self.get_current_musicpy_chords()
+        if result is None:
+            return
+        current_chord = result[1]
+        self.stop_playing()
+        self.msg.configure(
+            text=f'Start to convert current musicpy code to a midi file')
+        self.update()
+        write('test.mid', current_chord, self.current_bpm)
+        self.msg.configure(text=f'Successfully export the midi file')
+
     def get_current_musicpy_chords(self):
         current_notes = self.set_musicpy_code_entry.get('1.0', 'end-1c')
         current_track_num = 0
@@ -326,17 +407,19 @@ class Root(Tk):
         if type(current_chord) == chord:
             return 'chord', current_chord, current_track_num
         if type(current_chord) == track:
-            current_chord = build(current_chord,
-                  bpm=current_chord.tempo if current_chord.tempo is not None else current_bpm,
-                  name=current_chord.name)            
+            current_chord = build(
+                current_chord,
+                bpm=current_chord.tempo
+                if current_chord.tempo is not None else current_bpm,
+                name=current_chord.name)
         if type(current_chord) == piece:
             current_bpm = current_chord.tempo
             current_start_times = current_chord.start_times
             self.set_bpm_entry.delete(0, END)
             self.set_bpm_entry.insert(END, current_bpm)
-            self.set_bpm_func()            
+            self.set_bpm_func()
             return 'piece', current_chord
-    
+
     def clear_all_tracks(self):
         if_clear = messagebox.askyesnocancel(
             'Clear All Tracks',
@@ -621,7 +704,7 @@ class Root(Tk):
                 END, f'read("{filename}", mode="all", merge=True)[1]')
             self.msg.configure(
                 text=
-                f'The midi file is loaded, please click Enter Musicpy Code button to play'
+                f'The midi file is loaded, please click Play Musicpy Code button to play'
             )
 
     def set_sound_format_func(self):
@@ -775,9 +858,11 @@ class Root(Tk):
         if type(current_chord) == chord:
             self.play_track(current_chord, current_track_num)
         elif type(current_chord) == track:
-            current_chord = build(current_chord,
-                  bpm=current_chord.tempo if current_chord.tempo is not None else current_bpm,
-                  name=current_chord.name)
+            current_chord = build(
+                current_chord,
+                bpm=current_chord.tempo
+                if current_chord.tempo is not None else current_bpm,
+                name=current_chord.name)
         if type(current_chord) == piece:
             current_tracks = current_chord.tracks
             current_track_nums = current_chord.channels if current_chord.channels else [

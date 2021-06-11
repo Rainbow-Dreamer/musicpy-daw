@@ -1,6 +1,5 @@
 from musicpy import *
 import random
-
 '''
 def write_jpop(scale_type, length, melody_ins=1, chord_ins=1, bpm=80):
     if 'minor' in scale_type.mode:
@@ -83,4 +82,4 @@ def write_jpop(scale_type, length, melody_ins=1, chord_ins=1, bpm=80):
 #print(chord_analysis(w, mode='bars start'))
 '''
 #(P([(drum('0,1,2,1,0,0,2,1,{4},!1/16;1/16')).notes, chord('B1,F#2')%(1/16,1/16)%4 | chord('G1,D2')%(1/16,1/16)%4 | chord('A1,E2')%(1/16,1/16)%4 | chord('D2,A2')%(1/16,1/16)%4],[1,34],80,[0,0],channels=[9,1])).play()
-q = read("G:/fl studio files/aaa/mp3和midi文件/midi文件/星雨.mid", mode="all", get_off_drums=False, merge=True)[1]
+#q = read("G:/fl studio files/aaa/mp3和midi文件/midi文件/星雨.mid", mode="all", get_off_drums=False, merge=True)[1]
