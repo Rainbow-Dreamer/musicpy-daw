@@ -191,6 +191,10 @@ class Root(Tk):
             self, text='Change Track Dict', command=self.change_track_dict)
         self.change_track_dict_button.place(x=830, y=250)
 
+        self.load_track_settings_button = ttk.Button(
+            self, text='Load Track Settings', command=self.load_track_settings)
+        self.load_track_settings_button.place(x=830, y=300)
+
         self.piece_playing = []
 
         self.open_change_track_dict = False
@@ -217,6 +221,36 @@ class Root(Tk):
                                         menu=self.export_audio_file_menubar)
         self.export_menubar.add_command(label='MIDI File',
                                         command=self.export_midi_file)
+
+    def load_track_settings(self):
+        current_ind = self.choose_tracks.index(ANCHOR)
+        if current_ind >= self.track_num:
+            return
+        filename = filedialog.askopenfilename(initialdir='.',
+                                              title="Choose Track Settings",
+                                              filetype=(("texts", "*.txt"),
+                                                        ("all files", "*.*")))
+        if filename:
+            with open(filename, encoding='utf-8-sig') as f:
+                data = f.read()
+            data = data.split('\n')
+            current_dict = self.track_dict[current_ind]
+            for each in data:
+                if ',' in each:
+                    current_key, current_value = each.split(',')
+                    current_dict[current_key] = current_value
+                elif 'format' in each and '=' in each:
+                    current_sound_format = each.replace(' ', '').split('=')[1]
+                    self.track_sound_format[current_ind] = current_sound_format
+                    self.set_sound_format_entry.delete(0, END)
+                    self.set_sound_format_entry.insert(END,
+                                                       current_sound_format)
+            self.current_track_dict_num = current_ind
+            self.reload_track_sounds()
+            self.msg.configure(
+                text=
+                f'Successfully load settings \'{os.path.basename(filename)}\' for Track {current_ind+1}'
+            )
 
     def open_export_menu(self):
         self.export_menubar.tk_popup(x=self.winfo_pointerx(),
@@ -265,11 +299,19 @@ class Root(Tk):
                 'You need at least 1 track with loaded sound modules to export audio files'
             )
             return
+        filename = filedialog.asksaveasfilename(initialdir='.',
+                                                title="Export Audio File",
+                                                filetype=(("All files",
+                                                           "*.*"), ),
+                                                defaultextension=f".{mode}",
+                                                initialfile='untitled')
+        if not filename:
+            return
         result = self.get_current_musicpy_chords()
         if result is None:
             return
         self.msg.configure(
-            text=f'Start to convert current musicpy code to a {mode} file')
+            text=f'Start to convert current musicpy code to {filename}')
         self.update()
         types = result[0]
         self.stop_playing()
@@ -284,7 +326,7 @@ class Root(Tk):
                                                current_track_num, silent_audio,
                                                current_bpm)
             try:
-                silent_audio.export(f'test.{mode}', format=mode)
+                silent_audio.export(filename, format=mode)
             except:
                 self.msg.configure(
                     text=f'Error: {mode} file format is not supported')
@@ -301,12 +343,12 @@ class Root(Tk):
                                                    current_chord.channels[i],
                                                    silent_audio, current_bpm)
                 try:
-                    silent_audio.export(f'test.{mode}', format=mode)
+                    silent_audio.export(filename, format=mode)
                 except:
                     self.msg.configure(
                         text=f'Error: {mode} file format is not supported')
                     return
-        self.msg.configure(text=f'Successfully export the {mode} file')
+        self.msg.configure(text=f'Successfully export {filename}')
 
     def track_to_audio(self,
                        current_chord,
@@ -355,16 +397,24 @@ class Root(Tk):
 
     def export_midi_file(self):
         self.msg.configure(text='')
+        filename = filedialog.asksaveasfilename(initialdir='.',
+                                                title="Export MIDI File",
+                                                filetype=(("All files",
+                                                           "*.*"), ),
+                                                defaultextension=f".mid",
+                                                initialfile='untitled')
+        if not filename:
+            return
         result = self.get_current_musicpy_chords()
         if result is None:
             return
         current_chord = result[1]
         self.stop_playing()
         self.msg.configure(
-            text=f'Start to convert current musicpy code to a midi file')
+            text=f'Start to convert current musicpy code to {filename}')
         self.update()
-        write('test.mid', current_chord, self.current_bpm)
-        self.msg.configure(text=f'Successfully export the midi file')
+        write(filename, current_chord, self.current_bpm)
+        self.msg.configure(text=f'Successfully export {filename}')
 
     def get_current_musicpy_chords(self):
         current_notes = self.set_musicpy_code_entry.get('1.0', 'end-1c')

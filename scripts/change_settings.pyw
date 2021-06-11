@@ -139,11 +139,11 @@ class Root2(Tk):
     def reload(self):
         try:
             root.destroy()
-            self.destroy()
-            os.chdir('..')
-            os.startfile('easy sampler.exe')
         except:
             pass
+        self.destroy()
+        os.chdir('..')
+        os.startfile('easy sampler.exe')
 
     def change_sort(self):
         global all_config_options
