@@ -431,6 +431,9 @@ class Root(Tk):
                 current_audio = current_silent_audio[
                     pan_ranges[k]:pan_ranges[k + 1]].pan(pan_values[k])
                 audio_list.append(current_audio)
+            current_audio = current_silent_audio[pan_ranges[-1]:].pan(
+                pan_values[-1])
+            audio_list.append(current_audio)
             first_audio = audio_list[0]
             for each in audio_list[1:]:
                 first_audio = first_audio.append(each, crossfade=0)
@@ -449,6 +452,9 @@ class Root(Tk):
                 current_audio = current_silent_audio[
                     volume_ranges[k]:volume_ranges[k + 1]] + volume_values[k]
                 audio_list.append(current_audio)
+            current_audio = current_silent_audio[
+                volume_ranges[-1]:] + volume_values[-1]
+            audio_list.append(current_audio)
             first_audio = audio_list[0]
             for each in audio_list[1:]:
                 first_audio = first_audio.append(each, crossfade=0)
