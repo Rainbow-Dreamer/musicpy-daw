@@ -414,7 +414,10 @@ class Root(Tk):
             interval = self.bar_to_real_time(current_intervals[i], current_bpm)
             duration = self.bar_to_real_time(current_durations[i], current_bpm)
             volume = velocity_to_db(current_volumes[i])
-            current_sound = current_sounds[str(each)][:duration].fade_out(
+            each_name = str(each)
+            if each_name not in current_sounds:
+                each_name = str(~each)
+            current_sound = current_sounds[each_name][:duration].fade_out(
                 duration=int(duration *
                              export_audio_fadeout_time_ratio)) + volume
             current_silent_audio = current_silent_audio.overlay(
