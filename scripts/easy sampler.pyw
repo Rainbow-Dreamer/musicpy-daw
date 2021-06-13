@@ -607,12 +607,12 @@ class Root(Tk):
                                                    current_pan[i],
                                                    current_volume[i],
                                                    current_start_times[i])
-                try:
-                    silent_audio.export(filename, format=mode)
-                except:
-                    self.msg.configure(
-                        text=f'Error: {mode} file format is not supported')
-                    return
+            try:
+                silent_audio.export(filename, format=mode)
+            except:
+                self.msg.configure(
+                    text=f'Error: {mode} file format is not supported')
+                return
         self.msg.configure(text=f'Successfully export {filename}')
 
     def track_to_audio(self,
@@ -662,9 +662,11 @@ class Root(Tk):
             each_name = str(each)
             if each_name not in current_sounds:
                 each_name = str(~each)
-            current_sound = current_sounds[each_name][:duration].fade_out(
-                duration=int(duration *
-                             export_audio_fadeout_time_ratio)) + volume
+            current_sound = current_sounds[each_name][:duration]
+            if export_audio_fadeout_time_ratio > 0:
+                current_sound = current_sound.fade_out(
+                    duration=int(duration * export_audio_fadeout_time_ratio))
+            current_sound += volume
             current_silent_audio = current_silent_audio.overlay(
                 current_sound, position=current_position)
             current_position += interval

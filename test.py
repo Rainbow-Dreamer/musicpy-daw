@@ -85,4 +85,8 @@ def write_jpop(scale_type, length, melody_ins=1, chord_ins=1, bpm=80):
 #q = read("G:/fl studio files/aaa/mp3和midi文件/midi文件/星雨.mid", mode="all", get_off_drums=False, merge=True)[1]
 a = P([drum('0,1,2,1,0;1,0;1,2,1,{6}').notes, C('Cmaj9',4,1) | C('Bbmaj9',3,1) | C('Abmaj9',3,1) | C('Am9',3,1)],
 [1, 2], 230, [0, 1.97], channels=[9,0])
-play(a | 3)
+#play(a | 3)
+
+a = P([drum('0,1,2,1,0;1,0;1,2,1,{6}').notes, C('Cmaj9',4,1) | C('Bbmaj9',3,1) | C('Abmaj9',3,1) | C('Am9',3,1)],
+[1, 2], 230, [0, 1.875], channels=[1,0])
+#play(a | 8)
