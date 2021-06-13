@@ -105,3 +105,10 @@ buffer = 4096
 maxinum_channels = 1000
 fadeout_time = 500
 export_audio_fadeout_time_ratio = 0.05
+
+background_color = 'white'
+foreground_color = 'black'
+active_background_color = 'ivory2'
+active_foreground_color = 'black'
+disabled_foreground_color = 'white'
+button_background_color = 'lavender'

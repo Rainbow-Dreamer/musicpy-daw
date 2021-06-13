@@ -71,10 +71,24 @@ class Root(Tk):
         super(Root, self).__init__()
         self.title("Easy Sampler")
         self.minsize(1000, 650)
+        self.configure(bg=background_color)
 
         style = ttk.Style()
-        style.configure('TButton', font=(font_type, font_size))
+        style.theme_use('alt')
+        style.configure('TButton',
+                        font=(font_type, font_size),
+                        background=button_background_color,
+                        foreground=foreground_color,
+                        borderwidth=0,
+                        focusthickness=3,
+                        focuscolor='none')
         style.configure('TEntry', font=(font_type, font_size))
+        style.configure('TLabel',
+                        background=background_color,
+                        foreground=foreground_color)
+        style.map('TButton',
+                  background=[('active', active_background_color)],
+                  foreground=[('active', active_foreground_color)])
 
         self.set_chord_button = ttk.Button(self,
                                            text='Play Notes',
@@ -102,6 +116,15 @@ class Root(Tk):
                                            autoseparators=True,
                                            maxundo=-1)
         self.set_musicpy_code_entry.place(x=130, y=450)
+        self.menubar = Menu(self,
+                            tearoff=False,
+                            bg=background_color,
+                            activebackground=active_background_color,
+                            activeforeground=active_foreground_color,
+                            disabledforeground=disabled_foreground_color)
+        self.set_musicpy_code_entry.bind(
+            "<Button-3>",
+            lambda x: self.rightKey(x, self.set_musicpy_code_entry))
 
         self.stop_button = ttk.Button(self,
                                       text='Stop',
@@ -215,9 +238,21 @@ class Root(Tk):
                                         command=self.open_export_menu)
         self.export_button.place(x=500, y=400)
 
-        self.export_menubar = Menu(self, tearoff=False)
+        self.export_menubar = Menu(
+            self,
+            tearoff=False,
+            bg=background_color,
+            activebackground=active_background_color,
+            activeforeground=active_foreground_color,
+            disabledforeground=disabled_foreground_color)
 
-        self.export_audio_file_menubar = Menu(self, tearoff=False)
+        self.export_audio_file_menubar = Menu(
+            self,
+            tearoff=False,
+            bg=background_color,
+            activebackground=active_background_color,
+            activeforeground=active_foreground_color,
+            disabledforeground=disabled_foreground_color)
         self.export_audio_file_menubar.add_command(
             label='Wave File', command=lambda: self.export_audio_file('wav'))
         self.export_audio_file_menubar.add_command(
@@ -232,6 +267,89 @@ class Root(Tk):
                                         menu=self.export_audio_file_menubar)
         self.export_menubar.add_command(label='MIDI File',
                                         command=self.export_midi_file)
+
+        self.file_top = ttk.Button(self,
+                                   text='File',
+                                   command=self.file_top_make_menu)
+
+        self.file_menu = Menu(self,
+                              tearoff=False,
+                              bg=background_color,
+                              activebackground=active_background_color,
+                              activeforeground=active_foreground_color,
+                              disabledforeground=disabled_foreground_color)
+        self.file_menu.add_command(label='Open project file',
+                                   command=self.open_project_file)
+        self.file_menu.add_command(label='Save as project file',
+                                   command=self.save_as_project_file)
+        self.file_menu.add_command(label='Open MIDI file',
+                                   command=self.load_midi_file_func)
+        self.file_menu.add_command(label='Change settings',
+                                   command=self.open_change_settings)
+        self.file_menu.add_command(label='Save current musicpy code',
+                                   command=self.save_current_musicpy_code)
+        self.file_top.place(x=0, y=0)
+
+    def cut(self, editor, event=None):
+        editor.event_generate("<<Cut>>")
+
+    def copy(self, editor, event=None):
+        editor.event_generate("<<Copy>>")
+
+    def paste(self, editor, event=None):
+        editor.event_generate('<<Paste>>')
+
+    def choose_all(self, editor, event=None):
+        editor.tag_add(SEL, '1.0', END)
+        editor.mark_set(INSERT, END)
+        editor.see(INSERT)
+
+    def inputs_undo(self, editor, event=None):
+        try:
+            editor.edit_undo()
+        except:
+            pass
+
+    def inputs_redo(self, editor, event=None):
+        try:
+            editor.edit_redo()
+        except:
+            pass
+
+    def rightKey(self, event, editor):
+        self.menubar.delete(0, END)
+        self.menubar.add_command(label='Cut',
+                                 command=lambda: self.cut(editor),
+                                 foreground=foreground_color)
+        self.menubar.add_command(label='Copy',
+                                 command=lambda: self.copy(editor),
+                                 foreground=foreground_color)
+        self.menubar.add_command(label='Paste',
+                                 command=lambda: self.paste(editor),
+                                 foreground=foreground_color)
+        self.menubar.add_command(label='Select all',
+                                 command=lambda: self.choose_all(editor),
+                                 foreground=foreground_color)
+        self.menubar.add_command(label='Undo',
+                                 command=lambda: self.inputs_undo(editor),
+                                 foreground=foreground_color)
+        self.menubar.add_command(label='Redo',
+                                 command=lambda: self.inputs_redo(editor),
+                                 foreground=foreground_color)
+        self.menubar.post(event.x_root, event.y_root)
+
+    def open_project_file(self):
+        pass
+
+    def save_as_project_file(self):
+        pass
+
+    def save_current_musicpy_code(self):
+        pass
+
+    def file_top_make_menu(self):
+        self.file_menu.tk_popup(x=self.winfo_pointerx(),
+                                y=self.winfo_pointery())
 
     def load_track_settings(self):
         current_ind = self.choose_tracks.index(ANCHOR)
