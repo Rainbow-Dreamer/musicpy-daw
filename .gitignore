@@ -127,3 +127,4 @@ dmypy.json
 .pyre/
 .vscode/settings.json
 ffmpeg
+browse memory.txt

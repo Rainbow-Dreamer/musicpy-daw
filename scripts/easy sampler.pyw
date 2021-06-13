@@ -116,6 +116,12 @@ class Root(Tk):
                                            autoseparators=True,
                                            maxundo=-1)
         self.set_musicpy_code_entry.place(x=130, y=450)
+        self.bind('<Control-r>', lambda e: self.play_current_musicpy_code())
+        self.bind('<Control-e>', lambda e: self.stop_playing())
+        self.bind('<Control-w>', lambda e: self.open_project_file())
+        self.bind('<Control-s>', lambda e: self.save_as_project_file())
+        self.bind('<Control-a>', lambda e: self.load_musicpy_code())
+        self.bind('<Control-d>', lambda e: self.save_current_musicpy_code())
         self.menubar = Menu(self,
                             tearoff=False,
                             bg=background_color,
@@ -160,7 +166,7 @@ class Root(Tk):
         self.set_sound_format_entry.place(x=660, y=250)
 
         self.load_midi_file_button = ttk.Button(
-            self, text='Load Midi Files', command=self.load_midi_file_func)
+            self, text='Load MIDI File', command=self.load_midi_file_func)
         self.load_midi_file_button.place(x=500, y=350)
         self.load_midi_file_entry = ttk.Entry(self, width=50)
         self.load_midi_file_entry.insert(END, '')
@@ -179,6 +185,8 @@ class Root(Tk):
                                      exportselection=False)
         self.choose_tracks.bind('<<ListboxSelect>>',
                                 lambda e: self.show_current_track())
+        self.choose_tracks.bind('<Control-z>', lambda e: self.add_new_track())
+        self.choose_tracks.bind('<Control-x>', lambda e: self.delete_track())
         self.choose_tracks.place(x=0, y=150, width=220)
         self.choose_tracks_bar.config(command=self.choose_tracks.yview)
 
@@ -288,7 +296,39 @@ class Root(Tk):
                                    command=self.open_change_settings)
         self.file_menu.add_command(label='Save current musicpy code',
                                    command=self.save_current_musicpy_code)
+        self.file_menu.add_command(label='Load musicpy code',
+                                   command=self.load_musicpy_code)
         self.file_top.place(x=0, y=0)
+
+        self.load_musicpy_code_button = ttk.Button(
+            self, text='Load musicpy code', command=self.load_musicpy_code)
+        self.load_musicpy_code_button.place(x=0, y=550)
+
+        try:
+            with open('browse memory.txt', encoding='utf-8-sig') as f:
+                self.last_place = f.read()
+        except:
+            self.last_place = "."
+
+    def load_musicpy_code(self):
+        filename = filedialog.askopenfilename(initialdir=self.last_place,
+                                              title="Choose musicpy code file",
+                                              filetype=(("Text", "*.txt"),
+                                                        ("All files", "*.*")))
+        if filename:
+            memory = filename[:filename.rindex('/') + 1]
+            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+                f.write(memory)
+            self.last_place = memory
+            try:
+                with open(filename, encoding='utf-8-sig',
+                          errors='ignore') as f:
+                    self.set_musicpy_code_entry.delete('1.0', END)
+                    self.set_musicpy_code_entry.insert(END, f.read())
+                    self.set_musicpy_code_entry.see(INSERT)
+            except:
+                self.set_musicpy_code_entry.delete('1.0', END)
+                self.msg.configure(text='Not a valid text file')
 
     def cut(self, editor, event=None):
         editor.event_generate("<<Cut>>")
@@ -336,16 +376,103 @@ class Root(Tk):
         self.menubar.add_command(label='Redo',
                                  command=lambda: self.inputs_redo(editor),
                                  foreground=foreground_color)
+        self.menubar.add_command(
+            label='Save',
+            command=lambda: self.save_current_musicpy_code(),
+            foreground=foreground_color)
+        self.menubar.add_command(label='Load',
+                                 command=lambda: self.load_musicpy_code(),
+                                 foreground=foreground_color)
         self.menubar.post(event.x_root, event.y_root)
 
     def open_project_file(self):
-        pass
+        self.msg.configure(text='')
+        filename = filedialog.askopenfilename(
+            initialdir=self.last_place,
+            title="Choose project file",
+            filetype=(("Easy Sampler Project", "*.esp"), ("Text", "*.txt"),
+                      ("All files", "*.*")))
+        if filename:
+            memory = filename[:filename.rindex('/') + 1]
+            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+                f.write(memory)
+            self.last_place = memory
+            try:
+                with open(filename, encoding='utf-8-sig',
+                          errors='ignore') as f:
+                    self.project_dict = literal_eval(f.read())
+            except:
+                self.set_musicpy_code_entry.delete('1.0', END)
+                self.msg.configure(
+                    text='Not a valid text file or easy sampler project file')
+                return
+        else:
+            return
+        self.clear_all_tracks(1)
+        self.track_num = self.project_dict['track_num']
+        self.init_tracks(self.track_num)
+        self.track_names = self.project_dict['track_names']
+        self.track_sound_modules_name = self.project_dict[
+            'track_sound_modules_name']
+        self.track_sound_format = self.project_dict['track_sound_format']
+        self.track_dict = self.project_dict['track_dict']
+        self.current_bpm = self.project_dict['current_bpm']
+        self.set_bpm_entry.delete(0, END)
+        self.set_bpm_entry.insert(END, self.current_bpm)
+        self.load_midi_file_entry.delete(0, END)
+        self.load_midi_file_entry.insert(
+            END, self.project_dict['current_midi_file'])
+        self.set_musicpy_code_entry.delete('1.0', END)
+        self.set_musicpy_code_entry.insert(
+            END, self.project_dict['current_musicpy_code'])
+        self.current_track_name_label.focus_set()
+        for current_ind in range(self.track_num):
+            self.choose_tracks.delete(current_ind)
+            self.choose_tracks.insert(current_ind,
+                                      self.track_names[current_ind])
+        for i in range(self.track_num):
+            self.reload_track_sounds(i)
+        self.current_track_sound_modules_entry.delete(0, END)
+        self.choose_tracks.selection_clear(0, END)
+        self.msg.configure(text='Successfully loaded current project file')
 
     def save_as_project_file(self):
-        pass
+        self.msg.configure(text='')
+        self.project_dict = {}
+        self.project_dict['track_num'] = self.track_num
+        self.project_dict['track_names'] = self.track_names
+        self.project_dict[
+            'track_sound_modules_name'] = self.track_sound_modules_name
+        self.project_dict['track_sound_format'] = self.track_sound_format
+        self.project_dict['track_dict'] = self.track_dict
+        self.project_dict['current_bpm'] = self.current_bpm
+        self.project_dict['current_midi_file'] = self.load_midi_file_entry.get(
+        )
+        self.project_dict[
+            'current_musicpy_code'] = self.set_musicpy_code_entry.get(
+                '1.0', 'end-1c')
+        filename = filedialog.asksaveasfilename(
+            initialdir='.',
+            title="Save As Project File",
+            filetype=(("Easy Sampler Project", "*.esp"), ("Text", "*.txt"),
+                      ("All files", "*.*")),
+            defaultextension=f".esp",
+            initialfile='untitled')
+        if filename:
+            with open(filename, 'w', encoding='utf-8-sig') as f:
+                f.write(str(self.project_dict))
+            self.msg.configure(text='Successfully saved as project file')
 
     def save_current_musicpy_code(self):
-        pass
+        filename = filedialog.asksaveasfilename(
+            initialdir='.',
+            title="Save Current Musicpy Code",
+            filetype=(("All files", "*.*"), ),
+            defaultextension=f".txt",
+            initialfile='untitled')
+        if filename:
+            with open(filename, 'w', encoding='utf-8-sig') as f:
+                f.write(self.set_musicpy_code_entry.get('1.0', 'end-1c'))
 
     def file_top_make_menu(self):
         self.file_menu.tk_popup(x=self.winfo_pointerx(),
@@ -357,7 +484,7 @@ class Root(Tk):
             return
         filename = filedialog.askopenfilename(initialdir='.',
                                               title="Choose Track Settings",
-                                              filetype=(("texts", "*.txt"),
+                                              filetype=(("Text", "*.txt"),
                                                         ("all files", "*.*")))
         if filename:
             with open(filename, encoding='utf-8-sig') as f:
@@ -659,11 +786,11 @@ class Root(Tk):
             self.set_bpm_func()
             return 'piece', current_chord
 
-    def clear_all_tracks(self):
+    def clear_all_tracks(self, mode=0):
         if_clear = messagebox.askyesnocancel(
             'Clear All Tracks',
             'Are you sure you want to clear all tracks? This will stop current playing.',
-            icon='warning')
+            icon='warning') if mode == 0 else True
         if if_clear:
             self.stop_playing()
             self.choose_tracks.delete(0, END)
@@ -715,6 +842,18 @@ class Root(Tk):
         self.track_sound_format.append('wav')
         self.track_dict.append(copy(notedict))
         self.show_current_track()
+
+    def init_tracks(self, num=1):
+        self.track_num = num
+        for i in range(self.track_num):
+            current_track_name = f'Track {i}'
+            self.choose_tracks.insert(END, current_track_name)
+            self.track_names.append(current_track_name)
+            self.track_sound_modules_name.append('')
+            self.track_sound_modules.append(None)
+            self.track_note_sounds_path.append(None)
+            self.track_sound_format.append('wav')
+            self.track_dict.append(copy(notedict))
 
     def change_track_dict(self):
         if self.open_change_track_dict:
@@ -855,9 +994,13 @@ class Root(Tk):
         self.dict_configs.selection_set(new_ind)
         self.show_current_dict_configs()
 
-    def reload_track_sounds(self):
+    def reload_track_sounds(self, current_ind=None):
+        if current_ind is None:
+            current_mode = 0
+        else:
+            current_mode = 1
         self.msg.configure(text='')
-        current_ind = self.current_track_dict_num
+        current_ind = self.current_track_dict_num if not current_mode else current_ind
         try:
             self.msg.configure(
                 text=
@@ -880,9 +1023,10 @@ class Root(Tk):
                 text=
                 f'The sound path of {self.track_names[current_ind]} has changed'
             )
-            self.choose_tracks.see(current_ind)
-            self.choose_tracks.selection_anchor(current_ind)
-            self.choose_tracks.selection_set(current_ind)
+            if not current_mode:
+                self.choose_tracks.see(current_ind)
+                self.choose_tracks.selection_anchor(current_ind)
+                self.choose_tracks.selection_set(current_ind)
             #self.stop_playing()
         except Exception as e:
             print(str(e))
@@ -927,10 +1071,9 @@ class Root(Tk):
     def load_midi_file_func(self):
         self.msg.configure(text='')
         filename = filedialog.askopenfilename(initialdir='.',
-                                              title="Choose Midi Files",
-                                              filetype=(("midi files",
-                                                         "*.mid"),
-                                                        ("all files", "*.*")))
+                                              title="Choose MIDI File",
+                                              filetype=(("MIDI", "*.mid"),
+                                                        ("All files", "*.*")))
         if filename:
             self.load_midi_file_entry.delete(0, END)
             self.load_midi_file_entry.insert(END, filename)
@@ -943,7 +1086,7 @@ class Root(Tk):
                 END, f'read("{filename}", mode="all", merge=True)[1]')
             self.msg.configure(
                 text=
-                f'The midi file is loaded, please click Play Musicpy Code button to play'
+                f'The MIDI file is loaded, please click Play Musicpy Code button to play'
             )
 
     def set_sound_format_func(self):
@@ -1019,7 +1162,6 @@ class Root(Tk):
             self.msg.configure(text=f'Set BPM to {current_bpm}')
         except:
             self.msg.configure(text=f'Error: invalid BPM')
-            pass
 
     def play_note_func(self,
                        name,
