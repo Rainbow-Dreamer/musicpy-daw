@@ -754,7 +754,8 @@ class Root(Tk):
             current_sound = current_sounds[each_name][current_offset:duration]
             if check_reverse(each):
                 current_sound = current_sound.reverse()
-            if export_audio_fadeout_time_ratio > 0:
+            if not (export_audio_fadeout_time_ratio == 0
+                    or int(duration * export_audio_fadeout_time_ratio) == 0):
                 current_sound = current_sound.fade_out(
                     duration=int(duration * export_audio_fadeout_time_ratio))
             current_sound += volume
