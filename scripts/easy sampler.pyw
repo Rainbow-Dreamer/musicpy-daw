@@ -66,6 +66,51 @@ def percentage_to_db(vol):
     return math.log(abs(vol / 100), 10) * 20
 
 
+def reverse(sound):
+    sound.reverse_audio = True
+    return sound
+
+
+def offset(sound, bar):
+    sound.offset = bar
+
+
+def check_reverse(sound):
+    return hasattr(sound, 'reverse_audio') and sound.reverse_audio
+
+
+def check_offset(sound):
+    return hasattr(sound, 'offset')
+
+
+def check_reverse_all(sound):
+    types = type(sound)
+    if types == chord:
+        return check_reverse(sound) or any(check_reverse(i) for i in sound)
+    elif types == piece:
+        return check_reverse(sound) or any(
+            check_reverse_all(i) for i in sound.tracks)
+
+
+def check_offset_all(sound):
+    types = type(sound)
+    if types == chord:
+        return check_offset(sound) or any(check_offset(i) for i in sound)
+    elif types == piece:
+        return check_offset(sound) or any(
+            check_offset_all(i) for i in sound.tracks)
+
+
+def check_pan_or_volume(sound):
+    return type(sound) == piece and (any(i for i in sound.pan)
+                                     or any(i for i in sound.volume))
+
+
+def check_special(sound):
+    return check_pan_or_volume(sound) or check_reverse_all(
+        sound) or check_offset_all(sound)
+
+
 class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
@@ -120,9 +165,9 @@ class Root(Tk):
         self.bind('<Control-e>', lambda e: self.stop_playing())
         self.bind('<Control-w>', lambda e: self.open_project_file())
         self.bind('<Control-s>', lambda e: self.save_as_project_file())
-        self.bind('<Control-a>', lambda e: self.load_musicpy_code())
+        self.bind('<Control-f>', lambda e: self.load_musicpy_code())
         self.bind('<Control-d>', lambda e: self.save_current_musicpy_code())
-        self.bind('<Control-t>', lambda e: self.open_export_menu())
+        self.bind('<Control-g>', lambda e: self.open_export_menu())
         self.menubar = Menu(self,
                             tearoff=False,
                             bg=background_color,
@@ -554,30 +599,39 @@ class Root(Tk):
         if current_format:
             self.export_audio_file(mode=current_format)
 
-    def export_audio_file(self, mode='wav'):
+    def export_audio_file(self, mode='wav', action='export'):
         if mode == 'other':
             self.ask_other_format()
             return
         self.msg.configure(text='')
         if not self.track_sound_modules:
-            self.msg.configure(
-                text=
-                'You need at least 1 track with loaded sound modules to export audio files'
-            )
-            return
-        filename = filedialog.asksaveasfilename(initialdir='.',
-                                                title="Export Audio File",
-                                                filetype=(("All files",
-                                                           "*.*"), ),
-                                                defaultextension=f".{mode}",
-                                                initialfile='untitled')
-        if not filename:
-            return
+            if action == 'export':
+                self.msg.configure(
+                    text=
+                    'You need at least 1 track with loaded sound modules to export audio files'
+                )
+                return
+            elif action == 'play':
+                self.msg.configure(
+                    text=
+                    'You need at least 1 track with loaded sound modules to play'
+                )
+                return
+        if action == 'export':
+            filename = filedialog.asksaveasfilename(
+                initialdir='.',
+                title="Export Audio File",
+                filetype=(("All files", "*.*"), ),
+                defaultextension=f".{mode}",
+                initialfile='untitled')
+            if not filename:
+                return
         result = self.get_current_musicpy_chords()
         if result is None:
             return
-        self.msg.configure(
-            text=f'Start to convert current musicpy code to {filename}')
+        if action == 'export':
+            self.msg.configure(
+                text=f'Start to convert current musicpy code to {filename}')
         self.update()
         types = result[0]
         self.stop_playing()
@@ -586,16 +640,22 @@ class Root(Tk):
             current_track_num = result[2]
             current_bpm = self.current_bpm
             current_start_times = 0
-            silent_audio = AudioSegment.silent(duration=int(
-                current_chord.eval_time(current_bpm, mode='number') * 1000))
+            silent_audio = AudioSegment.silent(
+                duration=current_chord.eval_time(current_bpm, mode='number') *
+                1000)
             silent_audio = self.track_to_audio(current_chord,
                                                current_track_num, silent_audio,
                                                current_bpm)
             try:
-                silent_audio.export(filename, format=mode)
+                if action == 'export':
+                    silent_audio.export(filename, format=mode)
+                elif action == 'play':
+                    self.msg.configure(text=f'Start playing')
+                    play_audio(silent_audio)
             except:
-                self.msg.configure(
-                    text=f'Error: {mode} file format is not supported')
+                if action == 'export':
+                    self.msg.configure(
+                        text=f'Error: {mode} file format is not supported')
                 return
         elif types == 'piece':
             current_chord = result[1]
@@ -609,7 +669,7 @@ class Root(Tk):
                 i for i in range(len(current_chord))
             ]
             silent_audio = AudioSegment.silent(
-                duration=int(current_chord.eval_time(mode='number') * 1000))
+                duration=current_chord.eval_time(mode='number') * 1000)
             for i in range(len(current_chord)):
                 silent_audio = self.track_to_audio(current_tracks[i],
                                                    current_channels[i],
@@ -617,13 +677,21 @@ class Root(Tk):
                                                    current_pan[i],
                                                    current_volume[i],
                                                    current_start_times[i])
+            if check_reverse(current_chord):
+                silent_audio = silent_audio.reverse()
             try:
-                silent_audio.export(filename, format=mode)
+                if action == 'export':
+                    silent_audio.export(filename, format=mode)
+                elif action == 'play':
+                    self.msg.configure(text=f'Start playing')
+                    play_audio(silent_audio)
             except:
-                self.msg.configure(
-                    text=f'Error: {mode} file format is not supported')
+                if action == 'export':
+                    self.msg.configure(
+                        text=f'Error: {mode} file format is not supported')
                 return
-        self.msg.configure(text=f'Successfully export {filename}')
+        if action == 'export':
+            self.msg.configure(text=f'Successfully export {filename}')
 
     def track_to_audio(self,
                        current_chord,
@@ -641,8 +709,9 @@ class Root(Tk):
                 text=
                 f'Track {current_track_num+1} has not loaded any sounds yet')
             return
-        current_silent_audio = AudioSegment.silent(duration=int(
-            current_chord.eval_time(current_bpm, mode='number') * 1000))
+        current_silent_audio = AudioSegment.silent(
+            duration=current_chord.eval_time(current_bpm, mode='number') *
+            1000)
         current_chord = current_chord.only_notes()
         current_intervals = current_chord.interval
         current_durations = current_chord.get_duration()
@@ -675,6 +744,8 @@ class Root(Tk):
             if each_name not in current_sounds:
                 each_name = str(~each)
             current_sound = current_sounds[each_name][:duration]
+            if check_reverse(each):
+                current_sound = current_sound.reverse()
             if export_audio_fadeout_time_ratio > 0:
                 current_sound = current_sound.fade_out(
                     duration=int(duration * export_audio_fadeout_time_ratio))
@@ -721,6 +792,8 @@ class Root(Tk):
             for each in audio_list[1:]:
                 first_audio = first_audio.append(each, crossfade=0)
             current_silent_audio = first_audio
+        if check_reverse(current_chord):
+            current_silent_audio = current_silent_audio.reverse()
         silent_audio = silent_audio.overlay(current_silent_audio,
                                             position=current_start_time)
         return silent_audio
@@ -771,7 +844,7 @@ class Root(Tk):
                         current_track_num -= 1
                     self.set_bpm_entry.delete(0, END)
                     self.set_bpm_entry.insert(END, current_bpm)
-                    self.set_bpm_func()
+                    self.set_bpm_func(1)
             except Exception as e:
                 print(str(e))
                 self.msg.configure(
@@ -780,24 +853,30 @@ class Root(Tk):
                 )
                 return
         if type(current_chord) == note:
+            has_reverse = check_reverse(current_chord)
             current_chord = chord([current_chord])
+            if has_reverse:
+                current_chord.reverse_audio = True
         elif type(current_chord) == list and all(
                 type(i) == chord for i in current_chord):
             current_chord = concat(current_chord, mode='|')
         if type(current_chord) == chord:
             return 'chord', current_chord, current_track_num
         if type(current_chord) == track:
+            has_reverse = check_reverse(current_chord)
             current_chord = build(
                 current_chord,
                 bpm=current_chord.tempo
                 if current_chord.tempo is not None else current_bpm,
                 name=current_chord.name)
+            if has_reverse:
+                current_chord.reverse_audio = True
         if type(current_chord) == piece:
             current_bpm = current_chord.tempo
             current_start_times = current_chord.start_times
             self.set_bpm_entry.delete(0, END)
             self.set_bpm_entry.insert(END, current_bpm)
-            self.set_bpm_func()
+            self.set_bpm_func(1)
             return 'piece', current_chord
 
     def clear_current_track(self):
@@ -1109,7 +1188,7 @@ class Root(Tk):
             current_midi_file = read(filename)
             self.set_bpm_entry.delete(0, END)
             self.set_bpm_entry.insert(END, current_midi_file[0])
-            self.set_bpm_func()
+            self.set_bpm_func(1)
             self.set_musicpy_code_entry.insert(
                 END, f'read("{filename}", mode="all", merge=True)[1]')
             self.msg.configure(
@@ -1181,22 +1260,19 @@ class Root(Tk):
         return int((60000 / bpm) *
                    (bar * 4)) if mode == 0 else (60000 / bpm) * (bar * 4)
 
-    def set_bpm_func(self):
+    def set_bpm_func(self, mode=0):
         self.msg.configure(text='')
         current_bpm = self.set_bpm_entry.get()
         try:
             current_bpm = float(current_bpm)
             self.current_bpm = current_bpm
-            self.msg.configure(text=f'Set BPM to {current_bpm}')
+            if mode == 0:
+                self.msg.configure(text=f'Set BPM to {current_bpm}')
         except:
-            self.msg.configure(text=f'Error: invalid BPM')
+            if mode == 0:
+                self.msg.configure(text=f'Error: invalid BPM')
 
-    def play_note_func(self,
-                       name,
-                       duration,
-                       volume,
-                       track=0,
-                       as_channel=False):
+    def play_note_func(self, name, duration, volume, track=0):
         note_sounds_path = self.track_note_sounds_path[track]
         note_sounds = self.track_sound_modules[track]
         if name in note_sounds_path:
@@ -1206,22 +1282,10 @@ class Root(Tk):
                 current_sound.set_volume(global_volume * volume / 127)
                 duration_time = self.bar_to_real_time(duration,
                                                       self.current_bpm)
-                if as_channel:
-                    channel = pygame.mixer.find_channel()
-                    append_channel = custom_channel(channel)
-                    append_channel.original_volume = current_sound.get_volume()
-                    self.current_channels[track].append(append_channel)
-                    current_sound.set_volume(current_sound.get_volume() *
-                                             self.current_channel_volume)
-                    channel.play(current_sound)
-                    current_id = self.after(
-                        duration_time, lambda: channel.fadeout(fadeout_time))
 
-                else:
-                    current_sound.play()
-                    current_id = self.after(
-                        duration_time,
-                        lambda: current_sound.fadeout(fadeout_time))
+                current_sound.play()
+                current_id = self.after(
+                    duration_time, lambda: current_sound.fadeout(fadeout_time))
 
                 self.current_playing.append(current_id)
 
@@ -1235,6 +1299,10 @@ class Root(Tk):
             for each in self.piece_playing:
                 self.after_cancel(each)
             self.piece_playing.clear()
+        try:
+            simpleaudio.stop_all()
+        except:
+            pass
 
     def play_current_musicpy_code(self):
         self.msg.configure(text='')
@@ -1269,7 +1337,7 @@ class Root(Tk):
                         current_track_num -= 1
                     self.set_bpm_entry.delete(0, END)
                     self.set_bpm_entry.insert(END, current_bpm)
-                    self.set_bpm_func()
+                    self.set_bpm_func(1)
             except Exception as e:
                 print(str(e))
                 self.msg.configure(
@@ -1278,51 +1346,50 @@ class Root(Tk):
                 )
                 return
         if type(current_chord) == note:
+            has_reverse = check_reverse(current_chord)
             current_chord = chord([current_chord])
+            if has_reverse:
+                current_chord.reverse_audio = True
         elif type(current_chord) == list and all(
                 type(i) == chord for i in current_chord):
             current_chord = concat(current_chord, mode='|')
         if type(current_chord) == chord:
-            self.play_track(current_chord, current_track_num)
+            if check_special(current_chord):
+                self.export_audio_file(action='play')
+            else:
+                self.play_track(current_chord, current_track_num)
         elif type(current_chord) == track:
+            has_reverse = check_reverse(current_chord)
             current_chord = build(
                 current_chord,
                 bpm=current_chord.tempo
                 if current_chord.tempo is not None else current_bpm,
                 name=current_chord.name)
+            if has_reverse:
+                current_chord.reverse_audio = True
         if type(current_chord) == piece:
+            if check_special(current_chord):
+                self.export_audio_file(action='play')
+                return
             current_tracks = current_chord.tracks
             current_track_nums = current_chord.channels if current_chord.channels else [
                 i for i in range(len(current_chord))
             ]
             current_bpm = current_chord.tempo
             current_start_times = current_chord.start_times
-            current_pan = current_chord.pan
-            current_volume = current_chord.volume
             self.set_bpm_entry.delete(0, END)
             self.set_bpm_entry.insert(END, current_bpm)
-            self.set_bpm_func()
-            as_channel = False
-            if any(i for i in current_pan) or any(i for i in current_volume):
-                as_channel = True
-                self.current_channels = [[] for i in range(len(current_chord))]
-                self.current_channel_volume = 1
+            self.set_bpm_func(1)
             for each in range(len(current_chord)):
                 current_id = self.after(
                     self.bar_to_real_time(current_start_times[each],
                                           self.current_bpm),
                     lambda each=each: self.play_track(current_tracks[
-                        each], current_track_nums[each], current_pan[
-                            each], current_volume[each], as_channel))
+                        each], current_track_nums[each]))
                 self.piece_playing.append(current_id)
         self.msg.configure(text=f'Start playing')
 
-    def play_track(self,
-                   current_chord,
-                   current_track_num=0,
-                   pan=None,
-                   channel_volume=None,
-                   as_channel=False):
+    def play_track(self, current_chord, current_track_num=0):
         if len(self.track_sound_modules) <= current_track_num:
             self.msg.configure(text=f'Cannot find Track {current_track_num+1}')
             return
@@ -1341,7 +1408,7 @@ class Root(Tk):
             if i == 0:
                 self.play_note_func(f'{standardize_note(each.name)}{each.num}',
                                     current_durations[i], current_volumes[i],
-                                    current_track_num, as_channel)
+                                    current_track_num)
             else:
                 duration = current_durations[i]
                 volume = current_volumes[i]
@@ -1349,60 +1416,10 @@ class Root(Tk):
                                                       self.current_bpm, 1)
                 current_id = self.after(
                     int(current_time),
-                    lambda each=each, duration=duration, volume=volume:
-                    self.play_note_func(
-                        f'{standardize_note(each.name)}{each.num}', duration,
-                        volume, current_track_num, as_channel))
+                    lambda each=each, duration=duration, volume=volume: self.
+                    play_note_func(f'{standardize_note(each.name)}{each.num}',
+                                   duration, volume, current_track_num))
                 self.current_playing.append(current_id)
-        if pan:
-            self.add_pan(pan, current_track_num, self.current_bpm)
-        if channel_volume:
-            self.add_channel_volume(channel_volume, current_track_num,
-                                    self.current_bpm)
-
-    def add_pan(self, pan, current_track_num, current_bpm):
-        pan_values = [[1 - i.value_percentage / 100, i.value_percentage / 100]
-                      for i in pan]
-        pan_ranges = [
-            self.bar_to_real_time(i.start_time - 1, current_bpm) for i in pan
-        ]
-        for i in range(len(pan)):
-            current_pan_value = pan_values[i]
-            current_pan_time = pan_ranges[i]
-            current_id = self.after(
-                current_pan_time,
-                lambda current_pan_value=current_pan_value: [
-                    each.channel.set_volume(*current_pan_value)
-                    for each in self.current_channels[current_track_num]
-                ])
-            self.current_playing.append(current_id)
-
-    def set_sound_volume_for_channel(self, channel, volume):
-        current_sound = channel.channel.get_sound()
-        current_sound.set_volume(channel.original_volume * volume)
-        self.current_channel_volume = volume
-
-    def add_channel_volume(self, channel_volume, current_track_num,
-                           current_bpm):
-        channel_volume_values = [
-            i.value_percentage / 100 for i in channel_volume
-        ]
-        channel_volume_ranges = [
-            self.bar_to_real_time(i.start_time - 1, current_bpm)
-            for i in channel_volume
-        ]
-        for i in range(len(channel_volume)):
-            current_channel_volume_value = channel_volume_values[i]
-            current_channel_volume_time = channel_volume_ranges[i]
-            current_id = self.after(
-                current_channel_volume_time,
-                lambda current_channel_volume_value=
-                current_channel_volume_value: [
-                    self.set_sound_volume_for_channel(
-                        each, current_channel_volume_value)
-                    for each in self.current_channels[current_track_num]
-                ])
-            self.current_playing.append(current_id)
 
     def play_current_chord(self):
         self.msg.configure(text='')

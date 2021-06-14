@@ -2,27 +2,23 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
-from PIL import Image as PIL_Image
-from PIL import ImageTk
 import time
 import random
 import keyboard
 from copy import deepcopy as copy
 import os, sys
 import pygame
-import keyboard
 import mido
 import midiutil
 from musicpy import *
 from ast import literal_eval
 import math
 import array
+import simpleaudio
 from pydub import AudioSegment
+from pydub.playback import _play_with_simpleaudio as play_audio
 
 AudioSegment.converter = "ffmpeg\\bin\\ffmpeg.exe"
-#AudioSegment.ffmpeg = "ffmpeg\bin\ffmpeg.exe"
-#AudioSegment.ffprobe ="ffmpeg\bin\ffprobe.exe"
-from io import BytesIO, StringIO
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(abs_path)

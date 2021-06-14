@@ -14,7 +14,9 @@ from musicpy import *
 from ast import literal_eval
 import math
 import array
+import simpleaudio
 from pydub import AudioSegment
+from pydub.playback import _play_with_simpleaudio as play_audio
 
 AudioSegment.converter = "ffmpeg\\bin\\ffmpeg.exe"
 
