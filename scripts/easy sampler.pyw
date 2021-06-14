@@ -122,6 +122,7 @@ class Root(Tk):
         self.bind('<Control-s>', lambda e: self.save_as_project_file())
         self.bind('<Control-a>', lambda e: self.load_musicpy_code())
         self.bind('<Control-d>', lambda e: self.save_current_musicpy_code())
+        self.bind('<Control-z>', lambda e: self.open_export_menu())
         self.menubar = Menu(self,
                             tearoff=False,
                             bg=background_color,
@@ -185,8 +186,10 @@ class Root(Tk):
                                      exportselection=False)
         self.choose_tracks.bind('<<ListboxSelect>>',
                                 lambda e: self.show_current_track())
-        self.choose_tracks.bind('<Control-z>', lambda e: self.add_new_track())
-        self.choose_tracks.bind('<Control-x>', lambda e: self.delete_track())
+        self.choose_tracks.bind('<z>', lambda e: self.add_new_track())
+        self.choose_tracks.bind('<x>', lambda e: self.delete_track())
+        self.choose_tracks.bind('<c>', lambda e: self.clear_current_track())
+        self.choose_tracks.bind('<v>', lambda e: self.clear_all_tracks())
         self.choose_tracks.place(x=0, y=150, width=220)
         self.choose_tracks_bar.config(command=self.choose_tracks.yview)
 
@@ -228,6 +231,10 @@ class Root(Tk):
         self.clear_all_tracks_button = ttk.Button(
             self, text='Clear All Tracks', command=self.clear_all_tracks)
         self.clear_all_tracks_button.place(x=250, y=300)
+
+        self.clear_all_tracks_button = ttk.Button(
+            self, text='Clear Track', command=self.clear_current_track)
+        self.clear_all_tracks_button.place(x=370, y=300)
 
         self.change_track_dict_button = ttk.Button(
             self, text='Change Track Dict', command=self.change_track_dict)
@@ -382,6 +389,9 @@ class Root(Tk):
             foreground=foreground_color)
         self.menubar.add_command(label='Load',
                                  command=lambda: self.load_musicpy_code(),
+                                 foreground=foreground_color)
+        self.menubar.add_command(label='Export',
+                                 command=lambda: self.open_export_menu(),
                                  foreground=foreground_color)
         self.menubar.post(event.x_root, event.y_root)
 
@@ -662,7 +672,7 @@ class Root(Tk):
             each_name = str(each)
             if each_name not in current_sounds:
                 each_name = str(~each)
-            current_sound = current_sounds[each_name][:duration]
+            current_sound = copy(current_sounds[each_name])[:duration]
             if export_audio_fadeout_time_ratio > 0:
                 current_sound = current_sound.fade_out(
                     duration=int(duration * export_audio_fadeout_time_ratio))
@@ -787,6 +797,21 @@ class Root(Tk):
             self.set_bpm_entry.insert(END, current_bpm)
             self.set_bpm_func()
             return 'piece', current_chord
+
+    def clear_current_track(self):
+        current_ind = self.choose_tracks.index(ANCHOR)
+        if current_ind < self.track_num:
+            self.choose_tracks.delete(current_ind)
+            self.choose_tracks.insert(current_ind, f'Track {current_ind+1}')
+            self.track_names[current_ind] = f'Track {current_ind+1}'
+            self.track_sound_modules_name[current_ind] = ''
+            self.track_sound_modules[current_ind] = None
+            self.track_note_sounds_path[current_ind] = None
+            self.track_sound_format[current_ind] = 'wav'
+            self.track_dict[current_ind] = copy(notedict)
+            self.current_track_name_entry.delete(0, END)
+            self.current_track_sound_modules_entry.delete(0, END)
+            self.set_sound_format_entry.delete(0, END)
 
     def clear_all_tracks(self, mode=0):
         if_clear = messagebox.askyesnocancel(
@@ -1029,7 +1054,6 @@ class Root(Tk):
                 self.choose_tracks.see(current_ind)
                 self.choose_tracks.selection_anchor(current_ind)
                 self.choose_tracks.selection_set(current_ind)
-            #self.stop_playing()
         except Exception as e:
             print(str(e))
             self.msg.configure(
@@ -1143,7 +1167,6 @@ class Root(Tk):
                     self.choose_tracks.see(current_ind)
                     self.choose_tracks.selection_anchor(current_ind)
                     self.choose_tracks.selection_set(current_ind)
-                    #self.stop_playing()
                 except Exception as e:
                     print(str(e))
                     self.msg.configure(
@@ -1176,7 +1199,6 @@ class Root(Tk):
         if name in note_sounds_path:
             current_sound = note_sounds[name]
             if current_sound:
-                #current_sound = pygame.mixer.Sound(current_sound)
                 current_sound = pygame.mixer.Sound(note_sounds_path[name])
                 current_sound.set_volume(global_volume * volume / 127)
                 duration_time = self.bar_to_real_time(duration,
