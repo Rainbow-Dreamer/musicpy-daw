@@ -651,7 +651,7 @@ class Root(Tk):
         current_sound_path = self.track_sound_modules_name[current_track_num]
         current_sound_format = self.track_sound_format[current_track_num]
         current_start_time = self.bar_to_real_time(current_start_time,
-                                                   current_bpm)
+                                                   current_bpm, 1)
         current_sounds = {}
         current_sound_files = os.listdir(current_sound_path)
         for i in current_dict:
@@ -666,8 +666,10 @@ class Root(Tk):
         current_position = 0
         for i in range(len(current_chord)):
             each = current_chord.notes[i]
-            interval = self.bar_to_real_time(current_intervals[i], current_bpm)
-            duration = self.bar_to_real_time(current_durations[i], current_bpm)
+            interval = self.bar_to_real_time(current_intervals[i], current_bpm,
+                                             1)
+            duration = self.bar_to_real_time(current_durations[i], current_bpm,
+                                             1)
             volume = velocity_to_db(current_volumes[i])
             each_name = str(each)
             if each_name not in current_sounds:
@@ -682,7 +684,7 @@ class Root(Tk):
             current_position += interval
         if current_pan:
             pan_ranges = [
-                self.bar_to_real_time(i.start_time - 1, current_bpm)
+                self.bar_to_real_time(i.start_time - 1, current_bpm, 1)
                 for i in current_pan
             ]
             pan_values = [i.get_pan_value() for i in current_pan]
@@ -701,7 +703,7 @@ class Root(Tk):
 
         if current_volume:
             volume_ranges = [
-                self.bar_to_real_time(i.start_time - 1, current_bpm)
+                self.bar_to_real_time(i.start_time - 1, current_bpm, 1)
                 for i in current_volume
             ]
             volume_values = [
@@ -1174,9 +1176,10 @@ class Root(Tk):
                         f'Error: The sound files in the sound path do not match with settings'
                     )
 
-    def bar_to_real_time(self, bar, bpm):
+    def bar_to_real_time(self, bar, bpm, mode=0):
         # return time in ms
-        return int((60000 / bpm) * (bar * 4))
+        return int((60000 / bpm) *
+                   (bar * 4)) if mode == 0 else (60000 / bpm) * (bar * 4)
 
     def set_bpm_func(self):
         self.msg.configure(text='')
@@ -1343,9 +1346,9 @@ class Root(Tk):
                 duration = current_durations[i]
                 volume = current_volumes[i]
                 current_time += self.bar_to_real_time(current_intervals[i - 1],
-                                                      self.current_bpm)
+                                                      self.current_bpm, 1)
                 current_id = self.after(
-                    current_time,
+                    int(current_time),
                     lambda each=each, duration=duration, volume=volume:
                     self.play_note_func(
                         f'{standardize_note(each.name)}{each.num}', duration,
