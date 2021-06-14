@@ -73,6 +73,7 @@ def reverse(sound):
 
 def offset(sound, bar):
     sound.offset = bar
+    return sound
 
 
 def check_reverse(sound):
@@ -80,7 +81,7 @@ def check_reverse(sound):
 
 
 def check_offset(sound):
-    return hasattr(sound, 'offset')
+    return hasattr(sound, 'offset') and sound.offset
 
 
 def check_reverse_all(sound):
@@ -677,6 +678,9 @@ class Root(Tk):
                                                    current_pan[i],
                                                    current_volume[i],
                                                    current_start_times[i])
+            if check_offset(current_chord):
+                silent_audio = silent_audio[self.bar_to_real_time(
+                    current_chord.offset, current_bpm, 1):]
             if check_reverse(current_chord):
                 silent_audio = silent_audio.reverse()
             try:
@@ -740,10 +744,14 @@ class Root(Tk):
             duration = self.bar_to_real_time(current_durations[i], current_bpm,
                                              1)
             volume = velocity_to_db(current_volumes[i])
+            current_offset = 0
+            if check_offset(each):
+                current_offset = self.bar_to_real_time(each.offset,
+                                                       current_bpm, 1)
             each_name = str(each)
             if each_name not in current_sounds:
                 each_name = str(~each)
-            current_sound = current_sounds[each_name][:duration]
+            current_sound = current_sounds[each_name][current_offset:duration]
             if check_reverse(each):
                 current_sound = current_sound.reverse()
             if export_audio_fadeout_time_ratio > 0:
@@ -792,6 +800,9 @@ class Root(Tk):
             for each in audio_list[1:]:
                 first_audio = first_audio.append(each, crossfade=0)
             current_silent_audio = first_audio
+        if check_offset(current_chord):
+            current_silent_audio = current_silent_audio[
+                self.bar_to_real_time(current_chord.offset, current_bpm, 1):]
         if check_reverse(current_chord):
             current_silent_audio = current_silent_audio.reverse()
         silent_audio = silent_audio.overlay(current_silent_audio,
@@ -854,9 +865,12 @@ class Root(Tk):
                 return
         if type(current_chord) == note:
             has_reverse = check_reverse(current_chord)
+            has_offset = check_offset(current_chord)
             current_chord = chord([current_chord])
             if has_reverse:
                 current_chord.reverse_audio = True
+            if has_offset:
+                current_chord.offset = has_offset
         elif type(current_chord) == list and all(
                 type(i) == chord for i in current_chord):
             current_chord = concat(current_chord, mode='|')
@@ -864,6 +878,7 @@ class Root(Tk):
             return 'chord', current_chord, current_track_num
         if type(current_chord) == track:
             has_reverse = check_reverse(current_chord)
+            has_offset = check_offset(current_chord)
             current_chord = build(
                 current_chord,
                 bpm=current_chord.tempo
@@ -871,6 +886,8 @@ class Root(Tk):
                 name=current_chord.name)
             if has_reverse:
                 current_chord.reverse_audio = True
+            if has_offset:
+                current_chord.offset = has_offset
         if type(current_chord) == piece:
             current_bpm = current_chord.tempo
             current_start_times = current_chord.start_times
@@ -1347,9 +1364,12 @@ class Root(Tk):
                 return
         if type(current_chord) == note:
             has_reverse = check_reverse(current_chord)
+            has_offset = check_offset(current_chord)
             current_chord = chord([current_chord])
             if has_reverse:
                 current_chord.reverse_audio = True
+            if has_offset:
+                current_chord.offset = has_offset
         elif type(current_chord) == list and all(
                 type(i) == chord for i in current_chord):
             current_chord = concat(current_chord, mode='|')
@@ -1360,6 +1380,7 @@ class Root(Tk):
                 self.play_track(current_chord, current_track_num)
         elif type(current_chord) == track:
             has_reverse = check_reverse(current_chord)
+            has_offset = check_offset(current_chord)
             current_chord = build(
                 current_chord,
                 bpm=current_chord.tempo
@@ -1367,6 +1388,8 @@ class Root(Tk):
                 name=current_chord.name)
             if has_reverse:
                 current_chord.reverse_audio = True
+            if has_offset:
+                current_chord.offset = has_offset
         if type(current_chord) == piece:
             if check_special(current_chord):
                 self.export_audio_file(action='play')
