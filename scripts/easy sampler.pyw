@@ -632,7 +632,7 @@ class Root(Tk):
                        current_bpm=None,
                        current_pan=None,
                        current_volume=None,
-                       current_start_time=None):
+                       current_start_time=0):
         if len(self.track_sound_modules) <= current_track_num:
             self.msg.configure(text=f'Cannot find Track {current_track_num+1}')
             return
