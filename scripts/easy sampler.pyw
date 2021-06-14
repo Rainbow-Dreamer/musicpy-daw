@@ -672,7 +672,7 @@ class Root(Tk):
             each_name = str(each)
             if each_name not in current_sounds:
                 each_name = str(~each)
-            current_sound = copy(current_sounds[each_name])[:duration]
+            current_sound = current_sounds[each_name][:duration]
             if export_audio_fadeout_time_ratio > 0:
                 current_sound = current_sound.fade_out(
                     duration=int(duration * export_audio_fadeout_time_ratio))
