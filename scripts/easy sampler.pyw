@@ -122,7 +122,7 @@ class Root(Tk):
         self.bind('<Control-s>', lambda e: self.save_as_project_file())
         self.bind('<Control-a>', lambda e: self.load_musicpy_code())
         self.bind('<Control-d>', lambda e: self.save_current_musicpy_code())
-        self.bind('<Control-z>', lambda e: self.open_export_menu())
+        self.bind('<Control-t>', lambda e: self.open_export_menu())
         self.menubar = Menu(self,
                             tearoff=False,
                             bg=background_color,
