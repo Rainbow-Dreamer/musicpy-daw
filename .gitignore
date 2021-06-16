@@ -1,6 +1,7 @@
 # Byte-compiled / optimized / DLL files
 **/__pycache__
 temp.mid
+plans.txt
 browse memory.txt
 *.py[cod]
 *$py.class
