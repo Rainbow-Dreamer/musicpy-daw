@@ -169,6 +169,7 @@ class Root(Tk):
         self.bind('<Control-f>', lambda e: self.load_musicpy_code())
         self.bind('<Control-d>', lambda e: self.save_current_musicpy_code())
         self.bind('<Control-g>', lambda e: self.open_export_menu())
+        self.bind('<Control-h>', lambda e: self.load_midi_file_func())
         self.menubar = Menu(self,
                             tearoff=False,
                             bg=background_color,
@@ -754,10 +755,11 @@ class Root(Tk):
             current_sound = current_sounds[each_name][current_offset:duration]
             if check_reverse(each):
                 current_sound = current_sound.reverse()
-            if not (export_audio_fadeout_time_ratio == 0
-                    or int(duration * export_audio_fadeout_time_ratio) == 0):
+            current_fadeout_time = int(duration *
+                                       export_audio_fadeout_time_ratio)
+            if current_fadeout_time != 0:
                 current_sound = current_sound.fade_out(
-                    duration=int(duration * export_audio_fadeout_time_ratio))
+                    duration=current_fadeout_time)
             current_sound += volume
             current_silent_audio = current_silent_audio.overlay(
                 current_sound, position=current_position)
@@ -1300,11 +1302,13 @@ class Root(Tk):
                 current_sound.set_volume(global_volume * volume / 127)
                 duration_time = self.bar_to_real_time(duration,
                                                       self.current_bpm)
-
                 current_sound.play()
+                current_fadeout_time = int(duration_time *
+                                           play_audio_fadeout_time_ratio)
                 current_id = self.after(
-                    duration_time, lambda: current_sound.fadeout(fadeout_time))
-
+                    duration_time,
+                    lambda: current_sound.fadeout(current_fadeout_time)
+                    if current_fadeout_time != 0 else current_sound.stop())
                 self.current_playing.append(current_id)
 
     def stop_playing(self):

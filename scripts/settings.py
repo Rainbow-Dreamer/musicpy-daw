@@ -103,8 +103,9 @@ sound_size = -16
 channel = 2
 buffer = 4096
 maxinum_channels = 1000
-fadeout_time = 500
+fadeout_time = 100
 export_audio_fadeout_time_ratio = 0.05
+play_audio_fadeout_time_ratio = 0.1
 
 background_color = 'white'
 foreground_color = 'black'
