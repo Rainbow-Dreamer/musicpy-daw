@@ -7,7 +7,7 @@ class custom_channel:
         self.channel = channel
 
 
-def load(dic, path, file_format, volume, first_time=True):
+def load(dic, path, file_format, volume):
     wavedict = {}
     for i in dic:
         try:
@@ -16,13 +16,25 @@ def load(dic, path, file_format, volume, first_time=True):
             wavedict[i] = current_sound
         except:
             wavedict[i] = None
-        if not first_time:
-            root.update()
-        else:
-            current_start_window.update()
+        root.update()
     if volume != None:
         [wavedict[x].set_volume(volume) for x in wavedict if wavedict[x]]
     return wavedict
+
+
+def load_audiosegments(current_dict, current_sound_path, current_sound_format):
+    current_sounds = {}
+    current_sound_files = os.listdir(current_sound_path)
+    for i in current_dict:
+        current_sound_obj = current_dict[i]
+        current_sound_name = f'{current_sound_obj}.{current_sound_format}'
+        if current_sound_obj and current_sound_name in current_sound_files:
+            current_sound_obj_path = f'{current_sound_path}/{current_sound_name}'
+            current_sounds[i] = AudioSegment.from_file(
+                current_sound_obj_path, format=current_sound_format)
+        else:
+            current_sounds[i] = None
+    return current_sounds
 
 
 def load_sounds(dic, path, file_format):
@@ -41,17 +53,6 @@ def standardize_note(i):
     if i in standard_dict:
         i = standard_dict[i]
     return i
-
-
-def start_load():
-    pygame.mixer.init(frequency, sound_size, channel, buffer)
-    pygame.mixer.set_num_channels(maxinum_channels)
-    global note_sounds
-    global note_sounds_path
-    note_sounds = load(notedict, sound_path, sound_format, global_volume)
-    note_sounds_path = load_sounds(notedict, sound_path, sound_format)
-    current_start_window.loading_label.configure(text='loading complete')
-    current_start_window.after(500, open_main_window)
 
 
 def velocity_to_db(vol):
@@ -74,6 +75,21 @@ def reverse(sound):
 def offset(sound, bar):
     sound.offset = bar
     return sound
+
+
+def fade_in(sound, duration):
+    sound.fade_in = duration
+
+
+def fade_out(sound, duration):
+    sound.fade_out = duration
+
+
+def adsr(sound, attack, decay, sustain, release):
+    sound.adsr = [attack, decay, sustain, release]
+
+
+ADSR = adsr
 
 
 def check_reverse(sound):
@@ -240,19 +256,10 @@ class Root(Tk):
         self.choose_tracks.place(x=0, y=150, width=220)
         self.choose_tracks_bar.config(command=self.choose_tracks.yview)
 
-        self.choose_tracks.insert(END, 'Track 1')
-        self.track_names = ['Track 1']
-        self.track_sound_modules_name = [sound_path]
-        self.track_sound_modules = [note_sounds]
-        self.track_note_sounds_path = [note_sounds_path]
-        self.track_sound_format = ['wav']
-        self.track_dict = [notedict]
-        self.track_num = 1
         self.current_track_name_label = ttk.Label(self, text='Track Name')
         self.current_track_name_entry = ttk.Entry(self, width=20)
         self.current_track_name_label.place(x=250, y=150)
         self.current_track_name_entry.place(x=350, y=150)
-
         self.current_track_sound_modules_label = ttk.Label(
             self, text='Track Sound Modules')
         self.current_track_sound_modules_entry = ttk.Entry(self, width=82)
@@ -363,6 +370,27 @@ class Root(Tk):
                 self.last_place = f.read()
         except:
             self.last_place = "."
+
+        self.choose_tracks.insert(END, 'Track 1')
+        self.track_names = ['Track 1']
+        self.track_sound_modules_name = [sound_path]
+        self.track_sound_format = ['wav']
+        self.after(10, self.initialize)
+
+    def initialize(self):
+        global note_sounds
+        global note_sounds_path
+        self.msg.configure(text='Loading default sound modules...')
+        note_sounds = load(notedict, sound_path, sound_format, global_volume)
+        note_sounds_path = load_sounds(notedict, sound_path, sound_format)
+        self.msg.configure(text='Loading complete')
+        self.track_sound_modules = [note_sounds]
+        self.track_sound_audiosegments = [
+            load_audiosegments(notedict, sound_path, sound_format)
+        ]
+        self.track_note_sounds_path = [note_sounds_path]
+        self.track_dict = [notedict]
+        self.track_num = 1
 
     def load_musicpy_code(self):
         filename = filedialog.askopenfilename(initialdir=self.last_place,
@@ -722,21 +750,11 @@ class Root(Tk):
         current_durations = current_chord.get_duration()
         current_volumes = current_chord.get_volume()
         current_dict = self.track_dict[current_track_num]
+        current_sounds = self.track_sound_audiosegments[current_track_num]
         current_sound_path = self.track_sound_modules_name[current_track_num]
         current_sound_format = self.track_sound_format[current_track_num]
         current_start_time = self.bar_to_real_time(current_start_time,
                                                    current_bpm, 1)
-        current_sounds = {}
-        current_sound_files = os.listdir(current_sound_path)
-        for i in current_dict:
-            current_sound_obj = current_dict[i]
-            current_sound_name = f'{current_sound_obj}.{current_sound_format}'
-            if current_sound_obj and current_sound_name in current_sound_files:
-                current_sound_obj_path = f'{current_sound_path}/{current_sound_name}'
-                current_sounds[i] = AudioSegment.from_file(
-                    current_sound_obj_path, format=current_sound_format)
-            else:
-                current_sounds[i] = None
         current_position = 0
         for i in range(len(current_chord)):
             each = current_chord.notes[i]
@@ -907,6 +925,7 @@ class Root(Tk):
             self.track_names[current_ind] = f'Track {current_ind+1}'
             self.track_sound_modules_name[current_ind] = ''
             self.track_sound_modules[current_ind] = None
+            self.track_sound_audiosegments[current_ind] = None
             self.track_note_sounds_path[current_ind] = None
             self.track_sound_format[current_ind] = 'wav'
             self.track_dict[current_ind] = copy(notedict)
@@ -925,6 +944,7 @@ class Root(Tk):
             self.track_names.clear()
             self.track_sound_modules_name.clear()
             self.track_sound_modules.clear()
+            self.track_sound_audiosegments.clear()
             self.track_note_sounds_path.clear()
             self.track_sound_format.clear()
             self.track_dict.clear()
@@ -944,6 +964,7 @@ class Root(Tk):
             del self.track_names[current_ind]
             del self.track_sound_modules_name[current_ind]
             del self.track_sound_modules[current_ind]
+            del self.track_sound_audiosegments[current_ind]
             del self.track_note_sounds_path[current_ind]
             del self.track_sound_format[current_ind]
             del self.track_dict[current_ind]
@@ -966,6 +987,7 @@ class Root(Tk):
         self.track_names.append(current_track_name)
         self.track_sound_modules_name.append('')
         self.track_sound_modules.append(None)
+        self.track_sound_audiosegments.append(None)
         self.track_note_sounds_path.append(None)
         self.track_sound_format.append('wav')
         self.track_dict.append(copy(notedict))
@@ -979,6 +1001,7 @@ class Root(Tk):
             self.track_names.append(current_track_name)
             self.track_sound_modules_name.append('')
             self.track_sound_modules.append(None)
+            self.track_sound_audiosegments.append(None)
             self.track_note_sounds_path.append(None)
             self.track_sound_format.append('wav')
             self.track_dict.append(copy(notedict))
@@ -1144,6 +1167,8 @@ class Root(Tk):
                                first_time=False)
             note_sounds_path = load_sounds(notedict, sound_path, sound_format)
             self.track_sound_modules[current_ind] = note_sounds
+            self.track_sound_audiosegments[current_ind] = load_audiosegments(
+                notedict, sound_path, sound_format)
             self.track_note_sounds_path[current_ind] = note_sounds_path
             self.current_track_sound_modules_entry.delete(0, END)
             self.current_track_sound_modules_entry.insert(END, sound_path)
@@ -1256,6 +1281,9 @@ class Root(Tk):
                     note_sounds_path = load_sounds(notedict, sound_path,
                                                    sound_format)
                     self.track_sound_modules[current_ind] = note_sounds
+                    self.track_sound_audiosegments[
+                        current_ind] = load_audiosegments(
+                            notedict, sound_path, sound_format)
                     self.track_note_sounds_path[current_ind] = note_sounds_path
                     self.track_sound_modules_name[current_ind] = sound_path
                     self.current_track_sound_modules_entry.delete(0, END)
@@ -1492,7 +1520,7 @@ class start_window(Tk):
         super(start_window, self).__init__()
         self.configure(bg='ivory2')
         self.overrideredirect(True)
-        self.minsize(500, 250)
+        self.minsize(500, 220)
         self.lift()
         self.attributes("-topmost", True)
         self.attributes('-topmost', 0)
@@ -1512,12 +1540,10 @@ class start_window(Tk):
                         background='ivory2')
 
         self.title_label = ttk.Label(self, text='Easy Sampler')
-        self.title_label.place(x=110, y=50)
-        self.loading_label = ttk.Label(self,
-                                       text='loading sounds, please wait...',
-                                       style='loading.TLabel')
-        self.loading_label.place(x=110, y=150)
-        self.after(500, start_load)
+        self.title_label.place(x=120, y=80)
+        pygame.mixer.init(frequency, sound_size, channel, buffer)
+        pygame.mixer.set_num_channels(maxinum_channels)
+        self.after(500, open_main_window)
 
 
 current_start_window = start_window()
