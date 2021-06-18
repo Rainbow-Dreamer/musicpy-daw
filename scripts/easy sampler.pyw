@@ -34,6 +34,7 @@ def load_audiosegments(current_dict, current_sound_path, current_sound_format):
                 current_sound_obj_path, format=current_sound_format)
         else:
             current_sounds[i] = None
+        root.update()
     return current_sounds
 
 
@@ -375,6 +376,7 @@ class Root(Tk):
         self.track_names = ['Track 1']
         self.track_sound_modules_name = [sound_path]
         self.track_sound_format = ['wav']
+        self.track_num = 1
         self.after(10, self.initialize)
 
     def initialize(self):
@@ -383,14 +385,13 @@ class Root(Tk):
         self.msg.configure(text='Loading default sound modules...')
         note_sounds = load(notedict, sound_path, sound_format, global_volume)
         note_sounds_path = load_sounds(notedict, sound_path, sound_format)
-        self.msg.configure(text='Loading complete')
         self.track_sound_modules = [note_sounds]
         self.track_sound_audiosegments = [
             load_audiosegments(notedict, sound_path, sound_format)
         ]
+        self.msg.configure(text='Loading complete')
         self.track_note_sounds_path = [note_sounds_path]
         self.track_dict = [notedict]
-        self.track_num = 1
 
     def load_musicpy_code(self):
         filename = filedialog.askopenfilename(initialdir=self.last_place,
