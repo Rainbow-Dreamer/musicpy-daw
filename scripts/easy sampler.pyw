@@ -1161,11 +1161,8 @@ class Root(Tk):
             sound_path = self.track_sound_modules_name[current_ind]
             notedict = self.track_dict[current_ind]
             sound_format = self.track_sound_format[current_ind]
-            note_sounds = load(notedict,
-                               sound_path,
-                               sound_format,
-                               global_volume,
-                               first_time=False)
+            note_sounds = load(notedict, sound_path, sound_format,
+                               global_volume)
             note_sounds_path = load_sounds(notedict, sound_path, sound_format)
             self.track_sound_modules[current_ind] = note_sounds
             self.track_sound_audiosegments[current_ind] = load_audiosegments(
@@ -1274,11 +1271,8 @@ class Root(Tk):
                     sound_path = directory
                     notedict = self.track_dict[current_ind]
                     sound_format = self.track_sound_format[current_ind]
-                    note_sounds = load(notedict,
-                                       sound_path,
-                                       sound_format,
-                                       global_volume,
-                                       first_time=False)
+                    note_sounds = load(notedict, sound_path, sound_format,
+                                       global_volume)
                     note_sounds_path = load_sounds(notedict, sound_path,
                                                    sound_format)
                     self.track_sound_modules[current_ind] = note_sounds
