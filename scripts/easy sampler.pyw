@@ -80,25 +80,32 @@ def offset(sound, bar):
 
 def fade_in(sound, duration):
     sound.fade_in = duration
+    if not hasattr(sound, 'fade_out'):
+        sound.fade_out = 0
+    return sound
 
 
 def fade_out(sound, duration):
     sound.fade_out = duration
+    if not hasattr(sound, 'fade_in'):
+        sound.fade_in = 0
+    return sound
 
 
 def adsr(sound, attack, decay, sustain, release):
     sound.adsr = [attack, decay, sustain, release]
+    return sound
 
 
 ADSR = adsr
 
 
 def check_reverse(sound):
-    return hasattr(sound, 'reverse_audio') and sound.reverse_audio
+    return hasattr(sound, 'reverse_audio')
 
 
 def check_offset(sound):
-    return hasattr(sound, 'offset') and sound.offset
+    return hasattr(sound, 'offset')
 
 
 def check_reverse_all(sound):
@@ -124,9 +131,36 @@ def check_pan_or_volume(sound):
                                      or any(i for i in sound.volume))
 
 
+def check_fade(sound):
+    return hasattr(sound, 'fade_in') or hasattr(sound, 'fade_out')
+
+
+def check_fade_all(sound):
+    types = type(sound)
+    if types == chord:
+        return check_fade(sound) or any(check_fade(i) for i in sound)
+    elif types == piece:
+        return check_fade(sound) or any(
+            check_fade_all(i) for i in sound.tracks)
+
+
+def check_adsr(sound):
+    return hasattr(sound, 'adsr')
+
+
+def check_adsr_all(sound):
+    types = type(sound)
+    if types == chord:
+        return check_adsr(sound) or any(check_adsr(i) for i in sound)
+    elif types == piece:
+        return check_adsr(sound) or any(
+            check_adsr_all(i) for i in sound.tracks)
+
+
 def check_special(sound):
     return check_pan_or_volume(sound) or check_reverse_all(
-        sound) or check_offset_all(sound)
+        sound) or check_offset_all(sound) or check_fade_all(
+            sound) or check_adsr_all(sound)
 
 
 class Root(Tk):
