@@ -79,16 +79,22 @@ def offset(sound, bar):
 
 
 def fade_in(sound, duration):
-    sound.fade_in = duration
-    if not hasattr(sound, 'fade_out'):
-        sound.fade_out = 0
+    sound.fade_in_time = duration
+    if not hasattr(sound, 'fade_out_time'):
+        sound.fade_out_time = 0
     return sound
 
 
 def fade_out(sound, duration):
-    sound.fade_out = duration
-    if not hasattr(sound, 'fade_in'):
-        sound.fade_in = 0
+    sound.fade_out_time = duration
+    if not hasattr(sound, 'fade_in_time'):
+        sound.fade_in_time = 0
+    return sound
+
+
+def fade(sound, fade_in, fade_out=0):
+    sound.fade_in_time = fade_in
+    sound.fade_out_time = fade_out
     return sound
 
 
@@ -132,7 +138,7 @@ def check_pan_or_volume(sound):
 
 
 def check_fade(sound):
-    return hasattr(sound, 'fade_in') or hasattr(sound, 'fade_out')
+    return hasattr(sound, 'fade_in_time') or hasattr(sound, 'fade_out_time')
 
 
 def check_fade_all(sound):
@@ -157,10 +163,42 @@ def check_adsr_all(sound):
             check_adsr_all(i) for i in sound.tracks)
 
 
+def has_audio(sound):
+    types = type(sound)
+    if types == chord:
+        return any(type(i) == AudioSegment for i in sound.notes)
+    elif types == piece:
+        return any(has_audio(i) for i in sound.tracks)
+
+
 def check_special(sound):
     return check_pan_or_volume(sound) or check_reverse_all(
         sound) or check_offset_all(sound) or check_fade_all(
-            sound) or check_adsr_all(sound)
+            sound) or check_adsr_all(sound) or has_audio(sound)
+
+
+def sine(freq=440, duration=1000, volume=0):
+    return Sine(freq).to_audio_segment(duration, volume)
+
+
+def triangle(freq=440, duration=1000, volume=0):
+    return Triangle(freq).to_audio_segment(duration, volume)
+
+
+def sawtooth(freq=440, duration=1000, volume=0):
+    return Sawtooth(freq).to_audio_segment(duration, volume)
+
+
+def square(freq=440, duration=1000, volume=0):
+    return Square(freq).to_audio_segment(duration, volume)
+
+
+def white_noise(duration=1000, volume=0):
+    return WhiteNoise().to_audio_segment(duration, volume)
+
+
+def pulse(freq=440, duty_cycle=0.5, duration=1000, volume=0):
+    return Pulse(freq, duty_cycle).to_audio_segment(duration, volume)
 
 
 class Root(Tk):
@@ -705,9 +743,15 @@ class Root(Tk):
             current_track_num = result[2]
             current_bpm = self.current_bpm
             current_start_times = 0
+            current_chord = current_chord.only_notes(audio_mode=1)
+            for each in current_chord:
+                if type(each) == AudioSegment:
+                    each.duration = self.real_time_to_bar(
+                        len(each), current_bpm)
+                    each.volume = 127
             silent_audio = AudioSegment.silent(
-                duration=current_chord.eval_time(current_bpm, mode='number') *
-                1000)
+                duration=current_chord.eval_time(
+                    current_bpm, mode='number', audio_mode=1) * 1000)
             silent_audio = self.track_to_audio(current_chord,
                                                current_track_num, silent_audio,
                                                current_bpm)
@@ -733,8 +777,18 @@ class Root(Tk):
             current_channels = current_chord.channels if current_chord.channels else [
                 i for i in range(len(current_chord))
             ]
+            for i in range(len(current_chord.tracks)):
+                each_track = current_chord.tracks[i]
+                each_track = each_track.only_notes(audio_mode=1)
+                for each in each_track:
+                    if type(each) == AudioSegment:
+                        each.duration = self.real_time_to_bar(
+                            len(each), current_bpm)
+                        each.volume = 127
+                current_chord.tracks[i] = each_track
             silent_audio = AudioSegment.silent(
-                duration=current_chord.eval_time(mode='number') * 1000)
+                duration=current_chord.eval_time(mode='number') * 1000,
+                audio_mode=1)
             for i in range(len(current_chord)):
                 silent_audio = self.track_to_audio(current_tracks[i],
                                                    current_channels[i],
@@ -742,6 +796,29 @@ class Root(Tk):
                                                    current_pan[i],
                                                    current_volume[i],
                                                    current_start_times[i])
+            if check_adsr(current_chord):
+                current_adsr = current_chord.adsr
+                attack, decay, sustain, release = current_adsr
+                change_db = percentage_to_db(sustain)
+                result_db = silent_audio.dBFS + change_db
+                if attack > 0:
+                    silent_audio = silent_audio.fade_in(attack)
+                if decay > 0:
+                    silent_audio = silent_audio.fade(to_gain=result_db,
+                                                     start=attack,
+                                                     duration=decay)
+                else:
+                    silent_audio = silent_audio[:attack].append(
+                        silent_audio[attack:] + change_db)
+                if release > 0:
+                    silent_audio = silent_audio.fade_out(release)
+            if check_fade(current_chord):
+                if current_chord.fade_in_time > 0:
+                    silent_audio = silent_audio.fade_in(
+                        current_chord.fade_in_time)
+                if current_chord.fade_out_time > 0:
+                    silent_audio = silent_audio.fade_out(
+                        current_chord.fade_out_time)
             if check_offset(current_chord):
                 silent_audio = silent_audio[self.bar_to_real_time(
                     current_chord.offset, current_bpm, 1):]
@@ -777,10 +854,10 @@ class Root(Tk):
                 text=
                 f'Track {current_track_num+1} has not loaded any sounds yet')
             return
+
         current_silent_audio = AudioSegment.silent(
-            duration=current_chord.eval_time(current_bpm, mode='number') *
-            1000)
-        current_chord = current_chord.only_notes()
+            duration=current_chord.eval_time(
+                current_bpm, mode='number', audio_mode=1) * 1000)
         current_intervals = current_chord.interval
         current_durations = current_chord.get_duration()
         current_volumes = current_chord.get_volume()
@@ -795,17 +872,43 @@ class Root(Tk):
             each = current_chord.notes[i]
             interval = self.bar_to_real_time(current_intervals[i], current_bpm,
                                              1)
-            duration = self.bar_to_real_time(current_durations[i], current_bpm,
-                                             1)
+            duration = self.bar_to_real_time(
+                current_durations[i], current_bpm,
+                1) if type(each) != AudioSegment else len(each)
             volume = velocity_to_db(current_volumes[i])
             current_offset = 0
             if check_offset(each):
                 current_offset = self.bar_to_real_time(each.offset,
                                                        current_bpm, 1)
-            each_name = str(each)
-            if each_name not in current_sounds:
-                each_name = str(~each)
-            current_sound = current_sounds[each_name][current_offset:duration]
+            if type(each) == AudioSegment:
+                current_sound = each[current_offset:duration]
+            else:
+                each_name = str(each)
+                if each_name not in current_sounds:
+                    each_name = str(~each)
+                current_sound = current_sounds[each_name][
+                    current_offset:duration]
+            if check_adsr(each):
+                current_adsr = each.adsr
+                attack, decay, sustain, release = current_adsr
+                change_db = percentage_to_db(sustain)
+                result_db = current_sound.dBFS + change_db
+                if attack > 0:
+                    current_sound = current_sound.fade_in(attack)
+                if decay > 0:
+                    current_sound = current_sound.fade(to_gain=result_db,
+                                                       start=attack,
+                                                       duration=decay)
+                else:
+                    current_sound = current_sound[:attack].append(
+                        current_sound[attack:] + change_db)
+                if release > 0:
+                    current_sound = current_sound.fade_out(release)
+            if check_fade(each):
+                if each.fade_in_time > 0:
+                    current_sound = current_sound.fade_in(each.fade_in_time)
+                if each.fade_out_time > 0:
+                    current_sound = current_sound.fade_out(each.fade_out_time)
             if check_reverse(each):
                 current_sound = current_sound.reverse()
             current_fadeout_time = int(duration *
@@ -856,6 +959,28 @@ class Root(Tk):
             for each in audio_list[1:]:
                 first_audio = first_audio.append(each, crossfade=0)
             current_silent_audio = first_audio
+        if check_adsr(current_chord):
+            current_adsr = current_chord.adsr
+            attack, decay, sustain, release = current_adsr
+            change_db = percentage_to_db(sustain)
+            result_db = current_silent_audio.dBFS + change_db
+            if attack > 0:
+                current_silent_audio = current_silent_audio.fade_in(attack)
+            if decay > 0:
+                current_silent_audio = current_silent_audio.fade(
+                    to_gain=result_db, start=attack, duration=decay)
+            else:
+                current_silent_audio = current_silent_audio[:attack].append(
+                    current_silent_audio[attack:] + change_db)
+            if release > 0:
+                current_silent_audio = current_silent_audio.fade_out(release)
+        if check_fade(current_chord):
+            if current_chord.fade_in_time > 0:
+                current_silent_audio = current_silent_audio.fade_in(
+                    current_chord.fade_in_time)
+            if current_chord.fade_out_time > 0:
+                current_silent_audio = current_silent_audio.fade_out(
+                    current_chord.fade_out_time)
         if check_offset(current_chord):
             current_silent_audio = current_silent_audio[
                 self.bar_to_real_time(current_chord.offset, current_bpm, 1):]
@@ -1337,6 +1462,9 @@ class Root(Tk):
         return int((60000 / bpm) *
                    (bar * 4)) if mode == 0 else (60000 / bpm) * (bar * 4)
 
+    def real_time_to_bar(self, time, bpm):
+        return (time / (60000 / bpm)) / 4
+
     def set_bpm_func(self, mode=0):
         self.msg.configure(text='')
         current_bpm = self.set_bpm_entry.get()
@@ -1540,6 +1668,7 @@ def open_main_window():
     root = Root()
     root.lift()
     root.attributes("-topmost", True)
+    root.focus_force()
     root.attributes('-topmost', 0)
     root.mainloop()
 

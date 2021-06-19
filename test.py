@@ -1,5 +1,7 @@
 from musicpy import *
 import random
+from pydub.playback import _play_with_simpleaudio as play_audio
+from pydub.generators import Sine, Triangle, Sawtooth, Square, WhiteNoise, Pulse
 '''
 def write_jpop(scale_type, length, melody_ins=1, chord_ins=1, bpm=80):
     if 'minor' in scale_type.mode:
@@ -98,3 +100,7 @@ a = P([b, c, b, c, b, c],
 #play(a)
 #a = drum('2,2,2,2,!1;1').notes
 #play a | (4, 2), 165, 1
+def sine(freq=440, duration=1000, volume=0):
+    return Sine(freq).to_audio_segment(duration, volume)
+a = C('C')
+a.append(sine(600))
