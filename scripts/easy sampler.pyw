@@ -178,18 +178,26 @@ def check_special(sound):
 
 
 def sine(freq=440, duration=1000, volume=0):
+    if type(freq) in [str, note]:
+        freq = get_freq(freq)
     return Sine(freq).to_audio_segment(duration, volume)
 
 
 def triangle(freq=440, duration=1000, volume=0):
+    if type(freq) in [str, note]:
+        freq = get_freq(freq)
     return Triangle(freq).to_audio_segment(duration, volume)
 
 
 def sawtooth(freq=440, duration=1000, volume=0):
+    if type(freq) in [str, note]:
+        freq = get_freq(freq)
     return Sawtooth(freq).to_audio_segment(duration, volume)
 
 
 def square(freq=440, duration=1000, volume=0):
+    if type(freq) in [str, note]:
+        freq = get_freq(freq)
     return Square(freq).to_audio_segment(duration, volume)
 
 
@@ -225,12 +233,39 @@ def get_wave(sound, type='sine', bpm=120):
     return temp
 
 
+def audio(obj, track_num=0):
+    if type(obj) == note:
+        obj = chord([obj])
+    result = root.export_audio_file(obj, action='get', track_num=track_num)
+    return result
+
+
+def audio_chord(audio_list, interval=0, duration=1 / 4, volume=127):
+    result = chord([])
+    result.notes = audio_list
+    result.interval = interval if type(interval) == list else [
+        interval for i in range(len(audio_list))
+    ]
+    durations = duration if type(duration) == list else [
+        duration for i in range(len(audio_list))
+    ]
+    volumes = volume if type(volume) == list else [
+        volume for i in range(len(audio_list))
+    ]
+    for i in range(len(result.notes)):
+        result.notes[i].duration = durations[i]
+        result.notes[i].volume = volumes[i]
+    return result
+
+
 class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
         self.title("Easy Sampler")
         self.minsize(1000, 650)
         self.configure(bg=background_color)
+
+        self.default_load = False
 
         style = ttk.Style()
         style.theme_use('alt')
@@ -298,33 +333,36 @@ class Root(Tk):
                                       command=self.stop_playing)
         self.stop_button.place(x=0, y=500)
 
-        self.set_bpm_button = ttk.Button(self,
-                                         text='Change BPM',
-                                         command=self.set_bpm_func)
-        self.set_bpm_button.place(x=0, y=300)
-        self.set_bpm_entry = ttk.Entry(self, width=10)
-        self.set_bpm_entry.insert(END, '120')
-        self.set_bpm_entry.place(x=100, y=300)
+        self.change_current_bpm_button = ttk.Button(
+            self, text='Change BPM', command=self.change_current_bpm)
+        self.change_current_bpm_button.place(x=0, y=300)
+        self.change_current_bpm_entry = ttk.Entry(self, width=10)
+        self.change_current_bpm_entry.insert(END, '120')
+        self.change_current_bpm_entry.place(x=100, y=300)
         self.current_bpm = 120
         self.current_playing = []
 
         self.msg = ttk.Label(self, text='')
         self.msg.place(x=130, y=600)
 
-        self.set_sound_path_button = ttk.Button(
-            self, text='Change Sound Path', command=self.set_sound_path_func)
-        self.set_sound_path_button.place(x=700, y=150)
+        self.change_current_sound_path_button = ttk.Button(
+            self,
+            text='Change Sound Path',
+            command=self.change_current_sound_path)
+        self.change_current_sound_path_button.place(x=700, y=150)
 
-        self.set_sound_format_button = ttk.Button(
+        self.change_current_sound_format_button = ttk.Button(
             self,
             text='Change Sound Format',
-            command=self.set_sound_format_func)
-        self.set_sound_format_button.place(x=850, y=150)
+            command=self.change_current_sound_format)
+        self.change_current_sound_format_button.place(x=850, y=150)
         self.current_sound_format_label = ttk.Label(self,
                                                     text='Track Sound Format')
         self.current_sound_format_label.place(x=520, y=250)
-        self.set_sound_format_entry = ttk.Entry(self, width=20)
-        self.set_sound_format_entry.place(x=660, y=250)
+        self.change_current_sound_format_entry = ttk.Entry(self, width=20)
+        self.change_current_sound_format_entry.place(x=660, y=250)
+        self.change_current_sound_format_entry.bind(
+            '<Return>', lambda e: self.change_current_sound_format())
 
         self.load_midi_file_button = ttk.Button(
             self, text='Load MIDI File', command=self.load_midi_file_func)
@@ -357,9 +395,13 @@ class Root(Tk):
         self.current_track_name_entry = ttk.Entry(self, width=20)
         self.current_track_name_label.place(x=250, y=150)
         self.current_track_name_entry.place(x=350, y=150)
+        self.current_track_name_entry.bind(
+            '<Return>', lambda e: self.change_current_track_name())
         self.current_track_sound_modules_label = ttk.Label(
             self, text='Track Sound Modules')
         self.current_track_sound_modules_entry = ttk.Entry(self, width=82)
+        self.current_track_sound_modules_entry.bind(
+            '<Return>', lambda e: self.change_current_sound_path(mode=1))
         self.current_track_sound_modules_label.place(x=250, y=200)
         self.current_track_sound_modules_entry.place(x=400, y=200)
 
@@ -420,14 +462,17 @@ class Root(Tk):
             activeforeground=active_foreground_color,
             disabledforeground=disabled_foreground_color)
         self.export_audio_file_menubar.add_command(
-            label='Wave File', command=lambda: self.export_audio_file('wav'))
+            label='Wave File',
+            command=lambda: self.export_audio_file(mode='wav'))
         self.export_audio_file_menubar.add_command(
-            label='MP3 File', command=lambda: self.export_audio_file('mp3'))
+            label='MP3 File',
+            command=lambda: self.export_audio_file(mode='mp3'))
         self.export_audio_file_menubar.add_command(
-            label='OGG File', command=lambda: self.export_audio_file('ogg'))
+            label='OGG File',
+            command=lambda: self.export_audio_file(mode='ogg'))
         self.export_audio_file_menubar.add_command(
             label='Other Format',
-            command=lambda: self.export_audio_file('other'))
+            command=lambda: self.export_audio_file(mode='other'))
 
         self.export_menubar.add_cascade(label='Audio File',
                                         menu=self.export_audio_file_menubar)
@@ -458,6 +503,9 @@ class Root(Tk):
                                    command=self.load_musicpy_code)
         self.file_top.place(x=0, y=0)
 
+        self.current_project_name = ttk.Label(self, text='new.esp')
+        self.current_project_name.place(x=0, y=30)
+
         self.load_musicpy_code_button = ttk.Button(
             self, text='Load musicpy code', command=self.load_musicpy_code)
         self.load_musicpy_code_button.place(x=0, y=550)
@@ -485,9 +533,10 @@ class Root(Tk):
         self.track_sound_audiosegments = [
             load_audiosegments(notedict, sound_path, sound_format)
         ]
-        self.msg.configure(text='Loading complete')
         self.track_note_sounds_path = [note_sounds_path]
         self.track_dict = [notedict]
+        self.msg.configure(text='Loading complete')
+        self.default_load = True
 
     def load_musicpy_code(self):
         filename = filedialog.askopenfilename(initialdir=self.last_place,
@@ -568,6 +617,8 @@ class Root(Tk):
         self.menubar.post(event.x_root, event.y_root)
 
     def open_project_file(self):
+        if not self.default_load:
+            return
         self.msg.configure(text='')
         filename = filedialog.askopenfilename(
             initialdir=self.last_place,
@@ -599,8 +650,8 @@ class Root(Tk):
         self.track_sound_format = self.project_dict['track_sound_format']
         self.track_dict = self.project_dict['track_dict']
         self.current_bpm = self.project_dict['current_bpm']
-        self.set_bpm_entry.delete(0, END)
-        self.set_bpm_entry.insert(END, self.current_bpm)
+        self.change_current_bpm_entry.delete(0, END)
+        self.change_current_bpm_entry.insert(END, self.current_bpm)
         self.load_midi_file_entry.delete(0, END)
         self.load_midi_file_entry.insert(
             END, self.project_dict['current_midi_file'])
@@ -616,9 +667,12 @@ class Root(Tk):
             self.reload_track_sounds(i)
         self.current_track_sound_modules_entry.delete(0, END)
         self.choose_tracks.selection_clear(0, END)
+        self.current_project_name.configure(text=os.path.basename(filename))
         self.msg.configure(text='Successfully loaded current project file')
 
     def save_as_project_file(self):
+        if not self.default_load:
+            return
         self.msg.configure(text='')
         self.project_dict = {}
         self.project_dict['track_num'] = self.track_num
@@ -634,13 +688,15 @@ class Root(Tk):
             'current_musicpy_code'] = self.set_musicpy_code_entry.get(
                 '1.0', 'end-1c')
         filename = filedialog.asksaveasfilename(
-            initialdir='.',
+            initialdir=self.last_place,
             title="Save As Project File",
             filetype=(("Easy Sampler Project", "*.esp"), ("Text", "*.txt"),
                       ("All files", "*.*")),
             defaultextension=f".esp",
             initialfile='untitled')
         if filename:
+            memory = filename[:filename.rindex('/') + 1]
+            self.last_place = memory
             with open(filename, 'w', encoding='utf-8-sig') as f:
                 f.write(str(self.project_dict))
             self.msg.configure(text='Successfully saved as project file')
@@ -653,6 +709,8 @@ class Root(Tk):
             defaultextension=f".txt",
             initialfile='untitled')
         if filename:
+            memory = filename[:filename.rindex('/') + 1]
+            self.last_place = memory
             with open(filename, 'w', encoding='utf-8-sig') as f:
                 f.write(self.set_musicpy_code_entry.get('1.0', 'end-1c'))
 
@@ -680,9 +738,9 @@ class Root(Tk):
                 elif 'format' in each and '=' in each:
                     current_sound_format = each.replace(' ', '').split('=')[1]
                     self.track_sound_format[current_ind] = current_sound_format
-                    self.set_sound_format_entry.delete(0, END)
-                    self.set_sound_format_entry.insert(END,
-                                                       current_sound_format)
+                    self.change_current_sound_format_entry.delete(0, END)
+                    self.change_current_sound_format_entry.insert(
+                        END, current_sound_format)
             self.current_track_dict_num = current_ind
             self.reload_track_sounds()
             self.msg.configure(
@@ -696,7 +754,14 @@ class Root(Tk):
 
     def ask_other_format(self):
         self.ask_other_format_window = Toplevel(self)
+        self.ask_other_format_window.configure(bg=background_color)
         self.ask_other_format_window.minsize(370, 200)
+        x = self.winfo_x()
+        y = self.winfo_y()
+        w = self.ask_other_format_window.winfo_width()
+        h = self.ask_other_format_window.winfo_height()
+        self.ask_other_format_window.geometry("%dx%d+%d+%d" %
+                                              (w, h, x + 200, y + 200))
         self.ask_other_format_window.title('Other Format')
         x = self.winfo_x()
         y = self.winfo_y()
@@ -726,7 +791,11 @@ class Root(Tk):
         if current_format:
             self.export_audio_file(mode=current_format)
 
-    def export_audio_file(self, mode='wav', action='export'):
+    def export_audio_file(self,
+                          obj=None,
+                          mode='wav',
+                          action='export',
+                          track_num=0):
         if mode == 'other':
             self.ask_other_format()
             return
@@ -744,6 +813,10 @@ class Root(Tk):
                     'You need at least 1 track with loaded sound modules to play'
                 )
                 return
+            elif action == 'get':
+                self.msg.configure(
+                    text='You need at least 1 track with loaded sound modules')
+                return
         if action == 'export':
             filename = filedialog.asksaveasfilename(
                 initialdir='.',
@@ -753,7 +826,18 @@ class Root(Tk):
                 initialfile='untitled')
             if not filename:
                 return
-        result = self.get_current_musicpy_chords()
+        if action == 'get':
+            result = obj
+            if type(result) == chord:
+                result = ['chord', result, track_num]
+            elif type(result) == piece:
+                result = ['piece', result]
+            else:
+                self.msg.configure(
+                    text='Must be chord or piece instance to convert to audio')
+                return
+        else:
+            result = self.get_current_musicpy_chords()
         if result is None:
             return
         if action == 'export':
@@ -785,6 +869,8 @@ class Root(Tk):
                 elif action == 'play':
                     self.msg.configure(text=f'Start playing')
                     play_audio(silent_audio)
+                elif action == 'get':
+                    return silent_audio
             except:
                 if action == 'export':
                     self.msg.configure(
@@ -854,6 +940,8 @@ class Root(Tk):
                 elif action == 'play':
                     self.msg.configure(text=f'Start playing')
                     play_audio(silent_audio)
+                elif action == 'get':
+                    return silent_audio
             except:
                 if action == 'export':
                     self.msg.configure(
@@ -1046,8 +1134,8 @@ class Root(Tk):
                 lines = current_notes.split('\n')
                 for k in range(len(lines)):
                     each = lines[k]
-                    if each.startswith('play'):
-                        lines[k] = 'current_chord = ' + each[4:]
+                    if each.startswith('play '):
+                        lines[k] = 'current_chord = ' + each[5:]
                 current_notes = '\n'.join(lines)
                 exec(current_notes, globals(), globals())
                 current_chord = globals()['current_chord']
@@ -1058,9 +1146,9 @@ class Root(Tk):
                     elif length == 3:
                         current_chord, current_bpm, current_track_num = current_chord
                         current_track_num -= 1
-                    self.set_bpm_entry.delete(0, END)
-                    self.set_bpm_entry.insert(END, current_bpm)
-                    self.set_bpm_func(1)
+                    self.change_current_bpm_entry.delete(0, END)
+                    self.change_current_bpm_entry.insert(END, current_bpm)
+                    self.change_current_bpm(1)
             except Exception as e:
                 print(str(e))
                 self.msg.configure(
@@ -1096,9 +1184,9 @@ class Root(Tk):
         if type(current_chord) == piece:
             current_bpm = current_chord.tempo
             current_start_times = current_chord.start_times
-            self.set_bpm_entry.delete(0, END)
-            self.set_bpm_entry.insert(END, current_bpm)
-            self.set_bpm_func(1)
+            self.change_current_bpm_entry.delete(0, END)
+            self.change_current_bpm_entry.insert(END, current_bpm)
+            self.change_current_bpm(1)
             return 'piece', current_chord
 
     def clear_current_track(self):
@@ -1115,7 +1203,7 @@ class Root(Tk):
             self.track_dict[current_ind] = copy(notedict)
             self.current_track_name_entry.delete(0, END)
             self.current_track_sound_modules_entry.delete(0, END)
-            self.set_sound_format_entry.delete(0, END)
+            self.change_current_sound_format_entry.delete(0, END)
 
     def clear_all_tracks(self, mode=0):
         if_clear = messagebox.askyesnocancel(
@@ -1135,7 +1223,7 @@ class Root(Tk):
             self.track_num = 0
             self.current_track_name_entry.delete(0, END)
             self.current_track_sound_modules_entry.delete(0, END)
-            self.set_sound_format_entry.delete(0, END)
+            self.change_current_sound_format_entry.delete(0, END)
 
     def delete_track(self):
         current_ind = self.choose_tracks.index(ANCHOR)
@@ -1158,7 +1246,7 @@ class Root(Tk):
             else:
                 self.current_track_name_entry.delete(0, END)
                 self.current_track_sound_modules_entry.delete(0, END)
-                self.set_sound_format_entry.delete(0, END)
+                self.change_current_sound_format_entry.delete(0, END)
 
     def add_new_track(self):
         self.track_num += 1
@@ -1200,6 +1288,13 @@ class Root(Tk):
             if current_ind < self.track_num:
                 self.open_change_track_dict = True
                 self.change_dict_window = Toplevel(self)
+                self.change_dict_window.configure(bg=background_color)
+                x = self.winfo_x()
+                y = self.winfo_y()
+                w = self.change_dict_window.winfo_width()
+                h = self.change_dict_window.winfo_height()
+                self.change_dict_window.geometry("%dx%d+%d+%d" %
+                                                 (w, h, x + 200, y + 200))
                 self.change_dict_window.protocol("WM_DELETE_WINDOW",
                                                  self.close_change_dict_window)
                 self.change_dict_window.title('Change Track Dictionary')
@@ -1397,8 +1492,8 @@ class Root(Tk):
             self.current_track_sound_modules_entry.delete(0, END)
             self.current_track_sound_modules_entry.insert(
                 END, self.track_sound_modules_name[current_ind])
-            self.set_sound_format_entry.delete(0, END)
-            self.set_sound_format_entry.insert(
+            self.change_current_sound_format_entry.delete(0, END)
+            self.change_current_sound_format_entry.insert(
                 END, self.track_sound_format[current_ind])
 
     def load_midi_file_func(self):
@@ -1412,9 +1507,9 @@ class Root(Tk):
             self.load_midi_file_entry.insert(END, filename)
             self.set_musicpy_code_entry.delete('1.0', END)
             current_midi_file = read(filename)
-            self.set_bpm_entry.delete(0, END)
-            self.set_bpm_entry.insert(END, current_midi_file[0])
-            self.set_bpm_func(1)
+            self.change_current_bpm_entry.delete(0, END)
+            self.change_current_bpm_entry.insert(END, current_midi_file[0])
+            self.change_current_bpm(1)
             self.set_musicpy_code_entry.insert(
                 END, f'read("{filename}", mode="all", merge=True)[1]')
             self.msg.configure(
@@ -1422,11 +1517,11 @@ class Root(Tk):
                 f'The MIDI file is loaded, please click Play Musicpy Code button to play'
             )
 
-    def set_sound_format_func(self):
+    def change_current_sound_format(self):
         current_ind = self.choose_tracks.index(ANCHOR)
         if current_ind < self.track_num:
             self.msg.configure(text='')
-            current_sound_format = self.set_sound_format_entry.get()
+            current_sound_format = self.change_current_sound_format_entry.get()
             self.track_sound_format[current_ind] = current_sound_format
             self.msg.configure(
                 text=
@@ -1436,14 +1531,17 @@ class Root(Tk):
             self.choose_tracks.selection_anchor(current_ind)
             self.choose_tracks.selection_set(current_ind)
 
-    def set_sound_path_func(self):
+    def change_current_sound_path(self, mode=0):
         current_ind = self.choose_tracks.index(ANCHOR)
         if current_ind < self.track_num:
             self.msg.configure(text='')
-            directory = filedialog.askdirectory(
-                initialdir='.',
-                title="Choose Sound Path",
-            )
+            if mode == 0:
+                directory = filedialog.askdirectory(
+                    initialdir='.',
+                    title="Choose Sound Path",
+                )
+            else:
+                directory = self.current_track_sound_modules_entry.get()
             if directory:
                 try:
                     self.msg.configure(
@@ -1489,9 +1587,9 @@ class Root(Tk):
     def real_time_to_bar(self, time, bpm):
         return (time / (60000 / bpm)) / 4
 
-    def set_bpm_func(self, mode=0):
+    def change_current_bpm(self, mode=0):
         self.msg.configure(text='')
-        current_bpm = self.set_bpm_entry.get()
+        current_bpm = self.change_current_bpm_entry.get()
         try:
             current_bpm = float(current_bpm)
             self.current_bpm = current_bpm
@@ -1554,8 +1652,8 @@ class Root(Tk):
                 lines = current_notes.split('\n')
                 for k in range(len(lines)):
                     each = lines[k]
-                    if each.startswith('play'):
-                        lines[k] = 'current_chord = ' + each[4:]
+                    if each.startswith('play '):
+                        lines[k] = 'current_chord = ' + each[5:]
                 current_notes = '\n'.join(lines)
                 exec(current_notes, globals(), globals())
                 current_chord = globals()['current_chord']
@@ -1566,9 +1664,9 @@ class Root(Tk):
                     elif length == 3:
                         current_chord, current_bpm, current_track_num = current_chord
                         current_track_num -= 1
-                    self.set_bpm_entry.delete(0, END)
-                    self.set_bpm_entry.insert(END, current_bpm)
-                    self.set_bpm_func(1)
+                    self.change_current_bpm_entry.delete(0, END)
+                    self.change_current_bpm_entry.insert(END, current_bpm)
+                    self.change_current_bpm(1)
             except Exception as e:
                 print(str(e))
                 self.msg.configure(
@@ -1614,9 +1712,9 @@ class Root(Tk):
             ]
             current_bpm = current_chord.tempo
             current_start_times = current_chord.start_times
-            self.set_bpm_entry.delete(0, END)
-            self.set_bpm_entry.insert(END, current_bpm)
-            self.set_bpm_func(1)
+            self.change_current_bpm_entry.delete(0, END)
+            self.change_current_bpm_entry.insert(END, current_bpm)
+            self.change_current_bpm(1)
             for each in range(len(current_chord)):
                 current_id = self.after(
                     self.bar_to_real_time(current_start_times[each],
