@@ -212,24 +212,29 @@ def pulse(freq=440, duty_cycle=0.5, duration=1000, volume=0):
 def get_wave(sound, type='sine', bpm=120):
     temp = copy(sound)
     freq_list = [get_freq(i) for i in sound]
+    volume = [velocity_to_db(i) for i in temp.get_volume()]
     for i in range(1, len(temp) + 1):
         current_note = temp[i]
         if type == 'sine':
             temp[i] = sine(
                 get_freq(current_note),
-                root.bar_to_real_time(current_note.duration, bpm, 1))
+                root.bar_to_real_time(current_note.duration, bpm, 1),
+                volume[i - 1])
         elif type == 'triangle':
             temp[i] = triangle(
                 get_freq(current_note),
-                root.bar_to_real_time(current_note.duration, bpm, 1))
+                root.bar_to_real_time(current_note.duration, bpm, 1),
+                volume[i - 1])
         elif type == 'sawtooth':
             temp[i] = sawtooth(
                 get_freq(current_note),
-                root.bar_to_real_time(current_note.duration, bpm, 1))
+                root.bar_to_real_time(current_note.duration, bpm, 1),
+                volume[i - 1])
         elif type == 'square':
             temp[i] = square(
                 get_freq(current_note),
-                root.bar_to_real_time(current_note.duration, bpm, 1))
+                root.bar_to_real_time(current_note.duration, bpm, 1),
+                volume[i - 1])
     return temp
 
 
