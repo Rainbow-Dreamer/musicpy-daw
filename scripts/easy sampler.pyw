@@ -201,6 +201,30 @@ def pulse(freq=440, duty_cycle=0.5, duration=1000, volume=0):
     return Pulse(freq, duty_cycle).to_audio_segment(duration, volume)
 
 
+def get_wave(sound, type='sine', bpm=120):
+    temp = copy(sound)
+    freq_list = [get_freq(i) for i in sound]
+    for i in range(1, len(temp) + 1):
+        current_note = temp[i]
+        if type == 'sine':
+            temp[i] = sine(
+                get_freq(current_note),
+                root.bar_to_real_time(current_note.duration, bpm, 1))
+        elif type == 'triangle':
+            temp[i] = triangle(
+                get_freq(current_note),
+                root.bar_to_real_time(current_note.duration, bpm, 1))
+        elif type == 'sawtooth':
+            temp[i] = sawtooth(
+                get_freq(current_note),
+                root.bar_to_real_time(current_note.duration, bpm, 1))
+        elif type == 'square':
+            temp[i] = square(
+                get_freq(current_note),
+                root.bar_to_real_time(current_note.duration, bpm, 1))
+    return temp
+
+
 class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
@@ -787,8 +811,8 @@ class Root(Tk):
                         each.volume = 127
                 current_chord.tracks[i] = each_track
             silent_audio = AudioSegment.silent(
-                duration=current_chord.eval_time(mode='number') * 1000,
-                audio_mode=1)
+                duration=current_chord.eval_time(mode='number', audio_mode=1) *
+                1000)
             for i in range(len(current_chord)):
                 silent_audio = self.track_to_audio(current_tracks[i],
                                                    current_channels[i],
