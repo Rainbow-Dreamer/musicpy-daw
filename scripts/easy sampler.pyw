@@ -980,7 +980,9 @@ class Root(Tk):
                     each.duration += current_fadeout_time
             return temp
         elif type(temp) == piece:
-            temp.tracks = [self.apply_fadeout(each) for each in temp.tracks]
+            temp.tracks = [
+                self.apply_fadeout(each, bpm) for each in temp.tracks
+            ]
             return temp
 
     def track_to_audio(self,
