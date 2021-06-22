@@ -209,28 +209,34 @@ def pulse(freq=440, duty_cycle=0.5, duration=1000, volume=0):
     return Pulse(freq, duty_cycle).to_audio_segment(duration, volume)
 
 
-def get_wave(sound, type='sine', bpm=120):
+def get_wave(sound, mode='sine', bpm=120, volume=None):
+    # volume: percentage, from 0% to 100%
     temp = copy(sound)
     freq_list = [get_freq(i) for i in sound]
-    volume = [velocity_to_db(i) for i in temp.get_volume()]
+    if volume is None:
+        volume = [velocity_to_db(i) for i in temp.get_volume()]
+    else:
+        volume = [volume for i in range(len(temp))
+                  ] if type(volume) != list else volume
+        volume = [percentage_to_db(i) for i in volume]
     for i in range(1, len(temp) + 1):
         current_note = temp[i]
-        if type == 'sine':
+        if mode == 'sine':
             temp[i] = sine(
                 get_freq(current_note),
                 root.bar_to_real_time(current_note.duration, bpm, 1),
                 volume[i - 1])
-        elif type == 'triangle':
+        elif mode == 'triangle':
             temp[i] = triangle(
                 get_freq(current_note),
                 root.bar_to_real_time(current_note.duration, bpm, 1),
                 volume[i - 1])
-        elif type == 'sawtooth':
+        elif mode == 'sawtooth':
             temp[i] = sawtooth(
                 get_freq(current_note),
                 root.bar_to_real_time(current_note.duration, bpm, 1),
                 volume[i - 1])
-        elif type == 'square':
+        elif mode == 'square':
             temp[i] = square(
                 get_freq(current_note),
                 root.bar_to_real_time(current_note.duration, bpm, 1),
@@ -708,7 +714,7 @@ class Root(Tk):
 
     def save_current_musicpy_code(self):
         filename = filedialog.asksaveasfilename(
-            initialdir='.',
+            initialdir=self.last_place,
             title="Save Current Musicpy Code",
             filetype=(("All files", "*.*"), ),
             defaultextension=f".txt",
@@ -727,11 +733,13 @@ class Root(Tk):
         current_ind = self.choose_tracks.index(ANCHOR)
         if current_ind >= self.track_num:
             return
-        filename = filedialog.askopenfilename(initialdir='.',
+        filename = filedialog.askopenfilename(initialdir=self.last_place,
                                               title="Choose Track Settings",
                                               filetype=(("Text", "*.txt"),
                                                         ("all files", "*.*")))
         if filename:
+            memory = filename[:filename.rindex('/') + 1]
+            self.last_place = memory
             with open(filename, encoding='utf-8-sig') as f:
                 data = f.read()
             data = data.split('\n')
@@ -824,13 +832,15 @@ class Root(Tk):
                 return
         if action == 'export':
             filename = filedialog.asksaveasfilename(
-                initialdir='.',
+                initialdir=self.last_place,
                 title="Export Audio File",
                 filetype=(("All files", "*.*"), ),
                 defaultextension=f".{mode}",
                 initialfile='untitled')
             if not filename:
                 return
+            memory = filename[:filename.rindex('/') + 1]
+            self.last_place = memory
         if action == 'get':
             result = obj
             if type(result) == chord:
@@ -850,21 +860,23 @@ class Root(Tk):
                 text=f'Start to convert current musicpy code to {filename}')
         self.update()
         types = result[0]
+        current_chord = result[1]
         self.stop_playing()
+
         if types == 'chord':
-            current_chord = result[1]
             current_track_num = result[2]
             current_bpm = self.current_bpm
-            current_start_times = 0
-            current_chord = current_chord.only_notes(audio_mode=1)
             for each in current_chord:
                 if type(each) == AudioSegment:
                     each.duration = self.real_time_to_bar(
                         len(each), current_bpm)
                     each.volume = 127
-            silent_audio = AudioSegment.silent(
-                duration=current_chord.eval_time(
-                    current_bpm, mode='number', audio_mode=1) * 1000)
+            apply_fadeout_obj = self.apply_fadeout(current_chord, current_bpm)
+            whole_duration = apply_fadeout_obj.eval_time(
+                current_bpm, mode='number', audio_mode=1) * 1000
+            current_start_times = 0
+            current_chord = current_chord.only_notes(audio_mode=1)
+            silent_audio = AudioSegment.silent(duration=whole_duration)
             silent_audio = self.track_to_audio(current_chord,
                                                current_track_num, silent_audio,
                                                current_bpm)
@@ -882,7 +894,6 @@ class Root(Tk):
                         text=f'Error: {mode} file format is not supported')
                 return
         elif types == 'piece':
-            current_chord = result[1]
             current_name = current_chord.name
             current_bpm = current_chord.tempo
             current_start_times = current_chord.start_times
@@ -901,9 +912,10 @@ class Root(Tk):
                             len(each), current_bpm)
                         each.volume = 127
                 current_chord.tracks[i] = each_track
-            silent_audio = AudioSegment.silent(
-                duration=current_chord.eval_time(mode='number', audio_mode=1) *
-                1000)
+            apply_fadeout_obj = self.apply_fadeout(current_chord, current_bpm)
+            whole_duration = apply_fadeout_obj.eval_time(
+                current_bpm, mode='number', audio_mode=1) * 1000
+            silent_audio = AudioSegment.silent(duration=whole_duration)
             for i in range(len(current_chord)):
                 silent_audio = self.track_to_audio(current_tracks[i],
                                                    current_channels[i],
@@ -955,6 +967,22 @@ class Root(Tk):
         if action == 'export':
             self.msg.configure(text=f'Successfully export {filename}')
 
+    def apply_fadeout(self, obj, bpm):
+        temp = copy(obj)
+        if type(temp) == chord:
+            for each in temp.notes:
+                if type(each) != AudioSegment:
+                    if export_fadeout_use_ratio:
+                        current_fadeout_time = each.duration * export_audio_fadeout_time_ratio
+                    else:
+                        current_fadeout_time = self.real_time_to_bar(
+                            export_audio_fadeout_time, bpm)
+                    each.duration += current_fadeout_time
+            return temp
+        elif type(temp) == piece:
+            temp.tracks = [self.apply_fadeout(each) for each in temp.tracks]
+            return temp
+
     def track_to_audio(self,
                        current_chord,
                        current_track_num=0,
@@ -972,9 +1000,10 @@ class Root(Tk):
                 f'Track {current_track_num+1} has not loaded any sounds yet')
             return
 
-        current_silent_audio = AudioSegment.silent(
-            duration=current_chord.eval_time(
-                current_bpm, mode='number', audio_mode=1) * 1000)
+        apply_fadeout_obj = self.apply_fadeout(current_chord, current_bpm)
+        whole_duration = apply_fadeout_obj.eval_time(
+            current_bpm, mode='number', audio_mode=1) * 1000
+        current_silent_audio = AudioSegment.silent(duration=whole_duration)
         current_intervals = current_chord.interval
         current_durations = current_chord.get_duration()
         current_volumes = current_chord.get_volume()
@@ -997,6 +1026,9 @@ class Root(Tk):
             if check_offset(each):
                 current_offset = self.bar_to_real_time(each.offset,
                                                        current_bpm, 1)
+            current_fadeout_time = int(
+                duration * export_audio_fadeout_time_ratio
+            ) if export_fadeout_use_ratio else int(export_audio_fadeout_time)
             if type(each) == AudioSegment:
                 current_sound = each[current_offset:duration]
             else:
@@ -1004,7 +1036,7 @@ class Root(Tk):
                 if each_name not in current_sounds:
                     each_name = str(~each)
                 current_sound = current_sounds[each_name][
-                    current_offset:duration]
+                    current_offset:duration + current_fadeout_time]
             if check_adsr(each):
                 current_adsr = each.adsr
                 attack, decay, sustain, release = current_adsr
@@ -1028,9 +1060,8 @@ class Root(Tk):
                     current_sound = current_sound.fade_out(each.fade_out_time)
             if check_reverse(each):
                 current_sound = current_sound.reverse()
-            current_fadeout_time = int(duration *
-                                       export_audio_fadeout_time_ratio)
-            if current_fadeout_time != 0:
+
+            if current_fadeout_time != 0 and type(each) != AudioSegment:
                 current_sound = current_sound.fade_out(
                     duration=current_fadeout_time)
             current_sound += volume
@@ -1109,7 +1140,7 @@ class Root(Tk):
 
     def export_midi_file(self):
         self.msg.configure(text='')
-        filename = filedialog.asksaveasfilename(initialdir='.',
+        filename = filedialog.asksaveasfilename(initialdir=self.last_place,
                                                 title="Export MIDI File",
                                                 filetype=(("All files",
                                                            "*.*"), ),
@@ -1117,6 +1148,8 @@ class Root(Tk):
                                                 initialfile='untitled')
         if not filename:
             return
+        memory = filename[:filename.rindex('/') + 1]
+        self.last_place = memory
         result = self.get_current_musicpy_chords()
         if result is None:
             return
@@ -1503,11 +1536,13 @@ class Root(Tk):
 
     def load_midi_file_func(self):
         self.msg.configure(text='')
-        filename = filedialog.askopenfilename(initialdir='.',
+        filename = filedialog.askopenfilename(initialdir=self.last_place,
                                               title="Choose MIDI File",
                                               filetype=(("MIDI", "*.mid"),
                                                         ("All files", "*.*")))
         if filename:
+            memory = filename[:filename.rindex('/') + 1]
+            self.last_place = memory
             self.load_midi_file_entry.delete(0, END)
             self.load_midi_file_entry.insert(END, filename)
             self.set_musicpy_code_entry.delete('1.0', END)
@@ -1542,12 +1577,14 @@ class Root(Tk):
             self.msg.configure(text='')
             if mode == 0:
                 directory = filedialog.askdirectory(
-                    initialdir='.',
+                    initialdir=self.last_place,
                     title="Choose Sound Path",
                 )
             else:
                 directory = self.current_track_sound_modules_entry.get()
             if directory:
+                memory = directory
+                self.last_place = memory
                 try:
                     self.msg.configure(
                         text=
@@ -1615,8 +1652,9 @@ class Root(Tk):
                 duration_time = self.bar_to_real_time(duration,
                                                       self.current_bpm)
                 current_sound.play()
-                current_fadeout_time = int(duration_time *
-                                           play_audio_fadeout_time_ratio)
+                current_fadeout_time = int(
+                    duration_time * play_audio_fadeout_time_ratio
+                ) if play_fadeout_use_ratio else int(play_audio_fadeout_time)
                 current_id = self.after(
                     duration_time,
                     lambda: current_sound.fadeout(current_fadeout_time)
@@ -1639,6 +1677,8 @@ class Root(Tk):
             pass
 
     def play_current_musicpy_code(self):
+        if not self.default_load:
+            return
         self.msg.configure(text='')
         if not self.track_sound_modules:
             self.msg.configure(
@@ -1650,6 +1690,8 @@ class Root(Tk):
         current_notes = self.set_musicpy_code_entry.get('1.0', 'end-1c')
         current_track_num = 0
         current_bpm = self.current_bpm
+        if 'current_chord' in globals():
+            del globals()['current_chord']
         try:
             current_chord = eval(current_notes)
         except:
@@ -1762,6 +1804,8 @@ class Root(Tk):
                 self.current_playing.append(current_id)
 
     def play_current_chord(self):
+        if not self.default_load:
+            return
         self.msg.configure(text='')
         current_notes = self.set_chord_entry.get('1.0', 'end-1c')
         if ',' in current_notes:
