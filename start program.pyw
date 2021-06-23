@@ -6,7 +6,8 @@ import time
 import random
 import keyboard
 from copy import deepcopy as copy
-import os, sys
+import os
+import sys
 import pygame
 import mido
 import midiutil

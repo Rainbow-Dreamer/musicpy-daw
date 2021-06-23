@@ -490,9 +490,10 @@ class Root(Tk):
         self.export_menubar.add_command(label='MIDI File',
                                         command=self.export_midi_file)
 
-        self.file_top = ttk.Button(self,
-                                   text='File',
-                                   command=lambda: self.file_top_make_menu(mode='file'))
+        self.file_top = ttk.Button(
+            self,
+            text='File',
+            command=lambda: self.file_top_make_menu(mode='file'))
         self.file_menu = Menu(self,
                               tearoff=False,
                               bg=background_color,
@@ -510,36 +511,38 @@ class Root(Tk):
         self.file_menu.add_command(label='Load musicpy code',
                                    command=self.load_musicpy_code)
         self.file_top.place(x=0, y=0)
-        
-        self.file_top_options = ttk.Button(self,
-                                   text='Options',
-                                   command=lambda: self.file_top_make_menu(mode='options'))
+
+        self.file_top_options = ttk.Button(
+            self,
+            text='Options',
+            command=lambda: self.file_top_make_menu(mode='options'))
         self.options_menu = Menu(self,
-                              tearoff=False,
-                              bg=background_color,
-                              activebackground=active_background_color,
-                              activeforeground=active_foreground_color,
-                              disabledforeground=disabled_foreground_color)
+                                 tearoff=False,
+                                 bg=background_color,
+                                 activebackground=active_background_color,
+                                 activeforeground=active_foreground_color,
+                                 disabledforeground=disabled_foreground_color)
         self.options_menu.add_command(label='Change settings',
-                           command=self.open_change_settings)        
+                                      command=self.open_change_settings)
         self.file_top_options.place(x=82, y=0)
-        
-        self.file_top_tools = ttk.Button(self,
-                                   text='Tools',
-                                   command=lambda: self.file_top_make_menu(mode='tools'))
+
+        self.file_top_tools = ttk.Button(
+            self,
+            text='Tools',
+            command=lambda: self.file_top_make_menu(mode='tools'))
         self.tools_menu = Menu(self,
-                              tearoff=False,
-                              bg=background_color,
-                              activebackground=active_background_color,
-                              activeforeground=active_foreground_color,
-                              disabledforeground=disabled_foreground_color)
+                               tearoff=False,
+                               bg=background_color,
+                               activebackground=active_background_color,
+                               activeforeground=active_foreground_color,
+                               disabledforeground=disabled_foreground_color)
         self.tools_menu.add_command(label='Make ESI file',
-                           command=self.make_esi_file)        
+                                    command=self.make_esi_file)
         self.tools_menu.add_command(label='Load ESI file',
-                           command=self.load_esi_file)                        
+                                    command=self.load_esi_file)
         self.tools_menu.add_command(label='Unzip ESI file',
-                           command=self.unzip_esi_file)                
-        self.file_top_tools.place(x=164, y=0)        
+                                    command=self.unzip_esi_file)
+        self.file_top_tools.place(x=164, y=0)
 
         self.current_project_name = ttk.Label(self, text='new.esp')
         self.current_project_name.place(x=0, y=30)
@@ -579,29 +582,30 @@ class Root(Tk):
     def make_esi_file(self):
         self.msg.configure(text='')
         file_path = filedialog.askdirectory(
-                    initialdir=self.last_place,
-                    title="Choose the folder of sound files",
-                )
+            initialdir=self.last_place,
+            title="Choose the folder of sound files",
+        )
         if file_path:
             memory = file_path
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
                 f.write(memory)
-            self.last_place = memory        
+            self.last_place = memory
         else:
             return
         abs_path = os.getcwd()
         filenames = os.listdir(file_path)
         if not filenames:
-            self.msg.configure(text='There are no sound files to make ESI files')
+            self.msg.configure(
+                text='There are no sound files to make ESI files')
             return
         length_list = []
         export_path = filedialog.askdirectory(
-                    initialdir=self.last_place,
-                    title="Choose the path you want to place ESI and ESS files",
-                )
+            initialdir=self.last_place,
+            title="Choose the path you want to place ESI and ESS files",
+        )
         if not export_path:
             return
-        os.chdir(export_path)        
+        os.chdir(export_path)
         name = os.path.basename(file_path)
         with open(f'{name}.esi', 'wb') as file:
             os.chdir(file_path)
@@ -611,49 +615,51 @@ class Root(Tk):
                     length_list.append(len(each))
                     file.write(each)
         os.chdir(export_path)
-        
+
         with open(f'{name}.ess', 'w', encoding='utf-8-sig') as f:
             f.write(
                 str(length_list) + ',' +
                 str([os.path.basename(i) for i in filenames]))
         self.msg.configure(
-            text=f'Successfully made ESI file and ESS file: {name}.esi and {name}.ess')
+            text=
+            f'Successfully made ESI file and ESS file: {name}.esi and {name}.ess'
+        )
         os.chdir(abs_path)
         return
-    
+
     def load_esi_file(self):
         self.msg.configure(text='')
         current_ind = self.choose_tracks.index(ANCHOR)
         if current_ind >= self.track_num:
             self.msg.configure(text='Please select a track first')
-            return    
-        
-        
+            return
+
         abs_path = os.getcwd()
-        file_path = filedialog.askopenfilename(initialdir=self.last_place,
-                                              title="Choose ESI file",
-                                              filetype=(("Easy Sampler Instrument", "*.esi"),
-                                                        ("All files", "*.*")))
+        file_path = filedialog.askopenfilename(
+            initialdir=self.last_place,
+            title="Choose ESI file",
+            filetype=(("Easy Sampler Instrument", "*.esi"), ("All files",
+                                                             "*.*")))
         if file_path:
             memory = file_path[:file_path.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
                 f.write(memory)
-            self.last_place = memory        
+            self.last_place = memory
         else:
             return
-        
-        split_file_path = filedialog.askopenfilename(initialdir=self.last_place,
-                                              title="Choose ESS file",
-                                              filetype=(("Easy Sampler Split", "*.ess"),
-                                                        ("All files", "*.*")))
+
+        split_file_path = filedialog.askopenfilename(
+            initialdir=self.last_place,
+            title="Choose ESS file",
+            filetype=(("Easy Sampler Split", "*.ess"), ("All files", "*.*")))
         if split_file_path:
             memory = split_file_path[:split_file_path.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
                 f.write(memory)
-            self.last_place = memory        
+            self.last_place = memory
         else:
-            return        
-        
+            return
+
         self.msg.configure(text=f'Loading {os.path.basename(file_path)} ...')
         self.update()
         with open(split_file_path, 'r', encoding='utf-8-sig') as f:
@@ -669,67 +675,88 @@ class Root(Tk):
                 if current_filename[-4:] != '.txt':
                     sound_files.append(current)
                 else:
-                    track_settings = current.decode('utf-8-sig').replace('\r', '')
-        filenames = [i for i in filenames if i[-4:] != '.txt']             
-        sound_files_pygame = [pygame.mixer.Sound(i) for i in sound_files]
+                    track_settings = current.decode('utf-8-sig').replace(
+                        '\r', '')
+        filenames = [i for i in filenames if i[-4:] != '.txt']
+        sound_files_pygame = []
+        os.chdir('scripts')
+        for each in sound_files:
+            with open('temp', 'wb') as f:
+                f.write(each)
+            sound_files_pygame.append(pygame.mixer.Sound('temp'))
+        os.remove('temp')
+        os.chdir('..')
         sound_files_audio = [
             AudioSegment.from_file(
                 BytesIO(sound_files[i]),
                 format=filenames[i][filenames[i].rfind('.') + 1:])
             for i in range(len(sound_files))
         ]
+        self.track_dict[current_ind] = copy(notedict)
         if track_settings is not None:
-            self.load_track_settings(text=track_settings)        
+            self.load_track_settings(text=track_settings)
         current_dict = self.track_dict[current_ind]
         filenames = [i[:i.rfind('.')] for i in filenames]
-        result_pygame = {filenames[i]: sound_files_pygame[i] for i in range(len(sound_files))}
-        result_audio = {filenames[i]: sound_files_audio[i] for i in range(len(sound_files))}
-        
-        
-        
-        note_sounds = {i: (result_pygame[current_dict[i]] if current_dict[i] in result_pygame else None) for i in current_dict}
+        result_pygame = {
+            filenames[i]: sound_files_pygame[i]
+            for i in range(len(sound_files))
+        }
+        result_audio = {
+            filenames[i]: sound_files_audio[i]
+            for i in range(len(sound_files))
+        }
+        note_sounds = {
+            i: (result_pygame[current_dict[i]]
+                if current_dict[i] in result_pygame else None)
+            for i in current_dict
+        }
         self.track_sound_modules[current_ind] = note_sounds
-        
-        self.track_sound_audiosegments[
-            current_ind] = {i: (result_audio[current_dict[i]] if current_dict[i] in result_audio else None) for i in current_dict}
-        self.track_note_sounds_path[current_ind] = load_sounds(note_sounds)        
-        self.msg.configure(text=f'Successfully loaded {os.path.basename(file_path)}')
-    
+
+        self.track_sound_audiosegments[current_ind] = {
+            i: (result_audio[current_dict[i]]
+                if current_dict[i] in result_audio else None)
+            for i in current_dict
+        }
+        self.track_note_sounds_path[current_ind] = load_sounds(note_sounds)
+        self.msg.configure(
+            text=f'Successfully loaded {os.path.basename(file_path)}')
+
     def unzip_esi_file(self):
         self.msg.configure(text='')
         abs_path = os.getcwd()
-        file_path = filedialog.askopenfilename(initialdir=self.last_place,
-                                              title="Choose ESI file",
-                                              filetype=(("Easy Sampler Instrument", "*.esi"),
-                                                        ("All files", "*.*")))
+        file_path = filedialog.askopenfilename(
+            initialdir=self.last_place,
+            title="Choose ESI file",
+            filetype=(("Easy Sampler Instrument", "*.esi"), ("All files",
+                                                             "*.*")))
         if file_path:
             memory = file_path[:file_path.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
                 f.write(memory)
-            self.last_place = memory        
+            self.last_place = memory
         else:
             return
-        
-        split_file_path = filedialog.askopenfilename(initialdir=self.last_place,
-                                              title="Choose ESS file",
-                                              filetype=(("Easy Sampler Split", "*.ess"),
-                                                        ("All files", "*.*")))
+
+        split_file_path = filedialog.askopenfilename(
+            initialdir=self.last_place,
+            title="Choose ESS file",
+            filetype=(("Easy Sampler Split", "*.ess"), ("All files", "*.*")))
         if split_file_path:
             memory = split_file_path[:split_file_path.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
                 f.write(memory)
-            self.last_place = memory        
+            self.last_place = memory
         else:
             return
-        
+
         with open(split_file_path, 'r', encoding='utf-8-sig') as f:
             unzip = f.read()
         unzip_ind, filenames = literal_eval(unzip)
-        
+
         export_path = filedialog.askdirectory(
-                    initialdir=self.last_place,
-                    title="Choose the folder you want to unzip ESI files to",
-                )
+            initialdir=self.last_place,
+            title="Choose the folder you want to unzip ESI files to",
+        )
         if export_path:
             os.chdir(export_path)
         folder_name = os.path.basename(file_path)
@@ -743,9 +770,10 @@ class Root(Tk):
                 current_length = unzip_ind[each]
                 with open(current_filename, 'wb') as f:
                     f.write(file.read(current_length))
-        self.msg.configure(text=f'Unzip {os.path.basename(file_path)} successfully')
+        self.msg.configure(
+            text=f'Unzip {os.path.basename(file_path)} successfully')
         os.chdir(abs_path)
-    
+
     def load_musicpy_code(self):
         filename = filedialog.askopenfilename(initialdir=self.last_place,
                                               title="Choose musicpy code file",
@@ -905,7 +933,7 @@ class Root(Tk):
         if filename:
             memory = filename[:filename.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
-                f.write(memory)            
+                f.write(memory)
             self.last_place = memory
             with open(filename, 'w', encoding='utf-8-sig') as f:
                 f.write(str(self.project_dict))
@@ -921,7 +949,7 @@ class Root(Tk):
         if filename:
             memory = filename[:filename.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
-                f.write(memory)            
+                f.write(memory)
             self.last_place = memory
             with open(filename, 'w', encoding='utf-8-sig') as f:
                 f.write(self.set_musicpy_code_entry.get('1.0', 'end-1c'))
@@ -929,27 +957,27 @@ class Root(Tk):
     def file_top_make_menu(self, mode='file'):
         if mode == 'file':
             self.file_menu.tk_popup(x=self.winfo_pointerx(),
-                                y=self.winfo_pointery())
+                                    y=self.winfo_pointery())
         elif mode == 'options':
             self.options_menu.tk_popup(x=self.winfo_pointerx(),
-                                y=self.winfo_pointery())            
+                                       y=self.winfo_pointery())
         elif mode == 'tools':
             self.tools_menu.tk_popup(x=self.winfo_pointerx(),
-                                y=self.winfo_pointery())            
+                                     y=self.winfo_pointery())
 
     def load_track_settings(self, text=None):
         current_ind = self.choose_tracks.index(ANCHOR)
         if current_ind >= self.track_num:
             return
         if text is None:
-            filename = filedialog.askopenfilename(initialdir=self.last_place,
-                                                  title="Choose Track Settings",
-                                                  filetype=(("Text", "*.txt"),
-                                                            ("all files", "*.*")))
+            filename = filedialog.askopenfilename(
+                initialdir=self.last_place,
+                title="Choose Track Settings",
+                filetype=(("Text", "*.txt"), ("all files", "*.*")))
             if filename:
                 memory = filename[:filename.rindex('/') + 1]
                 with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
-                    f.write(memory)            
+                    f.write(memory)
                 self.last_place = memory
                 with open(filename, encoding='utf-8-sig') as f:
                     data = f.read()
@@ -973,9 +1001,9 @@ class Root(Tk):
         if text is None:
             self.reload_track_sounds()
             self.msg.configure(
-            text=
-            f'Successfully load settings \'{os.path.basename(filename)}\' for Track {current_ind+1}'
-        )
+                text=
+                f'Successfully load settings \'{os.path.basename(filename)}\' for Track {current_ind+1}'
+            )
 
     def open_export_menu(self):
         self.export_menubar.tk_popup(x=self.winfo_pointerx(),
@@ -1252,9 +1280,11 @@ class Root(Tk):
                 if each_name not in current_sounds:
                     each_name = str(~each)
                 current_sound = current_sounds[each_name]
-                current_max_time = min(len(current_sound), duration + current_fadeout_time)
-                current_max_fadeout_time = min(len(current_sound), current_fadeout_time)
-                current_sound = current_sound[current_offset:current_max_time]                
+                current_max_time = min(len(current_sound),
+                                       duration + current_fadeout_time)
+                current_max_fadeout_time = min(len(current_sound),
+                                               current_fadeout_time)
+                current_sound = current_sound[current_offset:current_max_time]
             if check_adsr(each):
                 current_adsr = each.adsr
                 attack, decay, sustain, release = current_adsr
@@ -1759,7 +1789,7 @@ class Root(Tk):
         if filename:
             memory = filename[:filename.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
-                f.write(memory)            
+                f.write(memory)
             self.last_place = memory
             self.load_midi_file_entry.delete(0, END)
             self.load_midi_file_entry.insert(END, filename)
@@ -1803,7 +1833,7 @@ class Root(Tk):
             if directory:
                 memory = directory
                 with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
-                    f.write(memory)                
+                    f.write(memory)
                 self.last_place = memory
                 try:
                     self.msg.configure(
