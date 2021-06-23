@@ -12,6 +12,7 @@ import mido
 import midiutil
 from musicpy import *
 from ast import literal_eval
+from io import BytesIO
 import math
 import array
 import simpleaudio
