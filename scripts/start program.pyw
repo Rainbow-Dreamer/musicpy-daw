@@ -18,8 +18,10 @@ import math
 import array
 import simpleaudio
 from pydub import AudioSegment
-from pydub.playback import _play_with_simpleaudio as play_audio
+from pydub.playback import _play_with_simpleaudio as play_sound
 from pydub.generators import Sine, Triangle, Sawtooth, Square, WhiteNoise, Pulse
+import librosa
+import soundfile
 
 AudioSegment.converter = "ffmpeg\\bin\\ffmpeg.exe"
 

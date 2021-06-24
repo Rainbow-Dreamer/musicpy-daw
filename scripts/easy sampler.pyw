@@ -20,14 +20,25 @@ class pitch:
         self.sample_rate = self.sounds.frame_rate
         self.channels = self.sounds.channels
         self.sample_width = self.sounds.sample_width
+        self.audio = librosa.load(path, sr=self.sample_rate)[0]
         self.note = N(note) if type(note) == str else note
 
-    def pitch_shift(self, semitones=1):
-        #data_shifted = librosa.effects.pitch_shift(self.audio, self.sample_rate, n_steps=semitones)
-        #result = AudioSegment(data_shifted.tobytes(), frame_rate=self.sample_rate, sample_width=data_shifted.dtype.itemsize, channels=self.channels)
-        new_sample_rate = int(self.sample_rate * (2**(semitones / 12)))
-        result = self.sounds._spawn(self.sounds.raw_data,
-                                    overrides={'frame_rate': new_sample_rate})
+    def pitch_shift(self, semitones=1, mode='librosa'):
+        if mode == 'librosa':
+            data_shifted = librosa.effects.pitch_shift(self.audio,
+                                                       self.sample_rate,
+                                                       n_steps=semitones)
+            current_sound = BytesIO()
+            soundfile.write(current_sound,
+                            data_shifted,
+                            self.sample_rate,
+                            format='wav')
+            result = AudioSegment.from_wav(current_sound)
+        elif mode == 'pydub':
+            new_sample_rate = int(self.sample_rate * (2**(semitones / 12)))
+            result = self.sounds._spawn(
+                self.sounds.raw_data,
+                overrides={'frame_rate': new_sample_rate})
         return result
 
     def __add__(self, semitones):
@@ -47,7 +58,7 @@ class pitch:
             pitch = N(pitch)
         self.note = pitch
 
-    def generate_dict(self, start='A0', end='C8'):
+    def generate_dict(self, start='A0', end='C8', mode='librosa'):
         if type(start) != note:
             start = N(start)
         if type(end) != note:
@@ -55,8 +66,11 @@ class pitch:
         degree = self.note.degree
         result = {}
         for i in range(end.degree - start.degree + 1):
-            print(f'generating {str(start+i)} ...')
-            result[str(start + i)] = self + (start.degree + i - degree)
+            current_note_name = str(start + i)
+            print(f'Converting note {current_note_name} ...', flush=True)
+            result[current_note_name] = self.pitch_shift(start.degree + i -
+                                                         degree,
+                                                         mode=mode)
         return result
 
     def export_sound_files(self,
@@ -64,16 +78,23 @@ class pitch:
                            folder_name='Untitled',
                            start='A0',
                            end='C8',
-                           format='wav'):
+                           format='wav',
+                           mode='librosa'):
         abs_path = os.getcwd()
         os.chdir(path)
         if folder_name not in os.listdir():
             os.mkdir(folder_name)
         os.chdir(folder_name)
-        current_dict = self.generate_dict(start, end)
+        current_dict = self.generate_dict(start, end, mode=mode)
         for each in current_dict:
             current_dict[each].export(f'{each}.{format}', format=format)
         os.chdir(abs_path)
+
+    def __len__(self):
+        return len(self.sounds)
+
+    def play(self):
+        play_audio(self)
 
 
 class sound:
@@ -89,6 +110,12 @@ class sound:
         self.sample_rate = self.sounds.frame_rate
         self.channels = self.sounds.channels
         self.sample_width = self.sounds.sample_width
+
+    def __len__(self):
+        return len(self.sounds)
+
+    def play(self):
+        play_audio(self)
 
 
 def play_audio(audio):
