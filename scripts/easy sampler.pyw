@@ -1238,7 +1238,8 @@ class Root(Tk):
             current_chord = current_chord.only_notes(audio_mode=1)
             silent_audio = AudioSegment.silent(duration=whole_duration)
             silent_audio = self.track_to_audio(current_chord,
-                                               current_track_num, silent_audio,
+                                               current_track_num,
+                                               silent_audio,
                                                current_bpm,
                                                mode=action)
             try:
@@ -1280,7 +1281,8 @@ class Root(Tk):
             for i in range(len(current_chord)):
                 silent_audio = self.track_to_audio(current_tracks[i],
                                                    current_channels[i],
-                                                   silent_audio, current_bpm,
+                                                   silent_audio,
+                                                   current_bpm,
                                                    current_pan[i],
                                                    current_volume[i],
                                                    current_start_times[i],

@@ -1,11 +1,3 @@
-import os
-import sys
-
-abs_path = os.path.dirname(os.path.abspath(__file__))
-os.chdir(abs_path)
-sys.path.append(abs_path)
-os.chdir('scripts')
-sys.path.append('.')
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
@@ -14,6 +6,8 @@ import time
 import random
 import keyboard
 from copy import deepcopy as copy
+import os
+import sys
 import pygame
 import mido
 import midiutil
@@ -29,9 +23,10 @@ from pydub.generators import Sine, Triangle, Sawtooth, Square, WhiteNoise, Pulse
 import librosa
 import soundfile
 
-os.chdir('..')
-
 AudioSegment.converter = "scripts\\ffmpeg\\bin\\ffmpeg.exe"
 
+abs_path = os.path.dirname(os.path.abspath(__file__))
+os.chdir(abs_path)
+sys.path.append(abs_path)
 with open('scripts/easy sampler.pyw') as f:
     exec(f.read())
