@@ -661,7 +661,7 @@ class Root(Tk):
             return
 
         self.msg.configure(text=f'Loading {os.path.basename(file_path)} ...')
-        self.update()
+        self.msg.update()
         with open(split_file_path, 'r', encoding='utf-8-sig') as f:
             unzip = f.read()
         unzip_ind, filenames = literal_eval(unzip)
@@ -1100,7 +1100,7 @@ class Root(Tk):
         if action == 'export':
             self.msg.configure(
                 text=f'Start to convert current musicpy code to {filename}')
-        self.update()
+        self.msg.update()
         types = result[0]
         current_chord = result[1]
         self.stop_playing()
@@ -1258,7 +1258,17 @@ class Root(Tk):
         current_start_time = self.bar_to_real_time(current_start_time,
                                                    current_bpm, 1)
         current_position = 0
-        for i in range(len(current_chord)):
+        whole_length = len(current_chord)
+        if show_convert_progress:
+            counter = 1
+        for i in range(whole_length):
+            if show_convert_progress:
+                self.msg.configure(
+                    text=
+                    f'converting progress: {round((counter / whole_length) * 100, 3):.3f}% of track {current_track_num + 1}'
+                )
+                self.msg.update()
+                counter += 1
             each = current_chord.notes[i]
             interval = self.bar_to_real_time(current_intervals[i], current_bpm,
                                              1)
@@ -1403,7 +1413,7 @@ class Root(Tk):
         self.stop_playing()
         self.msg.configure(
             text=f'Start to convert current musicpy code to {filename}')
-        self.update()
+        self.msg.update()
         write(filename, current_chord, self.current_bpm)
         self.msg.configure(text=f'Successfully export {filename}')
 
@@ -1719,7 +1729,7 @@ class Root(Tk):
             self.msg.configure(
                 text=
                 f'Loading the sounds of {self.track_names[current_ind]} ...')
-            self.update()
+            self.msg.update()
             sound_path = self.track_sound_modules_name[current_ind]
             notedict = self.track_dict[current_ind]
             sound_format = self.track_sound_format[current_ind]
@@ -1840,7 +1850,7 @@ class Root(Tk):
                         text=
                         f'Loading the sounds of {self.track_names[current_ind]} ...'
                     )
-                    self.update()
+                    self.msg.update()
                     sound_path = directory
                     notedict = self.track_dict[current_ind]
                     sound_format = self.track_sound_format[current_ind]
@@ -1922,6 +1932,10 @@ class Root(Tk):
             self.piece_playing.clear()
         try:
             simpleaudio.stop_all()
+        except:
+            pass
+        try:
+            pygame.mixer.music.stop()
         except:
             pass
 

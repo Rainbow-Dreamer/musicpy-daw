@@ -4,6 +4,7 @@ sound_format = 'wav'
 global_volume = 0.7
 font_type = 'Arial'
 font_size = 9
+show_convert_progress = True
 
 notedict = {
     'A0': 'A0',
