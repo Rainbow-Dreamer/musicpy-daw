@@ -1239,7 +1239,8 @@ class Root(Tk):
             silent_audio = AudioSegment.silent(duration=whole_duration)
             silent_audio = self.track_to_audio(current_chord,
                                                current_track_num, silent_audio,
-                                               current_bpm)
+                                               current_bpm,
+                                               mode=action)
             try:
                 if action == 'export':
                     silent_audio.export(filename, format=mode)
@@ -1282,7 +1283,8 @@ class Root(Tk):
                                                    silent_audio, current_bpm,
                                                    current_pan[i],
                                                    current_volume[i],
-                                                   current_start_times[i])
+                                                   current_start_times[i],
+                                                   mode=action)
             if check_adsr(current_chord):
                 current_adsr = current_chord.adsr
                 attack, decay, sustain, release = current_adsr
@@ -1352,7 +1354,8 @@ class Root(Tk):
                        current_bpm=None,
                        current_pan=None,
                        current_volume=None,
-                       current_start_time=0):
+                       current_start_time=0,
+                       mode='export'):
         if len(self.track_sound_modules) <= current_track_num:
             self.msg.configure(text=f'Cannot find Track {current_track_num+1}')
             return
@@ -1380,7 +1383,7 @@ class Root(Tk):
         if show_convert_progress:
             counter = 1
         for i in range(whole_length):
-            if show_convert_progress:
+            if mode == 'export' and show_convert_progress:
                 self.msg.configure(
                     text=
                     f'converting progress: {round((counter / whole_length) * 100, 3):.3f}% of track {current_track_num + 1}'
