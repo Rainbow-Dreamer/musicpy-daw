@@ -1,5 +1,5 @@
 # Settings
-sound_path = 'G:/university/MyAI project/py files/other py files/keyboard piano series/keyboard piano samples'
+sound_path = 'resources/sounds'
 sound_format = 'wav'
 global_volume = 0.7
 font_type = 'Arial'

@@ -1,4 +1,0 @@
-C2,Kick
-E2,Snare
-F#2,CH1
-format = wav
