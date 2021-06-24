@@ -7,6 +7,97 @@ class custom_channel:
         self.channel = channel
 
 
+class pitch:
+    def __init__(self, path, note='C5'):
+        if type(path) != AudioSegment:
+            self.sounds = AudioSegment.from_file(path,
+                                                 format=path[path.rfind('.') +
+                                                             1:])
+            self.file_path = path
+        else:
+            self.sounds = path
+            self.file_path = None
+        self.sample_rate = self.sounds.frame_rate
+        self.channels = self.sounds.channels
+        self.sample_width = self.sounds.sample_width
+        self.note = N(note) if type(note) == str else note
+
+    def pitch_shift(self, semitones=1):
+        #data_shifted = librosa.effects.pitch_shift(self.audio, self.sample_rate, n_steps=semitones)
+        #result = AudioSegment(data_shifted.tobytes(), frame_rate=self.sample_rate, sample_width=data_shifted.dtype.itemsize, channels=self.channels)
+        new_sample_rate = int(self.sample_rate * (2**(semitones / 12)))
+        result = self.sounds._spawn(self.sounds.raw_data,
+                                    overrides={'frame_rate': new_sample_rate})
+        return result
+
+    def __add__(self, semitones):
+        return self.pitch_shift(semitones)
+
+    def __sub__(self, semitones):
+        return self.pitch_shift(-semitones)
+
+    def get(self, pitch):
+        if type(pitch) != note:
+            pitch = N(pitch)
+        semitones = pitch.degree - self.note.degree
+        return self + semitones
+
+    def set_note(self, pitch):
+        if type(pitch) != note:
+            pitch = N(pitch)
+        self.note = pitch
+
+    def generate_dict(self, start='A0', end='C8'):
+        if type(start) != note:
+            start = N(start)
+        if type(end) != note:
+            end = N(end)
+        degree = self.note.degree
+        result = {}
+        for i in range(end.degree - start.degree + 1):
+            print(f'generating {str(start+i)} ...')
+            result[str(start + i)] = self + (start.degree + i - degree)
+        return result
+
+    def export_sound_files(self,
+                           path='.',
+                           folder_name='Untitled',
+                           start='A0',
+                           end='C8',
+                           format='wav'):
+        abs_path = os.getcwd()
+        os.chdir(path)
+        if folder_name not in os.listdir():
+            os.mkdir(folder_name)
+        os.chdir(folder_name)
+        current_dict = self.generate_dict(start, end)
+        for each in current_dict:
+            current_dict[each].export(f'{each}.{format}', format=format)
+        os.chdir(abs_path)
+
+
+class sound:
+    def __init__(self, path):
+        if type(path) != AudioSegment:
+            self.sounds = AudioSegment.from_file(path,
+                                                 format=path[path.rfind('.') +
+                                                             1:])
+            self.file_path = path
+        else:
+            self.sounds = path
+            self.file_path = None
+        self.sample_rate = self.sounds.frame_rate
+        self.channels = self.sounds.channels
+        self.sample_width = self.sounds.sample_width
+
+
+def play_audio(audio):
+    if type(audio) in [pitch, sound]:
+        play_sound(audio.sounds)
+    else:
+        play_sound(audio)
+
+
 def load(dic, path, file_format, volume):
     wavedict = {}
     for i in dic:
