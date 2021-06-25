@@ -107,7 +107,11 @@ class pitch:
             pitch = N(pitch)
         self.note = pitch
 
-    def generate_dict(self, start='A0', end='C8', mode='librosa'):
+    def generate_dict(self,
+                      start='A0',
+                      end='C8',
+                      mode='librosa',
+                      pitch_shifter=False):
         if type(start) != note:
             start = N(start)
         if type(end) != note:
@@ -116,8 +120,12 @@ class pitch:
         result = {}
         for i in range(end.degree - start.degree + 1):
             current_note_name = str(start + i)
-            root.show_msg(f'Converting note {current_note_name} ...')
-            root.msg.update()
+            if pitch_shifter:
+                root.pitch_msg(f'Converting note {current_note_name} ...')
+                root.pitch_shifter_window.msg.update()
+            else:
+                root.show_msg(f'Converting note {current_note_name} ...')
+                root.msg.update()
             result[current_note_name] = self.pitch_shift(start.degree + i -
                                                          degree,
                                                          mode=mode)
@@ -129,14 +137,21 @@ class pitch:
                            start='A0',
                            end='C8',
                            format='wav',
-                           mode='librosa'):
+                           mode='librosa',
+                           pitch_shifter=False):
         abs_path = os.getcwd()
         os.chdir(path)
         if folder_name not in os.listdir():
             os.mkdir(folder_name)
         os.chdir(folder_name)
-        current_dict = self.generate_dict(start, end, mode=mode)
+        current_dict = self.generate_dict(start,
+                                          end,
+                                          mode=mode,
+                                          pitch_shifter=pitch_shifter)
         for each in current_dict:
+            if pitch_shifter:
+                root.pitch_msg(f'Exporting {each} ...')
+                root.pitch_shifter_window.msg.update()
             current_dict[each].export(f'{each}.{format}', format=format)
         os.chdir(abs_path)
 
@@ -938,12 +953,35 @@ class Root(Tk):
                 self.pitch_shifter_window, width=30)
             self.pitch_shifter_window.folder_name.insert(END, 'Untitled')
             self.pitch_shifter_window.folder_name.place(x=250, y=300)
+            self.pitch_shifter_folder_name = 'Untitled'
 
     def pitch_shifter_change_folder_name(self):
-        pass
+        self.pitch_shifter_folder_name = self.pitch_shifter_window.folder_name.get(
+        )
+        self.pitch_msg(
+            f'Changed export sound files folder name to {self.pitch_shifter_folder_name}'
+        )
 
     def pitch_shifter_export_sound_files(self):
-        pass
+        try:
+            start = N(self.pitch_shifter_window.export_sound_files_from.get())
+            end = N(self.pitch_shifter_window.export_sound_files_to.get())
+        except:
+            self.pitch_msg(f'Error: invalid note name')
+            return
+        file_path = file_path = filedialog.askdirectory(
+            parent=self.pitch_shifter_window,
+            initialdir=self.last_place,
+            title="Choose path to export sound files",
+        )
+        if not file_path:
+            return
+        self.current_pitch.export_sound_files(file_path,
+                                              self.pitch_shifter_folder_name,
+                                              start,
+                                              end,
+                                              pitch_shifter=True)
+        self.pitch_msg(f'Successfully exported to {file_path}')
 
     def pitch_shifter_play(self):
         if self.pitch_shifter_window.has_load:
