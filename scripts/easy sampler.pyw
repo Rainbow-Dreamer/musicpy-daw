@@ -139,7 +139,6 @@ class pitch:
                            format='wav',
                            mode='librosa',
                            pitch_shifter=False):
-        abs_path = os.getcwd()
         os.chdir(path)
         if folder_name not in os.listdir():
             os.mkdir(folder_name)
