@@ -67,7 +67,8 @@ class pitch:
         result = {}
         for i in range(end.degree - start.degree + 1):
             current_note_name = str(start + i)
-            print(f'Converting note {current_note_name} ...', flush=True)
+            root.show_msg(f'Converting note {current_note_name} ...')
+            root.msg.update()
             result[current_note_name] = self.pitch_shift(start.degree + i -
                                                          degree,
                                                          mode=mode)
@@ -417,28 +418,28 @@ class Root(Tk):
                                            text='Play Notes',
                                            command=self.play_current_chord)
         self.set_chord_button.place(x=0, y=350)
-        self.set_chord_entry = Text(self,
-                                    width=50,
-                                    height=5,
-                                    wrap='none',
-                                    undo=True,
-                                    autoseparators=True,
-                                    maxundo=-1)
-        self.set_chord_entry.place(x=100, y=350)
+        self.set_chord_text = Text(self,
+                                   width=50,
+                                   height=5,
+                                   wrap='none',
+                                   undo=True,
+                                   autoseparators=True,
+                                   maxundo=-1)
+        self.set_chord_text.place(x=100, y=350)
 
         self.set_musicpy_code_button = ttk.Button(
             self,
             text='Play Musicpy Code',
             command=self.play_current_musicpy_code)
         self.set_musicpy_code_button.place(x=0, y=450)
-        self.set_musicpy_code_entry = Text(self,
-                                           width=120,
-                                           height=10,
-                                           wrap='none',
-                                           undo=True,
-                                           autoseparators=True,
-                                           maxundo=-1)
-        self.set_musicpy_code_entry.place(x=130, y=450)
+        self.set_musicpy_code_text = Text(self,
+                                          width=120,
+                                          height=10,
+                                          wrap='none',
+                                          undo=True,
+                                          autoseparators=True,
+                                          maxundo=-1)
+        self.set_musicpy_code_text.place(x=130, y=450)
         self.bind('<Control-r>', lambda e: self.play_current_musicpy_code())
         self.bind('<Control-e>', lambda e: self.stop_playing())
         self.bind('<Control-w>', lambda e: self.open_project_file())
@@ -453,9 +454,9 @@ class Root(Tk):
                             activebackground=active_background_color,
                             activeforeground=active_foreground_color,
                             disabledforeground=disabled_foreground_color)
-        self.set_musicpy_code_entry.bind(
+        self.set_musicpy_code_text.bind(
             "<Button-3>",
-            lambda x: self.rightKey(x, self.set_musicpy_code_entry))
+            lambda x: self.rightKey(x, self.set_musicpy_code_text))
 
         self.stop_button = ttk.Button(self,
                                       text='Stop',
@@ -569,6 +570,7 @@ class Root(Tk):
         self.piece_playing = []
 
         self.open_change_track_dict = False
+        self.open_pitch_shifter_window = False
 
         self.export_button = ttk.Button(self,
                                         text='Export',
@@ -628,6 +630,7 @@ class Root(Tk):
                                    command=self.save_current_musicpy_code)
         self.file_menu.add_command(label='Load musicpy code',
                                    command=self.load_musicpy_code)
+        self.file_menu.add_cascade(label='Export', menu=self.export_menubar)
         self.file_top.place(x=0, y=0)
 
         self.file_top_options = ttk.Button(
@@ -642,6 +645,8 @@ class Root(Tk):
                                  disabledforeground=disabled_foreground_color)
         self.options_menu.add_command(label='Change settings',
                                       command=self.open_change_settings)
+        self.options_menu.add_command(label='Change track dict',
+                                      command=self.change_track_dict)
         self.file_top_options.place(x=82, y=0)
 
         self.file_top_tools = ttk.Button(
@@ -653,13 +658,17 @@ class Root(Tk):
                                bg=background_color,
                                activebackground=active_background_color,
                                activeforeground=active_foreground_color,
-                               disabledforeground=disabled_foreground_color)
+                               disabledforeground=active_foreground_color)
         self.tools_menu.add_command(label='Make ESI file',
                                     command=self.make_esi_file)
         self.tools_menu.add_command(label='Load ESI file',
                                     command=self.load_esi_file)
         self.tools_menu.add_command(label='Unzip ESI file',
                                     command=self.unzip_esi_file)
+        self.tools_menu.add_command(label='Load sound as pitch',
+                                    command=self.load_sound_as_pitch)
+        self.tools_menu.add_command(label='Pitch shifter',
+                                    command=self.open_pitch_shifter)
         self.file_top_tools.place(x=164, y=0)
 
         self.current_project_name = ttk.Label(self, text='new.esp')
@@ -675,6 +684,45 @@ class Root(Tk):
         except:
             self.last_place = "."
 
+        self.menubar.delete(0, END)
+        self.menubar.add_command(label='Cut',
+                                 command=lambda: self.cut(editor),
+                                 foreground=foreground_color)
+        self.menubar.add_command(label='Copy',
+                                 command=lambda: self.copy(editor),
+                                 foreground=foreground_color)
+        self.menubar.add_command(label='Paste',
+                                 command=lambda: self.paste(editor),
+                                 foreground=foreground_color)
+        self.menubar.add_command(label='Select all',
+                                 command=lambda: self.choose_all(editor),
+                                 foreground=foreground_color)
+        self.menubar.add_command(label='Undo',
+                                 command=lambda: self.inputs_undo(editor),
+                                 foreground=foreground_color)
+        self.menubar.add_command(label='Redo',
+                                 command=lambda: self.inputs_redo(editor),
+                                 foreground=foreground_color)
+        self.menubar.add_command(
+            label='Save',
+            command=lambda: self.save_current_musicpy_code(),
+            foreground=foreground_color)
+        self.menubar.add_command(label='Load',
+                                 command=lambda: self.load_musicpy_code(),
+                                 foreground=foreground_color)
+        self.menubar.add_cascade(label='Export',
+                                 menu=self.export_menubar,
+                                 foreground=foreground_color)
+
+        self.menubar.add_command(
+            label='Play Selected Code',
+            command=lambda: self.play_selected_musicpy_code(),
+            foreground=foreground_color)
+
+        self.menubar.add_command(label='Play Selected Audio',
+                                 command=lambda: self.play_selected_audio(),
+                                 foreground=foreground_color)
+
         self.choose_tracks.insert(END, 'Track 1')
         self.track_names = ['Track 1']
         self.track_sound_modules_name = [sound_path]
@@ -685,7 +733,7 @@ class Root(Tk):
     def initialize(self):
         global note_sounds
         global note_sounds_path
-        self.msg.configure(text='Loading default sound modules...')
+        self.show_msg('Loading default sound modules...')
         note_sounds = load(notedict, sound_path, sound_format, global_volume)
         note_sounds_path = load_sounds(note_sounds)
         self.track_sound_modules = [note_sounds]
@@ -694,11 +742,327 @@ class Root(Tk):
         ]
         self.track_note_sounds_path = [note_sounds_path]
         self.track_dict = [notedict]
-        self.msg.configure(text='Loading complete')
+        self.show_msg('Loading complete')
         self.default_load = True
 
+    def show_msg(self, text=''):
+        self.msg.configure(text=text)
+
+    def pitch_msg(self, text=''):
+        self.pitch_shifter_window.msg.configure(text=text)
+
+    def load_sound_as_pitch(self):
+        file_path = filedialog.askopenfilename(initialdir=self.last_place,
+                                               title="Choose an audio file",
+                                               filetype=(("All files",
+                                                          "*.*"), ))
+        if file_path:
+            memory = file_path[:file_path.rindex('/') + 1]
+            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+                f.write(memory)
+            self.last_place = memory
+            current_text = self.set_musicpy_code_text.get('1.0', 'end-1c')
+            if current_text[current_text.rfind('\n') + 1:]:
+                self.set_musicpy_code_text.insert(
+                    END, f"\nnew_pitch = pitch('{file_path}', note = 'C5')\n")
+            else:
+                self.set_musicpy_code_text.insert(
+                    END, f"new_pitch = pitch('{file_path}', note = 'C5')\n")
+        else:
+            return
+
+    def open_pitch_shifter(self):
+        if self.open_pitch_shifter_window:
+            self.pitch_shifter_window.focus_set()
+            return
+        else:
+            self.open_pitch_shifter_window = True
+            self.pitch_shifter_window = Toplevel(self)
+            self.pitch_shifter_window.configure(bg=background_color)
+            x = self.winfo_x()
+            y = self.winfo_y()
+            w = self.pitch_shifter_window.winfo_width()
+            h = self.pitch_shifter_window.winfo_height()
+            self.pitch_shifter_window.geometry("%dx%d+%d+%d" %
+                                               (w, h, x + 200, y + 200))
+            self.pitch_shifter_window.protocol("WM_DELETE_WINDOW",
+                                               self.close_pitch_shifter_window)
+            self.pitch_shifter_window.title('Pitch Shifter')
+            self.pitch_shifter_window.minsize(700, 400)
+            self.pitch_shifter_window.focus_set()
+
+            self.pitch_shifter_window.load_current_pitch_label = ttk.Label(
+                self.pitch_shifter_window, text='Current sound: ')
+            self.pitch_shifter_window.load_current_pitch_label.place(x=0, y=50)
+            self.pitch_shifter_window.load_current_pitch_button = ttk.Button(
+                self.pitch_shifter_window,
+                text='Choose a sound file',
+                command=self.pitch_shifter_load_pitch)
+            self.pitch_shifter_window.load_current_pitch_button.place(x=0,
+                                                                      y=100)
+            self.pitch_shifter_window.msg = ttk.Label(
+                self.pitch_shifter_window,
+                text='No sounds are loaded currently')
+            self.pitch_shifter_window.msg.place(x=0, y=350)
+
+            self.pitch_shifter_window.default_pitch_entry = ttk.Entry(
+                self.pitch_shifter_window, width=10)
+            self.pitch_shifter_window.default_pitch_entry.insert(END, 'C5')
+            self.pitch_shifter_window.default_pitch_entry.place(x=150, y=150)
+            self.pitch_shifter_window.change_default_pitch_button = ttk.Button(
+                self.pitch_shifter_window,
+                text='Change Default Pitch',
+                command=self.pitch_shifter_change_default_pitch)
+            self.pitch_shifter_window.change_default_pitch_button.place(x=0,
+                                                                        y=150)
+            self.pitch_shifter_window.change_pitch_button = ttk.Button(
+                self.pitch_shifter_window,
+                text='Change Pitch To',
+                command=self.pitch_shifter_change_pitch)
+            self.pitch_shifter_window.change_pitch_button.place(x=0, y=200)
+            self.pitch_shifter_window.pitch_entry = ttk.Entry(
+                self.pitch_shifter_window, width=10)
+            self.pitch_shifter_window.pitch_entry.insert(END, 'C5')
+            self.pitch_shifter_window.pitch_entry.place(x=150, y=200)
+            self.pitch_shifter_window.has_load = False
+
+            self.pitch_shifter_window.play_button = ttk.Button(
+                self.pitch_shifter_window,
+                text='Play',
+                command=self.pitch_shifter_play)
+            self.pitch_shifter_window.stop_button = ttk.Button(
+                self.pitch_shifter_window,
+                text='Stop',
+                command=self.pitch_shifter_stop)
+            self.pitch_shifter_window.play_button.place(x=250, y=150)
+            self.pitch_shifter_window.stop_button.place(x=350, y=150)
+            self.pitch_shifter_window.shifted_play_button = ttk.Button(
+                self.pitch_shifter_window,
+                text='Play',
+                command=self.pitch_shifter_play_shifted)
+            self.pitch_shifter_window.shifted_stop_button = ttk.Button(
+                self.pitch_shifter_window,
+                text='Stop',
+                command=self.pitch_shifter_stop_shifted)
+            self.pitch_shifter_window.shifted_play_button.place(x=250, y=200)
+            self.pitch_shifter_window.shifted_stop_button.place(x=350, y=200)
+            self.pitch_shifter_playing = False
+            self.pitch_shifter_shifted_playing = False
+            self.current_pitch_note = N('C5')
+            
+            self.pitch_shifter_window.shifted_export_button = ttk.Button(
+                self.pitch_shifter_window,
+                text='Export',
+                command=self.pitch_shifter_export_shifted)
+            self.pitch_shifter_window.shifted_export_button.place(x=450, y=200)            
+
+    def pitch_shifter_play(self):
+        if self.pitch_shifter_window.has_load:
+            if self.pitch_shifter_playing:
+                self.pitch_shifter_stop()
+            self.current_pitch_shifter_play = play_sound(
+                self.current_pitch.sounds)
+            self.pitch_shifter_playing = True
+
+    def pitch_shifter_stop(self):
+        if self.pitch_shifter_playing:
+            self.current_pitch_shifter_play.stop()
+            self.pitch_shifter_playing = False
+
+    def pitch_shifter_play_shifted(self):
+        if self.pitch_shifter_window.has_load:
+            if self.pitch_shifter_shifted_playing:
+                self.pitch_shifter_stop_shifted()
+            self.current_pitch_shifter_shifted_play = play_sound(
+                self.new_pitch)
+            self.pitch_shifter_shifted_playing = True
+
+    def pitch_shifter_stop_shifted(self):
+        if self.pitch_shifter_shifted_playing:
+            self.current_pitch_shifter_shifted_play.stop()
+            self.pitch_shifter_shifted_playing = False
+    
+    def pitch_shifter_export_shifted(self):
+        export_audio_file_menubar = Menu(
+            self.pitch_shifter_window,
+            tearoff=False,
+            bg=background_color,
+            activebackground=active_background_color,
+            activeforeground=active_foreground_color,
+            disabledforeground=disabled_foreground_color)
+        export_audio_file_menubar.add_command(
+            label='Wave File',
+            command=lambda: self.export_pitch_audio_file(mode='wav'))
+        export_audio_file_menubar.add_command(
+            label='MP3 File',
+            command=lambda: self.export_pitch_audio_file(mode='mp3'))
+        export_audio_file_menubar.add_command(
+            label='OGG File',
+            command=lambda: self.export_pitch_audio_file(mode='ogg'))
+        export_audio_file_menubar.add_command(
+            label='Other Format',
+            command=lambda: self.export_pitch_audio_file(mode='other'))
+        
+        export_audio_file_menubar.tk_popup(x=self.winfo_pointerx(),
+                                           y=self.winfo_pointery())        
+
+    def export_pitch_audio_file(self, mode='wav'):
+        if not self.pitch_shifter_window.has_load:
+            self.pitch_msg('Please load a sound file first')
+            return
+        if mode == 'other':
+            self.pitch_shifter_ask_other_format()
+            return
+        filename = filedialog.asksaveasfilename(
+            parent=self.pitch_shifter_window,
+            initialdir=self.last_place,
+            title="Export Audio File",
+            filetype=(("All files", "*.*"), ),
+            defaultextension=f".{mode}",
+            initialfile='untitled')
+        if not filename:
+            return        
+        self.pitch_msg('Start exporting ...')
+        self.pitch_shifter_window.msg.update()
+        self.new_pitch.export(filename, format=mode)
+        self.pitch_msg(f'Successfully export {filename}')
+    
+    def pitch_shifter_ask_other_format(self):
+        pass
+    
+    def pitch_shifter_load_pitch(self):
+        file_path = filedialog.askopenfilename(
+            initialdir=self.last_place,
+            parent=self.pitch_shifter_window,
+            title="Choose an audio file",
+            filetype=(("All files", "*.*"), ))
+        if file_path:
+            memory = file_path[:file_path.rindex('/') + 1]
+            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+                f.write(memory)
+            self.last_place = memory
+            self.pitch_shifter_window.load_current_pitch_label.configure(
+                text=f'Current sound: {file_path}')
+            self.pitch_msg('Loading sounds ...')
+            self.pitch_shifter_window.msg.update()
+            try:
+                default_pitch = self.pitch_shifter_window.default_pitch_entry.get(
+                )
+            except:
+                default_pitch = 'C5'
+            try:
+                self.current_pitch = pitch(file_path, default_pitch)
+                self.pitch_msg('Loading complete')
+            except Exception as e:
+                self.pitch_msg(str(e))
+                return
+            self.pitch_shifter_window.has_load = True
+            self.new_pitch = self.current_pitch.sounds
+
+    def pitch_shifter_change_default_pitch(self):
+        if self.pitch_shifter_window.has_load:
+            new_pitch = self.pitch_shifter_window.default_pitch_entry.get()
+            try:
+                self.current_pitch.set_note(new_pitch)
+                self.pitch_msg(f'Changed default pitch to {new_pitch}')
+            except:
+                self.pitch_msg(f'Error: not a valid note name')
+
+    def pitch_shifter_change_pitch(self):
+        if not self.pitch_shifter_window.has_load:
+            return
+        try:
+            new_pitch = N(self.pitch_shifter_window.pitch_entry.get())
+            self.new_pitch = self.current_pitch + (
+                new_pitch.degree - self.current_pitch.note.degree)
+            self.pitch_msg(f'Changed current sound to {new_pitch}')
+        except Exception as e:
+            print(str(e))
+            self.pitch_msg('Error: not a valid note name')
+
+    def close_pitch_shifter_window(self):
+        self.pitch_shifter_window.destroy()
+        self.open_pitch_shifter_window = False
+
+    def play_selected_musicpy_code(self):
+        if not self.default_load:
+            return
+        self.show_msg('')
+        if not self.track_sound_modules:
+            self.show_msg(
+                'You need at least 1 track with loaded sound modules to play')
+            return
+
+        try:
+            current_notes = self.set_musicpy_code_text.selection_get()
+        except:
+            return
+        current_codes = self.set_musicpy_code_text.get('1.0', 'end-1c')
+        current_track_num = 0
+        current_bpm = self.current_bpm
+        if 'current_chord' in globals():
+            del globals()['current_chord']
+        try:
+            lines = current_codes.split('\n')
+            for k in range(len(lines)):
+                each = lines[k]
+                if each.startswith('play '):
+                    lines[k] = 'current_chord = ' + each[5:]
+            current_codes = '\n'.join(lines)
+            exec(current_codes, globals(), globals())
+        except:
+            pass
+        try:
+            current_chord = eval(current_notes, globals(), globals())
+            length = len(current_chord)
+            if type(current_chord) == tuple and length > 1:
+                if length == 2:
+                    current_chord, current_bpm = current_chord
+                elif length == 3:
+                    current_chord, current_bpm, current_track_num = current_chord
+                    current_track_num -= 1
+                self.change_current_bpm_entry.delete(0, END)
+                self.change_current_bpm_entry.insert(END, current_bpm)
+                self.change_current_bpm(1)
+
+        except Exception as e:
+            print(str(e))
+            self.show_msg(
+                f'Error: invalid musicpy code or not result in a chord instance'
+            )
+            return
+        self.stop_playing()
+        self.play_musicpy_sounds(current_chord, current_bpm, current_track_num)
+
+    def play_selected_audio(self):
+        if not self.default_load:
+            return
+        self.show_msg('')
+        try:
+            current_notes = self.set_musicpy_code_text.selection_get()
+        except:
+            return
+        current_codes = self.set_musicpy_code_text.get('1.0', 'end-1c')
+        try:
+            lines = current_codes.split('\n')
+            for k in range(len(lines)):
+                each = lines[k]
+                if each.startswith('play '):
+                    lines[k] = 'current_chord = ' + each[5:]
+            current_codes = '\n'.join(lines)
+            exec(current_codes, globals(), globals())
+        except:
+            pass
+        try:
+            current_audio = eval(current_notes, globals(), globals())
+            simpleaudio.stop_all()
+            play_audio(current_audio)
+        except Exception as e:
+            print(str(e))
+            self.show_msg('Error: Not an audio')
+
     def make_esi_file(self):
-        self.msg.configure(text='')
+        self.show_msg('')
         file_path = filedialog.askdirectory(
             initialdir=self.last_place,
             title="Choose the folder of sound files",
@@ -713,8 +1077,7 @@ class Root(Tk):
         abs_path = os.getcwd()
         filenames = os.listdir(file_path)
         if not filenames:
-            self.msg.configure(
-                text='There are no sound files to make ESI files')
+            self.show_msg('There are no sound files to make ESI files')
             return
         length_list = []
         export_path = filedialog.askdirectory(
@@ -738,18 +1101,17 @@ class Root(Tk):
             f.write(
                 str(length_list) + ',' +
                 str([os.path.basename(i) for i in filenames]))
-        self.msg.configure(
-            text=
+        self.show_msg(
             f'Successfully made ESI file and ESS file: {name}.esi and {name}.ess'
         )
         os.chdir(abs_path)
         return
 
     def load_esi_file(self):
-        self.msg.configure(text='')
+        self.show_msg('')
         current_ind = self.choose_tracks.index(ANCHOR)
         if current_ind >= self.track_num:
-            self.msg.configure(text='Please select a track first')
+            self.show_msg('Please select a track first')
             return
 
         abs_path = os.getcwd()
@@ -778,7 +1140,7 @@ class Root(Tk):
         else:
             return
 
-        self.msg.configure(text=f'Loading {os.path.basename(file_path)} ...')
+        self.show_msg(f'Loading {os.path.basename(file_path)} ...')
         self.msg.update()
         with open(split_file_path, 'r', encoding='utf-8-sig') as f:
             unzip = f.read()
@@ -836,11 +1198,10 @@ class Root(Tk):
             for i in current_dict
         }
         self.track_note_sounds_path[current_ind] = load_sounds(note_sounds)
-        self.msg.configure(
-            text=f'Successfully loaded {os.path.basename(file_path)}')
+        self.show_msg(f'Successfully loaded {os.path.basename(file_path)}')
 
     def unzip_esi_file(self):
-        self.msg.configure(text='')
+        self.show_msg('')
         abs_path = os.getcwd()
         file_path = filedialog.askopenfilename(
             initialdir=self.last_place,
@@ -888,8 +1249,7 @@ class Root(Tk):
                 current_length = unzip_ind[each]
                 with open(current_filename, 'wb') as f:
                     f.write(file.read(current_length))
-        self.msg.configure(
-            text=f'Unzip {os.path.basename(file_path)} successfully')
+        self.show_msg(f'Unzip {os.path.basename(file_path)} successfully')
         os.chdir(abs_path)
 
     def load_musicpy_code(self):
@@ -905,12 +1265,12 @@ class Root(Tk):
             try:
                 with open(filename, encoding='utf-8-sig',
                           errors='ignore') as f:
-                    self.set_musicpy_code_entry.delete('1.0', END)
-                    self.set_musicpy_code_entry.insert(END, f.read())
-                    self.set_musicpy_code_entry.see(INSERT)
+                    self.set_musicpy_code_text.delete('1.0', END)
+                    self.set_musicpy_code_text.insert(END, f.read())
+                    self.set_musicpy_code_text.see(INSERT)
             except:
-                self.set_musicpy_code_entry.delete('1.0', END)
-                self.msg.configure(text='Not a valid text file')
+                self.set_musicpy_code_text.delete('1.0', END)
+                self.show_msg('Not a valid text file')
 
     def cut(self, editor, event=None):
         editor.event_generate("<<Cut>>")
@@ -939,41 +1299,12 @@ class Root(Tk):
             pass
 
     def rightKey(self, event, editor):
-        self.menubar.delete(0, END)
-        self.menubar.add_command(label='Cut',
-                                 command=lambda: self.cut(editor),
-                                 foreground=foreground_color)
-        self.menubar.add_command(label='Copy',
-                                 command=lambda: self.copy(editor),
-                                 foreground=foreground_color)
-        self.menubar.add_command(label='Paste',
-                                 command=lambda: self.paste(editor),
-                                 foreground=foreground_color)
-        self.menubar.add_command(label='Select all',
-                                 command=lambda: self.choose_all(editor),
-                                 foreground=foreground_color)
-        self.menubar.add_command(label='Undo',
-                                 command=lambda: self.inputs_undo(editor),
-                                 foreground=foreground_color)
-        self.menubar.add_command(label='Redo',
-                                 command=lambda: self.inputs_redo(editor),
-                                 foreground=foreground_color)
-        self.menubar.add_command(
-            label='Save',
-            command=lambda: self.save_current_musicpy_code(),
-            foreground=foreground_color)
-        self.menubar.add_command(label='Load',
-                                 command=lambda: self.load_musicpy_code(),
-                                 foreground=foreground_color)
-        self.menubar.add_command(label='Export',
-                                 command=lambda: self.open_export_menu(),
-                                 foreground=foreground_color)
         self.menubar.post(event.x_root, event.y_root)
 
     def open_project_file(self):
         if not self.default_load:
             return
-        self.msg.configure(text='')
+        self.show_msg('')
         filename = filedialog.askopenfilename(
             initialdir=self.last_place,
             title="Choose project file",
@@ -989,9 +1320,9 @@ class Root(Tk):
                           errors='ignore') as f:
                     self.project_dict = literal_eval(f.read())
             except:
-                self.set_musicpy_code_entry.delete('1.0', END)
-                self.msg.configure(
-                    text='Not a valid text file or easy sampler project file')
+                self.set_musicpy_code_text.delete('1.0', END)
+                self.show_msg(
+                    'Not a valid text file or easy sampler project file')
                 return
         else:
             return
@@ -1009,8 +1340,8 @@ class Root(Tk):
         self.load_midi_file_entry.delete(0, END)
         self.load_midi_file_entry.insert(
             END, self.project_dict['current_midi_file'])
-        self.set_musicpy_code_entry.delete('1.0', END)
-        self.set_musicpy_code_entry.insert(
+        self.set_musicpy_code_text.delete('1.0', END)
+        self.set_musicpy_code_text.insert(
             END, self.project_dict['current_musicpy_code'])
         self.current_track_name_label.focus_set()
         for current_ind in range(self.track_num):
@@ -1022,12 +1353,12 @@ class Root(Tk):
         self.current_track_sound_modules_entry.delete(0, END)
         self.choose_tracks.selection_clear(0, END)
         self.current_project_name.configure(text=os.path.basename(filename))
-        self.msg.configure(text='Successfully loaded current project file')
+        self.show_msg('Successfully loaded current project file')
 
     def save_as_project_file(self):
         if not self.default_load:
             return
-        self.msg.configure(text='')
+        self.show_msg('')
         self.project_dict = {}
         self.project_dict['track_num'] = self.track_num
         self.project_dict['track_names'] = self.track_names
@@ -1039,7 +1370,7 @@ class Root(Tk):
         self.project_dict['current_midi_file'] = self.load_midi_file_entry.get(
         )
         self.project_dict[
-            'current_musicpy_code'] = self.set_musicpy_code_entry.get(
+            'current_musicpy_code'] = self.set_musicpy_code_text.get(
                 '1.0', 'end-1c')
         filename = filedialog.asksaveasfilename(
             initialdir=self.last_place,
@@ -1055,7 +1386,7 @@ class Root(Tk):
             self.last_place = memory
             with open(filename, 'w', encoding='utf-8-sig') as f:
                 f.write(str(self.project_dict))
-            self.msg.configure(text='Successfully saved as project file')
+            self.show_msg('Successfully saved as project file')
 
     def save_current_musicpy_code(self):
         filename = filedialog.asksaveasfilename(
@@ -1070,7 +1401,7 @@ class Root(Tk):
                 f.write(memory)
             self.last_place = memory
             with open(filename, 'w', encoding='utf-8-sig') as f:
-                f.write(self.set_musicpy_code_entry.get('1.0', 'end-1c'))
+                f.write(self.set_musicpy_code_text.get('1.0', 'end-1c'))
 
     def file_top_make_menu(self, mode='file'):
         if mode == 'file':
@@ -1118,8 +1449,7 @@ class Root(Tk):
         self.current_track_dict_num = current_ind
         if text is None:
             self.reload_track_sounds()
-            self.msg.configure(
-                text=
+            self.show_msg(
                 f'Successfully load settings \'{os.path.basename(filename)}\' for Track {current_ind+1}'
             )
 
@@ -1174,23 +1504,21 @@ class Root(Tk):
         if mode == 'other':
             self.ask_other_format()
             return
-        self.msg.configure(text='')
+        self.show_msg('')
         if not self.track_sound_modules:
             if action == 'export':
-                self.msg.configure(
-                    text=
+                self.show_msg(
                     'You need at least 1 track with loaded sound modules to export audio files'
                 )
                 return
             elif action == 'play':
-                self.msg.configure(
-                    text=
+                self.show_msg(
                     'You need at least 1 track with loaded sound modules to play'
                 )
                 return
             elif action == 'get':
-                self.msg.configure(
-                    text='You need at least 1 track with loaded sound modules')
+                self.show_msg(
+                    'You need at least 1 track with loaded sound modules')
                 return
         if action == 'export':
             filename = filedialog.asksaveasfilename(
@@ -1208,16 +1536,16 @@ class Root(Tk):
             elif type(result) == piece:
                 result = ['piece', result]
             else:
-                self.msg.configure(
-                    text='Must be chord or piece instance to convert to audio')
+                self.show_msg(
+                    'Must be chord or piece instance to convert to audio')
                 return
         else:
             result = self.get_current_musicpy_chords()
         if result is None:
             return
         if action == 'export':
-            self.msg.configure(
-                text=f'Start to convert current musicpy code to {filename}')
+            self.show_msg(
+                f'Start to convert current musicpy code to {filename}')
         self.msg.update()
         types = result[0]
         current_chord = result[1]
@@ -1246,14 +1574,14 @@ class Root(Tk):
                 if action == 'export':
                     silent_audio.export(filename, format=mode)
                 elif action == 'play':
-                    self.msg.configure(text=f'Start playing')
+                    self.show_msg(f'Start playing')
                     play_audio(silent_audio)
                 elif action == 'get':
                     return silent_audio
             except:
                 if action == 'export':
-                    self.msg.configure(
-                        text=f'Error: {mode} file format is not supported')
+                    self.show_msg(
+                        f'Error: {mode} file format is not supported')
                 return
         elif types == 'piece':
             current_name = current_chord.name
@@ -1319,17 +1647,17 @@ class Root(Tk):
                 if action == 'export':
                     silent_audio.export(filename, format=mode)
                 elif action == 'play':
-                    self.msg.configure(text=f'Start playing')
+                    self.show_msg(f'Start playing')
                     play_audio(silent_audio)
                 elif action == 'get':
                     return silent_audio
             except:
                 if action == 'export':
-                    self.msg.configure(
-                        text=f'Error: {mode} file format is not supported')
+                    self.show_msg(
+                        f'Error: {mode} file format is not supported')
                 return
         if action == 'export':
-            self.msg.configure(text=f'Successfully export {filename}')
+            self.show_msg(f'Successfully export {filename}')
 
     def apply_fadeout(self, obj, bpm):
         temp = copy(obj)
@@ -1359,11 +1687,10 @@ class Root(Tk):
                        current_start_time=0,
                        mode='export'):
         if len(self.track_sound_modules) <= current_track_num:
-            self.msg.configure(text=f'Cannot find Track {current_track_num+1}')
+            self.show_msg(f'Cannot find Track {current_track_num+1}')
             return
         if not self.track_sound_modules[current_track_num]:
-            self.msg.configure(
-                text=
+            self.show_msg(
                 f'Track {current_track_num+1} has not loaded any sounds yet')
             return
 
@@ -1386,8 +1713,7 @@ class Root(Tk):
             counter = 1
         for i in range(whole_length):
             if mode == 'export' and show_convert_progress:
-                self.msg.configure(
-                    text=
+                self.show_msg(
                     f'converting progress: {round((counter / whole_length) * 100, 3):.3f}% of track {current_track_num + 1}'
                 )
                 self.msg.update()
@@ -1520,7 +1846,7 @@ class Root(Tk):
         return silent_audio
 
     def export_midi_file(self):
-        self.msg.configure(text='')
+        self.show_msg('')
         filename = filedialog.asksaveasfilename(initialdir=self.last_place,
                                                 title="Export MIDI File",
                                                 filetype=(("All files",
@@ -1534,18 +1860,17 @@ class Root(Tk):
             return
         current_chord = result[1]
         self.stop_playing()
-        self.msg.configure(
-            text=f'Start to convert current musicpy code to {filename}')
+        self.show_msg(f'Start to convert current musicpy code to {filename}')
         self.msg.update()
         write(filename, current_chord, self.current_bpm)
-        self.msg.configure(text=f'Successfully export {filename}')
+        self.show_msg(f'Successfully export {filename}')
 
     def get_current_musicpy_chords(self):
-        current_notes = self.set_musicpy_code_entry.get('1.0', 'end-1c')
+        current_notes = self.set_musicpy_code_text.get('1.0', 'end-1c')
         current_track_num = 0
         current_bpm = self.current_bpm
         try:
-            current_chord = eval(current_notes)
+            current_chord = eval(current_notes, globals(), globals())
         except:
             try:
                 lines = current_notes.split('\n')
@@ -1568,8 +1893,7 @@ class Root(Tk):
                     self.change_current_bpm(1)
             except Exception as e:
                 print(str(e))
-                self.msg.configure(
-                    text=
+                self.show_msg(
                     f'Error: invalid musicpy code or not result in a chord instance'
                 )
                 return
@@ -1716,6 +2040,7 @@ class Root(Tk):
                                                  self.close_change_dict_window)
                 self.change_dict_window.title('Change Track Dictionary')
                 self.change_dict_window.minsize(500, 300)
+                self.change_dict_window.focus_set()
                 current_dict = self.track_dict[current_ind]
                 self.current_dict = current_dict
                 self.dict_configs_bar = Scrollbar(self.change_dict_window)
@@ -1846,11 +2171,10 @@ class Root(Tk):
             current_mode = 0
         else:
             current_mode = 1
-        self.msg.configure(text='')
+        self.show_msg('')
         current_ind = self.current_track_dict_num if not current_mode else current_ind
         try:
-            self.msg.configure(
-                text=
+            self.show_msg(
                 f'Loading the sounds of {self.track_names[current_ind]} ...')
             self.msg.update()
             sound_path = self.track_sound_modules_name[current_ind]
@@ -1865,8 +2189,7 @@ class Root(Tk):
             self.track_note_sounds_path[current_ind] = note_sounds_path
             self.current_track_sound_modules_entry.delete(0, END)
             self.current_track_sound_modules_entry.insert(END, sound_path)
-            self.msg.configure(
-                text=
+            self.show_msg(
                 f'The sound path of {self.track_names[current_ind]} has changed'
             )
             if not current_mode:
@@ -1875,8 +2198,7 @@ class Root(Tk):
                 self.choose_tracks.selection_set(current_ind)
         except Exception as e:
             print(str(e))
-            self.msg.configure(
-                text=
+            self.show_msg(
                 f'Error: The sound files in the sound path do not match with settings'
             )
 
@@ -1914,7 +2236,7 @@ class Root(Tk):
                 END, self.track_sound_format[current_ind])
 
     def load_midi_file_func(self):
-        self.msg.configure(text='')
+        self.show_msg('')
         filename = filedialog.askopenfilename(initialdir=self.last_place,
                                               title="Choose MIDI File",
                                               filetype=(("MIDI", "*.mid"),
@@ -1926,26 +2248,24 @@ class Root(Tk):
             self.last_place = memory
             self.load_midi_file_entry.delete(0, END)
             self.load_midi_file_entry.insert(END, filename)
-            self.set_musicpy_code_entry.delete('1.0', END)
+            self.set_musicpy_code_text.delete('1.0', END)
             current_midi_file = read(filename)
             self.change_current_bpm_entry.delete(0, END)
             self.change_current_bpm_entry.insert(END, current_midi_file[0])
             self.change_current_bpm(1)
-            self.set_musicpy_code_entry.insert(
+            self.set_musicpy_code_text.insert(
                 END, f'read("{filename}", mode="all", merge=True)[1]')
-            self.msg.configure(
-                text=
+            self.show_msg(
                 f'The MIDI file is loaded, please click Play Musicpy Code button to play'
             )
 
     def change_current_sound_format(self):
         current_ind = self.choose_tracks.index(ANCHOR)
         if current_ind < self.track_num:
-            self.msg.configure(text='')
+            self.show_msg('')
             current_sound_format = self.change_current_sound_format_entry.get()
             self.track_sound_format[current_ind] = current_sound_format
-            self.msg.configure(
-                text=
+            self.show_msg(
                 f'Set sound format of Track {current_ind+1} to {current_sound_format}'
             )
             self.choose_tracks.see(current_ind)
@@ -1955,7 +2275,7 @@ class Root(Tk):
     def change_current_sound_path(self, mode=0):
         current_ind = self.choose_tracks.index(ANCHOR)
         if current_ind < self.track_num:
-            self.msg.configure(text='')
+            self.show_msg('')
             if mode == 0:
                 directory = filedialog.askdirectory(
                     initialdir=self.last_place,
@@ -1969,8 +2289,7 @@ class Root(Tk):
                     f.write(memory)
                 self.last_place = memory
                 try:
-                    self.msg.configure(
-                        text=
+                    self.show_msg(
                         f'Loading the sounds of {self.track_names[current_ind]} ...'
                     )
                     self.msg.update()
@@ -1989,8 +2308,7 @@ class Root(Tk):
                     self.current_track_sound_modules_entry.delete(0, END)
                     self.current_track_sound_modules_entry.insert(
                         END, sound_path)
-                    self.msg.configure(
-                        text=
+                    self.show_msg(
                         f'The sound path of {self.track_names[current_ind]} has changed'
                     )
                     self.choose_tracks.see(current_ind)
@@ -1998,8 +2316,7 @@ class Root(Tk):
                     self.choose_tracks.selection_set(current_ind)
                 except Exception as e:
                     print(str(e))
-                    self.msg.configure(
-                        text=
+                    self.show_msg(
                         f'Error: The sound files in the sound path do not match with settings'
                     )
 
@@ -2012,16 +2329,16 @@ class Root(Tk):
         return (time / (60000 / bpm)) / 4
 
     def change_current_bpm(self, mode=0):
-        self.msg.configure(text='')
+        self.show_msg('')
         current_bpm = self.change_current_bpm_entry.get()
         try:
             current_bpm = float(current_bpm)
             self.current_bpm = current_bpm
             if mode == 0:
-                self.msg.configure(text=f'Set BPM to {current_bpm}')
+                self.show_msg(f'Set BPM to {current_bpm}')
         except:
             if mode == 0:
-                self.msg.configure(text=f'Error: invalid BPM')
+                self.show_msg(f'Error: invalid BPM')
 
     def play_note_func(self, name, duration, volume, track=0):
         note_sounds_path = self.track_note_sounds_path[track]
@@ -2065,21 +2382,20 @@ class Root(Tk):
     def play_current_musicpy_code(self):
         if not self.default_load:
             return
-        self.msg.configure(text='')
+        self.show_msg('')
         if not self.track_sound_modules:
-            self.msg.configure(
-                text=
+            self.show_msg(
                 'You need at least 1 track with loaded sound modules to play')
             return
 
         self.stop_playing()
-        current_notes = self.set_musicpy_code_entry.get('1.0', 'end-1c')
+        current_notes = self.set_musicpy_code_text.get('1.0', 'end-1c')
         current_track_num = 0
         current_bpm = self.current_bpm
         if 'current_chord' in globals():
             del globals()['current_chord']
         try:
-            current_chord = eval(current_notes)
+            current_chord = eval(current_notes, globals(), globals())
         except:
             try:
                 lines = current_notes.split('\n')
@@ -2100,13 +2416,19 @@ class Root(Tk):
                     self.change_current_bpm_entry.delete(0, END)
                     self.change_current_bpm_entry.insert(END, current_bpm)
                     self.change_current_bpm(1)
+
             except Exception as e:
                 print(str(e))
-                self.msg.configure(
-                    text=
+                self.show_msg(
                     f'Error: invalid musicpy code or not result in a chord instance'
                 )
                 return
+        self.play_musicpy_sounds(current_chord, current_bpm, current_track_num)
+
+    def play_musicpy_sounds(self,
+                            current_chord,
+                            current_bpm=None,
+                            current_track_num=None):
         if type(current_chord) == note:
             has_reverse = check_reverse(current_chord)
             has_offset = check_offset(current_chord)
@@ -2155,15 +2477,14 @@ class Root(Tk):
                     lambda each=each: self.play_track(current_tracks[
                         each], current_track_nums[each]))
                 self.piece_playing.append(current_id)
-        self.msg.configure(text=f'Start playing')
+        self.show_msg(f'Start playing')
 
     def play_track(self, current_chord, current_track_num=0):
         if len(self.track_sound_modules) <= current_track_num:
-            self.msg.configure(text=f'Cannot find Track {current_track_num+1}')
+            self.show_msg(f'Cannot find Track {current_track_num+1}')
             return
         if not self.track_sound_modules[current_track_num]:
-            self.msg.configure(
-                text=
+            self.show_msg(
                 f'Track {current_track_num+1} has not loaded any sounds yet')
             return
         current_chord = current_chord.only_notes()
@@ -2192,17 +2513,17 @@ class Root(Tk):
     def play_current_chord(self):
         if not self.default_load:
             return
-        self.msg.configure(text='')
-        current_notes = self.set_chord_entry.get('1.0', 'end-1c')
+        self.show_msg('')
+        current_notes = self.set_chord_text.get('1.0', 'end-1c')
         if ',' in current_notes:
             current_notes = current_notes.replace(' ', '').split(',')
         else:
             current_notes = current_notes.replace('  ', ' ').split(' ')
         try:
             current_notes = chord(current_notes)
-            self.msg.configure(text=f'Start playing notes')
+            self.show_msg(f'Start playing notes')
         except:
-            self.msg.configure(text=f'Error: invalid notes')
+            self.show_msg(f'Error: invalid notes')
             return
         self.stop_playing()
         for each in current_notes:
