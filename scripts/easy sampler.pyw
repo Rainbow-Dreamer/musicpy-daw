@@ -1,3 +1,6 @@
+import traceback
+import subprocess
+
 with open('scripts/settings.py', encoding='utf-8-sig') as f:
     exec(f.read())
 
@@ -9,11 +12,32 @@ class custom_channel:
 
 class pitch:
     def __init__(self, path, note='C5'):
+        self.note = N(note) if type(note) == str else note
         if type(path) != AudioSegment:
-            self.sounds = AudioSegment.from_file(path,
-                                                 format=path[path.rfind('.') +
-                                                             1:])
             self.file_path = path
+            try:
+                self.sounds = AudioSegment.from_file(
+                    path, format=path[path.rfind('.') + 1:])
+
+            except:
+                path_name = os.path.basename(path)
+                path_file_name = path_name[:path_name.rfind('.')]
+                temp_path = f'{abs_path}\\scripts\\{path_file_name}.wav'
+                subprocess.Popen(['ffmpeg', '-i', path, temp_path],
+                                 shell=True,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
+                                 stdin=subprocess.PIPE)
+                try:
+                    os.chdir(abs_path)
+                    root.after(
+                        1000, lambda: self.temp_load_sound(
+                            path_file_name, temp_path))
+                    return
+
+                except:
+                    pass
+
         else:
             self.sounds = path
             self.file_path = None
@@ -21,7 +45,25 @@ class pitch:
         self.channels = self.sounds.channels
         self.sample_width = self.sounds.sample_width
         self.audio = librosa.load(path, sr=self.sample_rate)[0]
-        self.note = N(note) if type(note) == str else note
+
+    def temp_load_sound(self, path_file_name, temp_path):
+        self.sounds = AudioSegment.from_file(f'scripts/{path_file_name}.wav',
+                                             format='wav')
+        self.sample_rate = self.sounds.frame_rate
+        self.channels = self.sounds.channels
+        self.sample_width = self.sounds.sample_width
+        self.audio = librosa.load(f'scripts/{path_file_name}.wav',
+                                  sr=self.sample_rate)[0]
+        while True:
+            try:
+                os.remove(temp_path)
+                break
+            except:
+                pass
+        try:
+            root.new_pitch = root.current_pitch.sounds
+        except:
+            pass
 
     def pitch_shift(self, semitones=1, mode='librosa'):
         if mode == 'librosa':
@@ -34,11 +76,18 @@ class pitch:
                             self.sample_rate,
                             format='wav')
             result = AudioSegment.from_wav(current_sound)
+            #result = result.set_channels(self.channels)
         elif mode == 'pydub':
             new_sample_rate = int(self.sample_rate * (2**(semitones / 12)))
             result = self.sounds._spawn(
                 self.sounds.raw_data,
                 overrides={'frame_rate': new_sample_rate})
+        return result
+
+    def np_array_to_audio(self, np, sample_rate):
+        current_sound = BytesIO()
+        soundfile.write(current_sound, np, sample_rate, format='wav')
+        result = AudioSegment.from_wav(current_sound)
         return result
 
     def __add__(self, semitones):
@@ -96,6 +145,9 @@ class pitch:
 
     def play(self):
         play_audio(self)
+
+    def stop(self):
+        simpleaudio.stop_all()
 
 
 class sound:
@@ -849,12 +901,49 @@ class Root(Tk):
             self.pitch_shifter_playing = False
             self.pitch_shifter_shifted_playing = False
             self.current_pitch_note = N('C5')
-            
+
             self.pitch_shifter_window.shifted_export_button = ttk.Button(
                 self.pitch_shifter_window,
                 text='Export',
                 command=self.pitch_shifter_export_shifted)
-            self.pitch_shifter_window.shifted_export_button.place(x=450, y=200)            
+            self.pitch_shifter_window.shifted_export_button.place(x=450, y=200)
+            self.pitch_shifter_window.export_sound_files_button = ttk.Button(
+                self.pitch_shifter_window,
+                text='Export Sound Files From Range',
+                command=self.pitch_shifter_export_sound_files)
+            self.pitch_shifter_window.export_sound_files_button.place(x=0,
+                                                                      y=250)
+
+            self.pitch_shifter_window.export_sound_files_from = ttk.Entry(
+                self.pitch_shifter_window, width=10)
+            self.pitch_shifter_window.export_sound_files_to = ttk.Entry(
+                self.pitch_shifter_window, width=10)
+            self.pitch_shifter_window.export_sound_files_from.insert(END, 'A0')
+            self.pitch_shifter_window.export_sound_files_to.insert(END, 'C8')
+            self.pitch_shifter_window.export_sound_files_from.place(x=220,
+                                                                    y=250)
+            self.pitch_shifter_window.export_sound_files_to.place(x=345, y=250)
+            self.pitch_shifter_window.export_sound_files_label = ttk.Label(
+                self.pitch_shifter_window, text='To')
+            self.pitch_shifter_window.export_sound_files_label.place(x=310,
+                                                                     y=250)
+
+            self.pitch_shifter_window.change_folder_name_button = ttk.Button(
+                self.pitch_shifter_window,
+                text='Change Export Sound Files Folder Name',
+                command=self.pitch_shifter_change_folder_name)
+            self.pitch_shifter_window.change_folder_name_button.place(x=0,
+                                                                      y=300)
+            self.pitch_shifter_window.folder_name = ttk.Entry(
+                self.pitch_shifter_window, width=30)
+            self.pitch_shifter_window.folder_name.insert(END, 'Untitled')
+            self.pitch_shifter_window.folder_name.place(x=250, y=300)
+
+    def pitch_shifter_change_folder_name(self):
+        pass
+
+    def pitch_shifter_export_sound_files(self):
+        pass
 
     def pitch_shifter_play(self):
         if self.pitch_shifter_window.has_load:
@@ -881,7 +970,7 @@ class Root(Tk):
         if self.pitch_shifter_shifted_playing:
             self.current_pitch_shifter_shifted_play.stop()
             self.pitch_shifter_shifted_playing = False
-    
+
     def pitch_shifter_export_shifted(self):
         export_audio_file_menubar = Menu(
             self.pitch_shifter_window,
@@ -902,16 +991,16 @@ class Root(Tk):
         export_audio_file_menubar.add_command(
             label='Other Format',
             command=lambda: self.export_pitch_audio_file(mode='other'))
-        
+
         export_audio_file_menubar.tk_popup(x=self.winfo_pointerx(),
-                                           y=self.winfo_pointery())        
+                                           y=self.winfo_pointery())
 
     def export_pitch_audio_file(self, mode='wav'):
         if not self.pitch_shifter_window.has_load:
             self.pitch_msg('Please load a sound file first')
             return
         if mode == 'other':
-            self.pitch_shifter_ask_other_format()
+            self.ask_other_format(mode=1)
             return
         filename = filedialog.asksaveasfilename(
             parent=self.pitch_shifter_window,
@@ -921,15 +1010,18 @@ class Root(Tk):
             defaultextension=f".{mode}",
             initialfile='untitled')
         if not filename:
-            return        
+            return
         self.pitch_msg('Start exporting ...')
         self.pitch_shifter_window.msg.update()
         self.new_pitch.export(filename, format=mode)
         self.pitch_msg(f'Successfully export {filename}')
-    
-    def pitch_shifter_ask_other_format(self):
-        pass
-    
+
+    def pitch_shifter_read_other_format(self):
+        current_format = self.ask_other_format_entry.get()
+        self.ask_other_format_window.destroy()
+        if current_format:
+            self.export_pitch_audio_file(mode=current_format)
+
     def pitch_shifter_load_pitch(self):
         file_path = filedialog.askopenfilename(
             initialdir=self.last_place,
@@ -937,25 +1029,23 @@ class Root(Tk):
             title="Choose an audio file",
             filetype=(("All files", "*.*"), ))
         if file_path:
+            self.pitch_msg('Loading sounds ...')
+            self.pitch_shifter_window.msg.update()
             memory = file_path[:file_path.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
                 f.write(memory)
             self.last_place = memory
             self.pitch_shifter_window.load_current_pitch_label.configure(
                 text=f'Current sound: {file_path}')
-            self.pitch_msg('Loading sounds ...')
-            self.pitch_shifter_window.msg.update()
+
             try:
                 default_pitch = self.pitch_shifter_window.default_pitch_entry.get(
                 )
             except:
                 default_pitch = 'C5'
-            try:
-                self.current_pitch = pitch(file_path, default_pitch)
-                self.pitch_msg('Loading complete')
-            except Exception as e:
-                self.pitch_msg(str(e))
-                return
+            self.current_pitch = pitch(file_path, default_pitch)
+            self.pitch_msg('Loading complete')
+
             self.pitch_shifter_window.has_load = True
             self.new_pitch = self.current_pitch.sounds
 
@@ -971,8 +1061,12 @@ class Root(Tk):
     def pitch_shifter_change_pitch(self):
         if not self.pitch_shifter_window.has_load:
             return
+
         try:
             new_pitch = N(self.pitch_shifter_window.pitch_entry.get())
+            self.pitch_msg(
+                f'Changing current sound to {new_pitch}, please wait ...')
+            self.pitch_shifter_window.msg.update()
             self.new_pitch = self.current_pitch + (
                 new_pitch.degree - self.current_pitch.note.degree)
             self.pitch_msg(f'Changed current sound to {new_pitch}')
@@ -1457,7 +1551,7 @@ class Root(Tk):
         self.export_menubar.tk_popup(x=self.winfo_pointerx(),
                                      y=self.winfo_pointery())
 
-    def ask_other_format(self):
+    def ask_other_format(self, mode=0):
         self.ask_other_format_window = Toplevel(self)
         self.ask_other_format_window.configure(bg=background_color)
         self.ask_other_format_window.minsize(370, 200)
@@ -1482,7 +1576,8 @@ class Root(Tk):
         self.ask_other_format_ok_button = ttk.Button(
             self.ask_other_format_window,
             text='OK',
-            command=self.read_other_format)
+            command=self.read_other_format
+            if mode == 0 else self.pitch_shifter_read_other_format)
         self.ask_other_format_cancel_button = ttk.Button(
             self.ask_other_format_window,
             text='Cancel',
