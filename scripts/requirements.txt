@@ -1,0 +1,7 @@
+keyboard
+pygame
+mido
+midiutil
+pydub
+librosa
+soundfile
