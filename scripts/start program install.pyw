@@ -22,8 +22,6 @@ from pydub.generators import Sine, Triangle, Sawtooth, Square, WhiteNoise, Pulse
 import librosa
 import soundfile
 
-AudioSegment.converter = "scripts\\ffmpeg\\bin\\ffmpeg.exe"
-
 abs_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(abs_path)
 sys.path.append(abs_path)
