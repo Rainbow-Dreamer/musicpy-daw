@@ -584,6 +584,8 @@ class Root(Tk):
         self.choose_tracks.bind('<x>', lambda e: self.delete_track())
         self.choose_tracks.bind('<c>', lambda e: self.clear_current_track())
         self.choose_tracks.bind('<v>', lambda e: self.clear_all_tracks())
+        self.choose_tracks.bind('<Button-3>',
+                                lambda e: self.cancel_choose_tracks())
         self.choose_tracks.place(x=0, y=150, width=220)
         self.choose_tracks_bar.config(command=self.choose_tracks.yview)
 
@@ -794,6 +796,7 @@ class Root(Tk):
         self.track_sound_modules_name = [sound_path]
         self.track_sound_format = ['wav']
         self.track_num = 1
+        self.track_list_focus = True
         self.after(10, self.initialize)
 
     def initialize(self):
@@ -1241,7 +1244,7 @@ class Root(Tk):
     def load_esi_file(self):
         self.show_msg('')
         current_ind = self.choose_tracks.index(ANCHOR)
-        if current_ind >= self.track_num:
+        if current_ind >= self.track_num or not self.track_list_focus:
             self.show_msg('Please select a track first')
             return
 
@@ -1547,7 +1550,7 @@ class Root(Tk):
 
     def load_track_settings(self, text=None):
         current_ind = self.choose_tracks.index(ANCHOR)
-        if current_ind >= self.track_num:
+        if current_ind >= self.track_num or not self.track_list_focus:
             return
         if text is None:
             filename = filedialog.askopenfilename(
@@ -2064,7 +2067,7 @@ class Root(Tk):
 
     def clear_current_track(self):
         current_ind = self.choose_tracks.index(ANCHOR)
-        if current_ind < self.track_num:
+        if current_ind < self.track_num and self.track_list_focus:
             self.choose_tracks.delete(current_ind)
             self.choose_tracks.insert(current_ind, f'Track {current_ind+1}')
             self.track_names[current_ind] = f'Track {current_ind+1}'
@@ -2100,7 +2103,7 @@ class Root(Tk):
 
     def delete_track(self):
         current_ind = self.choose_tracks.index(ANCHOR)
-        if current_ind < self.track_num:
+        if current_ind < self.track_num and self.track_list_focus:
             self.choose_tracks.delete(current_ind)
             new_ind = min(current_ind, self.track_num - 2)
             self.choose_tracks.see(new_ind)
@@ -2158,7 +2161,7 @@ class Root(Tk):
         else:
             current_ind = self.choose_tracks.index(ANCHOR)
             self.current_track_dict_num = current_ind
-            if current_ind < self.track_num:
+            if current_ind < self.track_num and self.track_list_focus:
                 self.open_change_track_dict = True
                 self.change_dict_window = Toplevel(self)
                 self.change_dict_window.configure(bg=background_color)
@@ -2345,7 +2348,7 @@ class Root(Tk):
 
     def change_current_track_name(self):
         current_ind = self.choose_tracks.index(ANCHOR)
-        if current_ind < self.track_num:
+        if current_ind < self.track_num and self.track_list_focus:
             current_track_name = self.current_track_name_entry.get()
             self.choose_tracks.delete(current_ind)
             self.choose_tracks.insert(current_ind, current_track_name)
@@ -2355,8 +2358,9 @@ class Root(Tk):
             self.track_names[current_ind] = current_track_name
 
     def show_current_track(self):
+        self.track_list_focus = True
         current_ind = self.choose_tracks.index(ANCHOR)
-        if current_ind < self.track_num:
+        if current_ind < self.track_num and self.track_list_focus:
             self.current_track_name_entry.delete(0, END)
             self.current_track_name_entry.insert(END,
                                                  self.track_names[current_ind])
@@ -2366,6 +2370,14 @@ class Root(Tk):
             self.change_current_sound_format_entry.delete(0, END)
             self.change_current_sound_format_entry.insert(
                 END, self.track_sound_format[current_ind])
+
+    def cancel_choose_tracks(self):
+        self.choose_tracks.selection_clear(0, END)
+        self.current_track_name_entry.delete(0, END)
+        self.current_track_sound_modules_entry.delete(0, END)
+        self.change_current_sound_format_entry.delete(0, END)
+        self.current_track_name_label.focus_set()
+        self.track_list_focus = False
 
     def load_midi_file_func(self):
         self.show_msg('')
@@ -2393,7 +2405,7 @@ class Root(Tk):
 
     def change_current_sound_format(self):
         current_ind = self.choose_tracks.index(ANCHOR)
-        if current_ind < self.track_num:
+        if current_ind < self.track_num and self.track_list_focus:
             self.show_msg('')
             current_sound_format = self.change_current_sound_format_entry.get()
             self.track_sound_format[current_ind] = current_sound_format
@@ -2406,7 +2418,7 @@ class Root(Tk):
 
     def change_current_sound_path(self, mode=0):
         current_ind = self.choose_tracks.index(ANCHOR)
-        if current_ind < self.track_num:
+        if current_ind < self.track_num and self.track_list_focus:
             self.show_msg('')
             if mode == 0:
                 directory = filedialog.askdirectory(
