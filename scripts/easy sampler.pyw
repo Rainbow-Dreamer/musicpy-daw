@@ -1,6 +1,3 @@
-import traceback
-import subprocess
-
 with open('scripts/settings.py', encoding='utf-8-sig') as f:
     exec(f.read())
 
@@ -13,30 +10,26 @@ class custom_channel:
 class pitch:
     def __init__(self, path, note='C5'):
         self.note = N(note) if type(note) == str else note
+        audio_load = False
         if type(path) != AudioSegment:
             self.file_path = path
+            current_format = path[path.rfind('.') + 1:]
             try:
-                self.sounds = AudioSegment.from_file(
-                    path, format=path[path.rfind('.') + 1:])
+                self.sounds = AudioSegment.from_file(path,
+                                                     format=current_format)
 
             except:
-                path_name = os.path.basename(path)
-                path_file_name = path_name[:path_name.rfind('.')]
-                temp_path = f'{abs_path}\\scripts\\{path_file_name}.wav'
-                subprocess.Popen(['ffmpeg', '-i', path, temp_path],
-                                 shell=True,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 stdin=subprocess.PIPE)
-                try:
-                    os.chdir(abs_path)
-                    root.after(
-                        1000, lambda: self.temp_load_sound(
-                            path_file_name, temp_path))
-                    return
-
-                except:
-                    pass
+                with open(path, 'rb') as f:
+                    current_data = f.read()
+                current_file = BytesIO(current_data)
+                self.sounds = AudioSegment.from_file(current_file,
+                                                     format=current_format)
+                os.chdir(abs_path)
+                self.sounds.export('scripts/temp.wav', format='wav')
+                self.audio = librosa.load('scripts/temp.wav',
+                                          sr=self.sounds.frame_rate)[0]
+                os.remove('scripts/temp.wav')
+                audio_load = True
 
         else:
             self.sounds = path
@@ -44,26 +37,8 @@ class pitch:
         self.sample_rate = self.sounds.frame_rate
         self.channels = self.sounds.channels
         self.sample_width = self.sounds.sample_width
-        self.audio = librosa.load(path, sr=self.sample_rate)[0]
-
-    def temp_load_sound(self, path_file_name, temp_path):
-        self.sounds = AudioSegment.from_file(f'scripts/{path_file_name}.wav',
-                                             format='wav')
-        self.sample_rate = self.sounds.frame_rate
-        self.channels = self.sounds.channels
-        self.sample_width = self.sounds.sample_width
-        self.audio = librosa.load(f'scripts/{path_file_name}.wav',
-                                  sr=self.sample_rate)[0]
-        while True:
-            try:
-                os.remove(temp_path)
-                break
-            except:
-                pass
-        try:
-            root.new_pitch = root.current_pitch.sounds
-        except:
-            pass
+        if not audio_load:
+            self.audio = librosa.load(path, sr=self.sample_rate)[0]
 
     def pitch_shift(self, semitones=1, mode='librosa'):
         if mode == 'librosa':
@@ -215,8 +190,14 @@ def load_audiosegments(current_dict, current_sound_path, current_sound_format):
         current_sound_name = f'{current_sound_obj}.{current_sound_format}'
         if current_sound_obj and current_sound_name in current_sound_files:
             current_sound_obj_path = f'{current_sound_path}/{current_sound_name}'
-            current_sounds[i] = AudioSegment.from_file(
-                current_sound_obj_path, format=current_sound_format)
+            try:
+                current_sounds[i] = AudioSegment.from_file(
+                    current_sound_obj_path, format=current_sound_format)
+            except:
+                with open(current_sound_obj_path, 'rb') as f:
+                    current_data = f.read()
+                current_sounds[i] = AudioSegment.from_file(
+                    BytesIO(current_data), format=current_sound_format)
         else:
             current_sounds[i] = None
         root.update()
@@ -2444,11 +2425,12 @@ class Root(Tk):
                                        global_volume)
                     note_sounds_path = load_sounds(note_sounds)
                     self.track_sound_modules[current_ind] = note_sounds
+                    self.track_note_sounds_path[current_ind] = note_sounds_path
+                    self.track_sound_modules_name[current_ind] = sound_path
                     self.track_sound_audiosegments[
                         current_ind] = load_audiosegments(
                             notedict, sound_path, sound_format)
-                    self.track_note_sounds_path[current_ind] = note_sounds_path
-                    self.track_sound_modules_name[current_ind] = sound_path
+
                     self.current_track_sound_modules_entry.delete(0, END)
                     self.current_track_sound_modules_entry.insert(
                         END, sound_path)
