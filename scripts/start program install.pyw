@@ -11,7 +11,6 @@ import sys
 import pygame
 import mido
 import midiutil
-from musicpy import *
 from ast import literal_eval
 from io import BytesIO
 import math
@@ -28,5 +27,10 @@ AudioSegment.converter = "scripts\\ffmpeg\\bin\\ffmpeg.exe"
 abs_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(abs_path)
 sys.path.append(abs_path)
+sys.path.append('scripts')
+
+with open('scripts/musicpy/__init__.py', encoding='utf-8-sig') as f:
+    exec(f.read())
+
 with open('scripts/easy sampler.pyw') as f:
     exec(f.read())
