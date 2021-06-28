@@ -449,6 +449,8 @@ class Root(Tk):
         self.title("Easy Sampler")
         self.minsize(1000, 650)
         self.configure(bg=background_color)
+        self.icon_image = PhotoImage(file='resources/images/easy_sampler.png')
+        self.iconphoto(False, self.icon_image)
 
         self.default_load = False
 
@@ -822,6 +824,7 @@ class Root(Tk):
         else:
             self.open_pitch_shifter_window = True
             self.pitch_shifter_window = Toplevel(self)
+            self.pitch_shifter_window.iconphoto(False, self.icon_image)
             self.pitch_shifter_window.configure(bg=background_color)
             x = self.winfo_x()
             y = self.winfo_y()
@@ -1560,6 +1563,7 @@ class Root(Tk):
 
     def ask_other_format(self, mode=0):
         self.ask_other_format_window = Toplevel(self)
+        self.ask_other_format_window.iconphoto(False, self.icon_image)
         self.ask_other_format_window.configure(bg=background_color)
         self.ask_other_format_window.minsize(370, 200)
         x = self.winfo_x()
@@ -2122,6 +2126,7 @@ class Root(Tk):
             if current_ind < self.track_num and self.track_list_focus:
                 self.open_change_track_dict = True
                 self.change_dict_window = Toplevel(self)
+                self.change_dict_window.iconphoto(False, self.icon_image)
                 self.change_dict_window.configure(bg=background_color)
                 x = self.winfo_x()
                 y = self.winfo_y()
