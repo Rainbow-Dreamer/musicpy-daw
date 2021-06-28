@@ -167,12 +167,15 @@ def play_audio(audio):
         play_sound(audio)
 
 
-def load(dic, path, file_format, volume):
+def load(dic, path, volume):
     wavedict = {}
+    files = os.listdir(path)
+    filenames_only = [i[:i.rfind('.')] for i in files]
+    current_path = path + '/'
     for i in dic:
         try:
             current_sound = pygame.mixer.Sound(
-                f'{path}/{dic[i]}.{file_format}')
+                current_path + files[filenames_only.index(dic[i])])
             wavedict[i] = current_sound
         except:
             wavedict[i] = None
@@ -182,14 +185,19 @@ def load(dic, path, file_format, volume):
     return wavedict
 
 
-def load_audiosegments(current_dict, current_sound_path, current_sound_format):
+def load_audiosegments(current_dict, current_sound_path):
     current_sounds = {}
     current_sound_files = os.listdir(current_sound_path)
+    current_sound_path += '/'
+    current_sound_filenames = [i[:i.rfind('.')] for i in current_sound_files]
     for i in current_dict:
         current_sound_obj = current_dict[i]
-        current_sound_name = f'{current_sound_obj}.{current_sound_format}'
-        if current_sound_obj and current_sound_name in current_sound_files:
-            current_sound_obj_path = f'{current_sound_path}/{current_sound_name}'
+        if current_sound_obj in current_sound_filenames:
+            current_filename = current_sound_files[
+                current_sound_filenames.index(current_sound_obj)]
+            current_sound_obj_path = current_sound_path + current_filename
+            current_sound_format = current_filename[current_filename.
+                                                    rfind('.') + 1:]
             try:
                 current_sounds[i] = AudioSegment.from_file(
                     current_sound_obj_path, format=current_sound_format)
@@ -526,20 +534,7 @@ class Root(Tk):
             self,
             text='Change Sound Path',
             command=self.change_current_sound_path)
-        self.change_current_sound_path_button.place(x=700, y=150)
-
-        self.change_current_sound_format_button = ttk.Button(
-            self,
-            text='Change Sound Format',
-            command=self.change_current_sound_format)
-        self.change_current_sound_format_button.place(x=850, y=150)
-        self.current_sound_format_label = ttk.Label(self,
-                                                    text='Track Sound Format')
-        self.current_sound_format_label.place(x=520, y=250)
-        self.change_current_sound_format_entry = ttk.Entry(self, width=20)
-        self.change_current_sound_format_entry.place(x=660, y=250)
-        self.change_current_sound_format_entry.bind(
-            '<Return>', lambda e: self.change_current_sound_format())
+        self.change_current_sound_path_button.place(x=500, y=300)
 
         self.load_midi_file_button = ttk.Button(
             self, text='Load MIDI File', command=self.load_midi_file_func)
@@ -571,7 +566,7 @@ class Root(Tk):
         self.choose_tracks_bar.config(command=self.choose_tracks.yview)
 
         self.current_track_name_label = ttk.Label(self, text='Track Name')
-        self.current_track_name_entry = ttk.Entry(self, width=20)
+        self.current_track_name_entry = ttk.Entry(self, width=30)
         self.current_track_name_label.place(x=250, y=150)
         self.current_track_name_entry.place(x=350, y=150)
         self.current_track_name_entry.bind(
@@ -588,7 +583,7 @@ class Root(Tk):
             self,
             text='Change Track Name',
             command=self.change_current_track_name)
-        self.change_current_track_name_button.place(x=550, y=150)
+        self.change_current_track_name_button.place(x=500, y=250)
 
         self.add_new_track_button = ttk.Button(self,
                                                text='Add New Track',
@@ -610,11 +605,11 @@ class Root(Tk):
 
         self.change_track_dict_button = ttk.Button(
             self, text='Change Track Dict', command=self.change_track_dict)
-        self.change_track_dict_button.place(x=830, y=250)
+        self.change_track_dict_button.place(x=650, y=250)
 
         self.load_track_settings_button = ttk.Button(
             self, text='Load Track Settings', command=self.load_track_settings)
-        self.load_track_settings_button.place(x=830, y=300)
+        self.load_track_settings_button.place(x=650, y=300)
 
         self.piece_playing = []
 
@@ -775,7 +770,6 @@ class Root(Tk):
         self.choose_tracks.insert(END, 'Track 1')
         self.track_names = ['Track 1']
         self.track_sound_modules_name = [sound_path]
-        self.track_sound_format = ['wav']
         self.track_num = 1
         self.track_list_focus = True
         self.after(10, self.initialize)
@@ -784,11 +778,11 @@ class Root(Tk):
         global note_sounds
         global note_sounds_path
         self.show_msg('Loading default sound modules...')
-        note_sounds = load(notedict, sound_path, sound_format, global_volume)
+        note_sounds = load(notedict, sound_path, global_volume)
         note_sounds_path = load_sounds(note_sounds)
         self.track_sound_modules = [note_sounds]
         self.track_sound_audiosegments = [
-            load_audiosegments(notedict, sound_path, sound_format)
+            load_audiosegments(notedict, sound_path)
         ]
         self.track_note_sounds_path = [note_sounds_path]
         self.track_dict = [notedict]
@@ -1447,7 +1441,6 @@ class Root(Tk):
         self.track_names = self.project_dict['track_names']
         self.track_sound_modules_name = self.project_dict[
             'track_sound_modules_name']
-        self.track_sound_format = self.project_dict['track_sound_format']
         self.track_dict = self.project_dict['track_dict']
         self.current_bpm = self.project_dict['current_bpm']
         self.change_current_bpm_entry.delete(0, END)
@@ -1479,7 +1472,6 @@ class Root(Tk):
         self.project_dict['track_names'] = self.track_names
         self.project_dict[
             'track_sound_modules_name'] = self.track_sound_modules_name
-        self.project_dict['track_sound_format'] = self.track_sound_format
         self.project_dict['track_dict'] = self.track_dict
         self.project_dict['current_bpm'] = self.current_bpm
         self.project_dict['current_midi_file'] = self.load_midi_file_entry.get(
@@ -1555,12 +1547,6 @@ class Root(Tk):
             if ',' in each:
                 current_key, current_value = each.split(',')
                 current_dict[current_key] = current_value
-            elif 'format' in each and '=' in each:
-                current_sound_format = each.replace(' ', '').split('=')[1]
-                self.track_sound_format[current_ind] = current_sound_format
-                self.change_current_sound_format_entry.delete(0, END)
-                self.change_current_sound_format_entry.insert(
-                    END, current_sound_format)
         self.current_track_dict_num = current_ind
         if text is None:
             self.reload_track_sounds()
@@ -1820,7 +1806,6 @@ class Root(Tk):
         current_dict = self.track_dict[current_track_num]
         current_sounds = self.track_sound_audiosegments[current_track_num]
         current_sound_path = self.track_sound_modules_name[current_track_num]
-        current_sound_format = self.track_sound_format[current_track_num]
         current_start_time = self.bar_to_real_time(current_start_time,
                                                    current_bpm, 1)
         current_position = 0
@@ -2056,11 +2041,9 @@ class Root(Tk):
             self.track_sound_modules[current_ind] = None
             self.track_sound_audiosegments[current_ind] = None
             self.track_note_sounds_path[current_ind] = None
-            self.track_sound_format[current_ind] = 'wav'
             self.track_dict[current_ind] = copy(notedict)
             self.current_track_name_entry.delete(0, END)
             self.current_track_sound_modules_entry.delete(0, END)
-            self.change_current_sound_format_entry.delete(0, END)
 
     def clear_all_tracks(self, mode=0):
         if_clear = messagebox.askyesnocancel(
@@ -2075,12 +2058,10 @@ class Root(Tk):
             self.track_sound_modules.clear()
             self.track_sound_audiosegments.clear()
             self.track_note_sounds_path.clear()
-            self.track_sound_format.clear()
             self.track_dict.clear()
             self.track_num = 0
             self.current_track_name_entry.delete(0, END)
             self.current_track_sound_modules_entry.delete(0, END)
-            self.change_current_sound_format_entry.delete(0, END)
 
     def delete_track(self):
         current_ind = self.choose_tracks.index(ANCHOR)
@@ -2095,7 +2076,6 @@ class Root(Tk):
             del self.track_sound_modules[current_ind]
             del self.track_sound_audiosegments[current_ind]
             del self.track_note_sounds_path[current_ind]
-            del self.track_sound_format[current_ind]
             del self.track_dict[current_ind]
             self.track_num -= 1
             if self.track_num > 0:
@@ -2103,7 +2083,6 @@ class Root(Tk):
             else:
                 self.current_track_name_entry.delete(0, END)
                 self.current_track_sound_modules_entry.delete(0, END)
-                self.change_current_sound_format_entry.delete(0, END)
 
     def add_new_track(self):
         self.track_num += 1
@@ -2118,7 +2097,6 @@ class Root(Tk):
         self.track_sound_modules.append(None)
         self.track_sound_audiosegments.append(None)
         self.track_note_sounds_path.append(None)
-        self.track_sound_format.append('wav')
         self.track_dict.append(copy(notedict))
         self.show_current_track()
 
@@ -2132,7 +2110,6 @@ class Root(Tk):
             self.track_sound_modules.append(None)
             self.track_sound_audiosegments.append(None)
             self.track_note_sounds_path.append(None)
-            self.track_sound_format.append('wav')
             self.track_dict.append(copy(notedict))
 
     def change_track_dict(self):
@@ -2295,13 +2272,11 @@ class Root(Tk):
             self.msg.update()
             sound_path = self.track_sound_modules_name[current_ind]
             notedict = self.track_dict[current_ind]
-            sound_format = self.track_sound_format[current_ind]
-            note_sounds = load(notedict, sound_path, sound_format,
-                               global_volume)
+            note_sounds = load(notedict, sound_path, global_volume)
             note_sounds_path = load_sounds(note_sounds)
             self.track_sound_modules[current_ind] = note_sounds
             self.track_sound_audiosegments[current_ind] = load_audiosegments(
-                notedict, sound_path, sound_format)
+                notedict, sound_path)
             self.track_note_sounds_path[current_ind] = note_sounds_path
             self.current_track_sound_modules_entry.delete(0, END)
             self.current_track_sound_modules_entry.insert(END, sound_path)
@@ -2348,15 +2323,11 @@ class Root(Tk):
             self.current_track_sound_modules_entry.delete(0, END)
             self.current_track_sound_modules_entry.insert(
                 END, self.track_sound_modules_name[current_ind])
-            self.change_current_sound_format_entry.delete(0, END)
-            self.change_current_sound_format_entry.insert(
-                END, self.track_sound_format[current_ind])
 
     def cancel_choose_tracks(self):
         self.choose_tracks.selection_clear(0, END)
         self.current_track_name_entry.delete(0, END)
         self.current_track_sound_modules_entry.delete(0, END)
-        self.change_current_sound_format_entry.delete(0, END)
         self.current_track_name_label.focus_set()
         self.track_list_focus = False
 
@@ -2384,19 +2355,6 @@ class Root(Tk):
                 f'The MIDI file is loaded, please click Play Musicpy Code button to play'
             )
 
-    def change_current_sound_format(self):
-        current_ind = self.choose_tracks.index(ANCHOR)
-        if current_ind < self.track_num and self.track_list_focus:
-            self.show_msg('')
-            current_sound_format = self.change_current_sound_format_entry.get()
-            self.track_sound_format[current_ind] = current_sound_format
-            self.show_msg(
-                f'Set sound format of Track {current_ind+1} to {current_sound_format}'
-            )
-            self.choose_tracks.see(current_ind)
-            self.choose_tracks.selection_anchor(current_ind)
-            self.choose_tracks.selection_set(current_ind)
-
     def change_current_sound_path(self, mode=0):
         current_ind = self.choose_tracks.index(ANCHOR)
         if current_ind < self.track_num and self.track_list_focus:
@@ -2420,16 +2378,14 @@ class Root(Tk):
                     self.msg.update()
                     sound_path = directory
                     notedict = self.track_dict[current_ind]
-                    sound_format = self.track_sound_format[current_ind]
-                    note_sounds = load(notedict, sound_path, sound_format,
-                                       global_volume)
+                    note_sounds = load(notedict, sound_path, global_volume)
                     note_sounds_path = load_sounds(note_sounds)
                     self.track_sound_modules[current_ind] = note_sounds
                     self.track_note_sounds_path[current_ind] = note_sounds_path
                     self.track_sound_modules_name[current_ind] = sound_path
                     self.track_sound_audiosegments[
                         current_ind] = load_audiosegments(
-                            notedict, sound_path, sound_format)
+                            notedict, sound_path)
 
                     self.current_track_sound_modules_entry.delete(0, END)
                     self.current_track_sound_modules_entry.insert(
