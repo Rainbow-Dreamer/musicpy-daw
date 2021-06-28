@@ -31,7 +31,5 @@ import soundfile
 
 os.chdir('..')
 
-AudioSegment.converter = "scripts\\ffmpeg\\bin\\ffmpeg.exe"
-
 with open('scripts/easy sampler.pyw') as f:
     exec(f.read())
