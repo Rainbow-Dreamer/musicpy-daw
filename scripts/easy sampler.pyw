@@ -543,6 +543,8 @@ class Root(Tk):
         self.load_midi_file_button.place(x=500, y=350)
         self.load_midi_file_entry = ttk.Entry(self, width=50)
         self.load_midi_file_entry.insert(END, '')
+        self.load_midi_file_entry.bind(
+            '<Return>', lambda e: self.load_midi_file_func(mode=1))
         self.load_midi_file_entry.place(x=620, y=350)
 
         self.change_settings_button = ttk.Button(
@@ -2336,21 +2338,33 @@ class Root(Tk):
         self.current_track_name_label.focus_set()
         self.track_list_focus = False
 
-    def load_midi_file_func(self):
+    def load_midi_file_func(self, mode=0):
         self.show_msg('')
-        filename = filedialog.askopenfilename(initialdir=self.last_place,
-                                              title="Choose MIDI File",
-                                              filetype=(("MIDI", "*.mid"),
-                                                        ("All files", "*.*")))
+        if mode == 0:
+            filename = filedialog.askopenfilename(initialdir=self.last_place,
+                                                  title="Choose MIDI File",
+                                                  filetype=(("MIDI", "*.mid"),
+                                                            ("All files",
+                                                             "*.*")))
+        else:
+            filename = self.load_midi_file_entry.get()
         if filename:
-            memory = filename[:filename.rindex('/') + 1]
+            try:
+                memory = filename[:filename.rindex('/') + 1]
+            except:
+                self.show_msg('Error: This midi file does not exist')
+                return
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
                 f.write(memory)
             self.last_place = memory
             self.load_midi_file_entry.delete(0, END)
             self.load_midi_file_entry.insert(END, filename)
             self.set_musicpy_code_text.delete('1.0', END)
-            current_midi_file = read(filename)
+            try:
+                current_midi_file = read(filename)
+            except:
+                self.show_msg('Error: This midi file does not exist')
+                return
             self.change_current_bpm_entry.delete(0, END)
             self.change_current_bpm_entry.insert(END, current_midi_file[0])
             self.change_current_bpm(1)
