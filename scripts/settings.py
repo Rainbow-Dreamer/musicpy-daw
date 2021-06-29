@@ -2,9 +2,10 @@
 sound_path = 'resources/sounds'
 sound_format = 'wav'
 global_volume = 0.7
-font_type = 'Arial'
+font_type = 'Consolas'
 font_size = 9
 show_convert_progress = True
+default_language = '中文'
 
 notedict = {
     'A0': 'A0',
@@ -108,9 +109,9 @@ fadeout_time = 100
 export_audio_fadeout_time_ratio = 2
 export_audio_fadeout_time = 500
 export_fadeout_use_ratio = True
-play_audio_fadeout_time_ratio = 5
+play_audio_fadeout_time_ratio = 2
 play_audio_fadeout_time = 800
-play_fadeout_use_ratio = False
+play_fadeout_use_ratio = True
 
 background_color = 'white'
 foreground_color = 'black'
