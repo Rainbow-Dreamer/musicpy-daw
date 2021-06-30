@@ -467,7 +467,6 @@ class Root(Tk):
                         borderwidth=0,
                         focusthickness=3,
                         focuscolor='none')
-        style.configure('TEntry', font=(font_type, font_size))
         style.configure('TLabel',
                         background=background_color,
                         foreground=foreground_color,
@@ -486,7 +485,8 @@ class Root(Tk):
                                    wrap='none',
                                    undo=True,
                                    autoseparators=True,
-                                   maxundo=-1)
+                                   maxundo=-1,
+                                   font=(font_type, font_size))
         self.set_chord_text.place(x=100, y=350)
 
         self.set_musicpy_code_button = ttk.Button(
@@ -500,8 +500,9 @@ class Root(Tk):
                                           wrap='none',
                                           undo=True,
                                           autoseparators=True,
-                                          maxundo=-1)
-        self.set_musicpy_code_text.place(x=150, y=450)
+                                          maxundo=-1,
+                                          font=(font_type, font_size))
+        self.set_musicpy_code_text.place(x=150, y=450, height=135)
         self.bind('<Control-r>', lambda e: self.play_current_musicpy_code())
         self.bind('<Control-e>', lambda e: self.stop_playing())
         self.bind('<Control-w>', lambda e: self.open_project_file())
@@ -529,7 +530,9 @@ class Root(Tk):
         self.change_current_bpm_button = ttk.Button(
             self, text='Change BPM', command=self.change_current_bpm)
         self.change_current_bpm_button.place(x=0, y=300)
-        self.change_current_bpm_entry = ttk.Entry(self, width=10)
+        self.change_current_bpm_entry = ttk.Entry(self,
+                                                  width=10,
+                                                  font=(font_type, font_size))
         self.change_current_bpm_entry.insert(END, '120')
         self.change_current_bpm_entry.place(x=100, y=300)
         self.current_bpm = 120
@@ -547,7 +550,9 @@ class Root(Tk):
         self.load_midi_file_button = ttk.Button(
             self, text='Import MIDI File', command=self.load_midi_file_func)
         self.load_midi_file_button.place(x=500, y=350)
-        self.load_midi_file_entry = ttk.Entry(self, width=50)
+        self.load_midi_file_entry = ttk.Entry(self,
+                                              width=50,
+                                              font=(font_type, font_size))
         self.load_midi_file_entry.insert(END, '')
         self.load_midi_file_entry.bind(
             '<Return>', lambda e: self.load_midi_file_func(mode=1))
@@ -564,7 +569,8 @@ class Root(Tk):
             self,
             yscrollcommand=self.choose_channels_bar.set,
             height=7,
-            exportselection=False)
+            exportselection=False,
+            font=(font_type, font_size))
         self.choose_channels.bind('<<ListboxSelect>>',
                                   lambda e: self.show_current_channel())
         self.choose_channels.bind('<z>', lambda e: self.add_new_channel())
@@ -578,14 +584,20 @@ class Root(Tk):
         self.choose_channels_bar.config(command=self.choose_channels.yview)
 
         self.current_channel_name_label = ttk.Label(self, text='Channel Name')
-        self.current_channel_name_entry = ttk.Entry(self, width=30)
+        self.current_channel_name_entry = ttk.Entry(self,
+                                                    width=30,
+                                                    font=(font_type,
+                                                          font_size))
         self.current_channel_name_label.place(x=250, y=150)
         self.current_channel_name_entry.place(x=350, y=150)
         self.current_channel_name_entry.bind(
             '<Return>', lambda e: self.change_current_channel_name())
         self.current_channel_sound_modules_label = ttk.Label(
             self, text='Channel Sound Modules')
-        self.current_channel_sound_modules_entry = ttk.Entry(self, width=80)
+        self.current_channel_sound_modules_entry = ttk.Entry(self,
+                                                             width=80,
+                                                             font=(font_type,
+                                                                   font_size))
         self.current_channel_sound_modules_entry.bind(
             '<Return>', lambda e: self.change_current_sound_path(mode=1))
         self.current_channel_sound_modules_label.place(x=250, y=200)
@@ -933,7 +945,9 @@ class Root(Tk):
             self.pitch_shifter_window.msg.place(x=0, y=350)
 
             self.pitch_shifter_window.default_pitch_entry = ttk.Entry(
-                self.pitch_shifter_window, width=10)
+                self.pitch_shifter_window,
+                width=10,
+                font=(font_type, font_size))
             self.pitch_shifter_window.default_pitch_entry.insert(END, 'C5')
             self.pitch_shifter_window.default_pitch_entry.place(x=150, y=150)
             self.pitch_shifter_window.change_default_pitch_button = ttk.Button(
@@ -948,7 +962,9 @@ class Root(Tk):
                 command=self.pitch_shifter_change_pitch)
             self.pitch_shifter_window.change_pitch_button.place(x=0, y=200)
             self.pitch_shifter_window.pitch_entry = ttk.Entry(
-                self.pitch_shifter_window, width=10)
+                self.pitch_shifter_window,
+                width=10,
+                font=(font_type, font_size))
             self.pitch_shifter_window.pitch_entry.insert(END, 'C5')
             self.pitch_shifter_window.pitch_entry.place(x=150, y=200)
             self.pitch_shifter_window.has_load = False
@@ -990,9 +1006,13 @@ class Root(Tk):
                                                                       y=250)
 
             self.pitch_shifter_window.export_sound_files_from = ttk.Entry(
-                self.pitch_shifter_window, width=10)
+                self.pitch_shifter_window,
+                width=10,
+                font=(font_type, font_size))
             self.pitch_shifter_window.export_sound_files_to = ttk.Entry(
-                self.pitch_shifter_window, width=10)
+                self.pitch_shifter_window,
+                width=10,
+                font=(font_type, font_size))
             self.pitch_shifter_window.export_sound_files_from.insert(END, 'A0')
             self.pitch_shifter_window.export_sound_files_to.insert(END, 'C8')
             self.pitch_shifter_window.export_sound_files_from.place(x=220,
@@ -1011,7 +1031,9 @@ class Root(Tk):
             self.pitch_shifter_window.change_folder_name_button.place(x=0,
                                                                       y=300)
             self.pitch_shifter_window.folder_name = ttk.Entry(
-                self.pitch_shifter_window, width=30)
+                self.pitch_shifter_window,
+                width=30,
+                font=(font_type, font_size))
             self.pitch_shifter_window.folder_name.insert(
                 END, self.language_dict['Untitled'])
             self.pitch_shifter_window.folder_name.place(x=280, y=300)
@@ -1675,7 +1697,8 @@ class Root(Tk):
             text=self.language_dict['ask other format'][1])
         self.ask_other_format_label.place(x=0, y=50)
         self.ask_other_format_entry = ttk.Entry(self.ask_other_format_window,
-                                                width=20)
+                                                width=20,
+                                                font=(font_type, font_size))
         self.ask_other_format_entry.place(x=100, y=100)
         self.ask_other_format_ok_button = ttk.Button(
             self.ask_other_format_window,
@@ -2241,7 +2264,8 @@ class Root(Tk):
                 self.dict_configs = Listbox(
                     self.change_dict_window,
                     yscrollcommand=self.dict_configs_bar.set,
-                    exportselection=False)
+                    exportselection=False,
+                    font=(font_type, font_size))
                 self.dict_configs.bind(
                     '<<ListboxSelect>>',
                     lambda e: self.show_current_dict_configs())
@@ -2254,14 +2278,18 @@ class Root(Tk):
                     text=self.language_dict['change_channel_dict'][1])
                 self.current_note_name.place(x=200, y=0)
                 self.current_note_name_entry = ttk.Entry(
-                    self.change_dict_window, width=10)
+                    self.change_dict_window,
+                    width=10,
+                    font=(font_type, font_size))
                 self.current_note_name_entry.place(x=300, y=0)
                 self.current_note_value = ttk.Label(
                     self.change_dict_window,
                     text=self.language_dict['change_channel_dict'][2])
                 self.current_note_value.place(x=200, y=50)
                 self.current_note_value_entry = ttk.Entry(
-                    self.change_dict_window, width=10)
+                    self.change_dict_window,
+                    width=10,
+                    font=(font_type, font_size))
                 self.current_note_value_entry.place(x=300, y=50)
                 self.change_current_note_name_button = ttk.Button(
                     self.change_dict_window,
@@ -2280,7 +2308,9 @@ class Root(Tk):
                     text=self.language_dict['change_channel_dict'][6],
                     command=self.remove_note)
                 self.new_note_name_entry = ttk.Entry(self.change_dict_window,
-                                                     width=10)
+                                                     width=10,
+                                                     font=(font_type,
+                                                           font_size))
                 self.change_current_note_name_button.place(x=200, y=100)
                 self.change_current_note_value_button.place(x=350, y=100)
                 self.add_new_note_button.place(x=200, y=150)
