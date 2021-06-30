@@ -30,5 +30,5 @@ sys.path.append('scripts')
 with open('scripts/musicpy/__init__.py', encoding='utf-8-sig') as f:
     exec(f.read())
 
-with open('scripts/easy sampler.pyw') as f:
+with open('scripts/easy sampler.pyw', encoding='utf-8-sig') as f:
     exec(f.read())

@@ -5,7 +5,7 @@ global_volume = 0.7
 font_type = 'Consolas'
 font_size = 9
 show_convert_progress = True
-default_language = '中文'
+default_language = 'English'
 
 notedict = {
     'A0': 'A0',
