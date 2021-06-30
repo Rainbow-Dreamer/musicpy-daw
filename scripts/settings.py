@@ -2,7 +2,7 @@
 sound_path = 'resources/sounds'
 sound_format = 'wav'
 global_volume = 0.7
-font_type = 'Arial'
+font_type = 'Consolas'
 font_size = 9
 show_convert_progress = True
 default_language = 'English'
