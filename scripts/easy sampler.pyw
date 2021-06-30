@@ -564,7 +564,7 @@ class Root(Tk):
         self.open_settings = False
 
         self.choose_channels_bar = Scrollbar(self)
-        self.choose_channels_bar.place(x=225, y=215, height=125, anchor=CENTER)
+        self.choose_channels_bar.place(x=227, y=215, height=125, anchor=CENTER)
         self.choose_channels = Listbox(
             self,
             yscrollcommand=self.choose_channels_bar.set,
@@ -580,7 +580,7 @@ class Root(Tk):
         self.choose_channels.bind('<v>', lambda e: self.clear_all_channels())
         self.choose_channels.bind('<Button-3>',
                                   lambda e: self.cancel_choose_channels())
-        self.choose_channels.place(x=0, y=150, width=220)
+        self.choose_channels.place(x=0, y=152, width=220, height=125)
         self.choose_channels_bar.config(command=self.choose_channels.yview)
 
         self.current_channel_name_label = ttk.Label(self, text='Channel Name')
@@ -2257,7 +2257,7 @@ class Root(Tk):
                 current_dict = self.channel_dict[current_ind]
                 self.current_dict = current_dict
                 self.dict_configs_bar = Scrollbar(self.change_dict_window)
-                self.dict_configs_bar.place(x=150,
+                self.dict_configs_bar.place(x=151,
                                             y=90,
                                             height=185,
                                             anchor=CENTER)
@@ -2270,7 +2270,7 @@ class Root(Tk):
                     '<<ListboxSelect>>',
                     lambda e: self.show_current_dict_configs())
                 self.dict_configs_bar.config(command=self.dict_configs.yview)
-                self.dict_configs.place(x=0, y=0)
+                self.dict_configs.place(x=0, y=0, height=185)
                 for each in current_dict:
                     self.dict_configs.insert(END, each)
                 self.current_note_name = ttk.Label(
