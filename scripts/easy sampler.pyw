@@ -2703,7 +2703,7 @@ class Root(Tk):
             return
         if not self.channel_sound_modules[current_channel_num]:
             self.show_msg(
-                f'{self.language_dict["channel"]}{current_channel_num+1}{self.language_dict["msg"][26]}'
+                f'{self.language_dict["channel"]}{current_channel_num+1} {self.language_dict["msg"][26]}'
             )
             return
         current_chord = current_chord.only_notes()
