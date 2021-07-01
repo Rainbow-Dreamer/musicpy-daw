@@ -2221,7 +2221,7 @@ class Root(Tk):
     def init_channels(self, num=1):
         self.channel_num = num
         for i in range(self.channel_num):
-            current_channel_name = f'{self.language_dict["channel"]} {i}'
+            current_channel_name = f'{self.language_dict["channel"]} {i+1}'
             self.choose_channels.insert(END, current_channel_name)
             self.channel_names.append(current_channel_name)
             self.channel_sound_modules_name.append('')
