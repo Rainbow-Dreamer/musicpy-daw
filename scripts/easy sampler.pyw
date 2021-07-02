@@ -427,6 +427,8 @@ def audio(obj, channel_num=1):
         channel_num -= 1
     if type(obj) == note:
         obj = chord([obj])
+    elif type(obj) == track:
+        obj = build(obj, bpm=obj.tempo, name=obj.name)
     result = root.export_audio_file(obj, action='get', channel_num=channel_num)
     return result
 
@@ -2105,16 +2107,17 @@ class Root(Tk):
                 current_notes = '\n'.join(lines)
                 exec(current_notes, globals(), globals())
                 current_chord = globals()['current_chord']
-                length = len(current_chord)
-                if type(current_chord) == tuple and length > 1:
-                    if length == 2:
-                        current_chord, current_bpm = current_chord
-                    elif length == 3:
-                        current_chord, current_bpm, current_channel_num = current_chord
-                        current_channel_num -= 1
-                    self.change_current_bpm_entry.delete(0, END)
-                    self.change_current_bpm_entry.insert(END, current_bpm)
-                    self.change_current_bpm(1)
+                if type(current_chord) == tuple:
+                    length = len(current_chord)
+                    if length > 1:
+                        if length == 2:
+                            current_chord, current_bpm = current_chord
+                        elif length == 3:
+                            current_chord, current_bpm, current_channel_num = current_chord
+                            current_channel_num -= 1
+                        self.change_current_bpm_entry.delete(0, END)
+                        self.change_current_bpm_entry.insert(END, current_bpm)
+                        self.change_current_bpm(1)
             except Exception as e:
                 print(str(e))
                 self.show_msg(self.language_dict["msg"][4])
@@ -2628,16 +2631,17 @@ class Root(Tk):
                 current_notes = '\n'.join(lines)
                 exec(current_notes, globals(), globals())
                 current_chord = globals()['current_chord']
-                length = len(current_chord)
-                if type(current_chord) == tuple and length > 1:
-                    if length == 2:
-                        current_chord, current_bpm = current_chord
-                    elif length == 3:
-                        current_chord, current_bpm, current_channel_num = current_chord
-                        current_channel_num -= 1
-                    self.change_current_bpm_entry.delete(0, END)
-                    self.change_current_bpm_entry.insert(END, current_bpm)
-                    self.change_current_bpm(1)
+                if type(current_chord) == tuple:
+                    length = len(current_chord)
+                    if length > 1:
+                        if length == 2:
+                            current_chord, current_bpm = current_chord
+                        elif length == 3:
+                            current_chord, current_bpm, current_channel_num = current_chord
+                            current_channel_num -= 1
+                        self.change_current_bpm_entry.delete(0, END)
+                        self.change_current_bpm_entry.insert(END, current_bpm)
+                        self.change_current_bpm(1)
 
             except Exception as e:
                 print(str(e))
