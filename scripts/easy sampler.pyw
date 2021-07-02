@@ -422,7 +422,9 @@ def get_wave(sound, mode='sine', bpm=120, volume=None):
     return temp
 
 
-def audio(obj, channel_num=0):
+def audio(obj, channel_num=1):
+    if channel_num > 0:
+        channel_num -= 1
     if type(obj) == note:
         obj = chord([obj])
     result = root.export_audio_file(obj, action='get', channel_num=channel_num)
@@ -1959,6 +1961,8 @@ class Root(Tk):
                 if each_name not in current_sounds:
                     each_name = str(~each)
                 current_sound = current_sounds[each_name]
+                if current_sound is None:
+                    continue
                 current_max_time = min(len(current_sound),
                                        duration + current_fadeout_time)
                 current_max_fadeout_time = min(len(current_sound),
@@ -2659,7 +2663,8 @@ class Root(Tk):
             current_chord = concat(current_chord, mode='|')
         if type(current_chord) == chord:
             if check_special(current_chord):
-                self.export_audio_file(action='play')
+                self.export_audio_file(action='play',
+                                       channel_num=current_channel_num)
             else:
                 self.play_channel(current_chord, current_channel_num)
         elif type(current_chord) == track:
