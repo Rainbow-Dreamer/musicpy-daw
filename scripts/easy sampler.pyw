@@ -1964,6 +1964,7 @@ class Root(Tk):
                     each_name = str(~each)
                 current_sound = current_sounds[each_name]
                 if current_sound is None:
+                    current_position += interval
                     continue
                 current_max_time = min(len(current_sound),
                                        duration + current_fadeout_time)
