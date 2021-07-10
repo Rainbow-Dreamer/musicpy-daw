@@ -1340,7 +1340,7 @@ class Root(Tk):
             initialdir=self.last_place,
             title=self.language_dict['title'][7],
             filetypes=(("Easy Sampler Instrument", "*.esi"),
-                      (self.language_dict['title'][1], "*.*")))
+                       (self.language_dict['title'][1], "*.*")))
         if file_path:
             memory = file_path[:file_path.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
@@ -1353,7 +1353,7 @@ class Root(Tk):
             initialdir=self.last_place,
             title=self.language_dict['title'][8],
             filetypes=(("Easy Sampler Split", "*.ess"),
-                      (self.language_dict['title'][1], "*.*")))
+                       (self.language_dict['title'][1], "*.*")))
         if split_file_path:
             memory = split_file_path[:split_file_path.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
@@ -1431,7 +1431,7 @@ class Root(Tk):
             initialdir=self.last_place,
             title=self.language_dict['title'][7],
             filetypes=(("Easy Sampler Instrument", "*.esi"),
-                      (self.language_dict['title'][1], "*.*")))
+                       (self.language_dict['title'][1], "*.*")))
         if file_path:
             memory = file_path[:file_path.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
@@ -1444,7 +1444,7 @@ class Root(Tk):
             initialdir=self.last_place,
             title=self.language_dict['title'][8],
             filetypes=(("Easy Sampler Split", "*.ess"),
-                      (self.language_dict['title'][1], "*.*")))
+                       (self.language_dict['title'][1], "*.*")))
         if split_file_path:
             memory = split_file_path[:split_file_path.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
@@ -1484,7 +1484,7 @@ class Root(Tk):
             initialdir=self.last_place,
             title=self.language_dict['title'][10],
             filetypes=((self.language_dict['title'][11], "*.txt"),
-                      (self.language_dict['title'][1], "*.*")))
+                       (self.language_dict['title'][1], "*.*")))
         if filename:
             memory = filename[:filename.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
@@ -1537,8 +1537,8 @@ class Root(Tk):
             initialdir=self.last_place,
             title=self.language_dict['title'][12],
             filetypes=(("Easy Sampler Project",
-                       "*.esp"), (self.language_dict['title'][11], "*.txt"),
-                      (self.language_dict['title'][1], "*.*")))
+                        "*.esp"), (self.language_dict['title'][11], "*.txt"),
+                       (self.language_dict['title'][1], "*.*")))
         if filename:
             memory = filename[:filename.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
@@ -1602,8 +1602,8 @@ class Root(Tk):
             initialdir=self.last_place,
             title=self.language_dict['title'][13],
             filetypes=(("Easy Sampler Project",
-                       "*.esp"), (self.language_dict['title'][11], "*.txt"),
-                      (self.language_dict['title'][1], "*.*")),
+                        "*.esp"), (self.language_dict['title'][11], "*.txt"),
+                       (self.language_dict['title'][1], "*.*")),
             defaultextension=f".esp",
             initialfile=self.language_dict['untitled'])
         if filename:
@@ -1650,7 +1650,7 @@ class Root(Tk):
                 initialdir=self.last_place,
                 title=self.language_dict['title'][15],
                 filetypes=((self.language_dict['title'][11], "*.txt"),
-                          (self.language_dict['title'][1], "*.*")))
+                           (self.language_dict['title'][1], "*.*")))
             if filename:
                 memory = filename[:filename.rindex('/') + 1]
                 with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
@@ -2418,8 +2418,10 @@ class Root(Tk):
             self.channel_sound_audiosegments[current_ind] = load_audiosegments(
                 notedict, sound_path)
             self.channel_note_sounds_path[current_ind] = note_sounds_path
-            self.current_channel_sound_modules_entry.delete(0, END)
-            self.current_channel_sound_modules_entry.insert(END, sound_path)
+            if not current_mode:
+                self.current_channel_sound_modules_entry.delete(0, END)
+                self.current_channel_sound_modules_entry.insert(
+                    END, sound_path)
             current_msg = self.language_dict["msg"][29].split('|')
             self.show_msg(
                 f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
@@ -2477,7 +2479,7 @@ class Root(Tk):
                 initialdir=self.last_place,
                 title=self.language_dict['title'][18],
                 filetypes=(("MIDI", "*.mid"), (self.language_dict['title'][1],
-                                              "*.*")))
+                                               "*.*")))
         else:
             filename = self.load_midi_file_entry.get()
         if filename:
