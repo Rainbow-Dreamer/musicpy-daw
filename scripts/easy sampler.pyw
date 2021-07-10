@@ -895,7 +895,7 @@ class Root(Tk):
         file_path = filedialog.askopenfilename(
             initialdir=self.last_place,
             title=self.language_dict['title'][0],
-            filetype=((self.language_dict['title'][1], "*.*"), ))
+            filetypes=((self.language_dict['title'][1], "*.*"), ))
         if file_path:
             memory = file_path[:file_path.rindex('/') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
@@ -1135,7 +1135,7 @@ class Root(Tk):
             parent=self.pitch_shifter_window,
             initialdir=self.last_place,
             title=self.language_dict['title'][3],
-            filetype=((self.language_dict['title'][1], "*.*"), ),
+            filetypes=((self.language_dict['title'][1], "*.*"), ),
             defaultextension=f".{mode}",
             initialfile=self.language_dict['untitled'])
         if not filename:
@@ -1156,7 +1156,7 @@ class Root(Tk):
             initialdir=self.last_place,
             parent=self.pitch_shifter_window,
             title=self.language_dict['title'][0],
-            filetype=((self.language_dict['title'][1], "*.*"), ))
+            filetypes=((self.language_dict['title'][1], "*.*"), ))
         if file_path:
             self.pitch_msg(self.language_dict["msg"][42])
             self.pitch_shifter_window.msg.update()
@@ -1339,7 +1339,7 @@ class Root(Tk):
         file_path = filedialog.askopenfilename(
             initialdir=self.last_place,
             title=self.language_dict['title'][7],
-            filetype=(("Easy Sampler Instrument", "*.esi"),
+            filetypes=(("Easy Sampler Instrument", "*.esi"),
                       (self.language_dict['title'][1], "*.*")))
         if file_path:
             memory = file_path[:file_path.rindex('/') + 1]
@@ -1352,7 +1352,7 @@ class Root(Tk):
         split_file_path = filedialog.askopenfilename(
             initialdir=self.last_place,
             title=self.language_dict['title'][8],
-            filetype=(("Easy Sampler Split", "*.ess"),
+            filetypes=(("Easy Sampler Split", "*.ess"),
                       (self.language_dict['title'][1], "*.*")))
         if split_file_path:
             memory = split_file_path[:split_file_path.rindex('/') + 1]
@@ -1430,7 +1430,7 @@ class Root(Tk):
         file_path = filedialog.askopenfilename(
             initialdir=self.last_place,
             title=self.language_dict['title'][7],
-            filetype=(("Easy Sampler Instrument", "*.esi"),
+            filetypes=(("Easy Sampler Instrument", "*.esi"),
                       (self.language_dict['title'][1], "*.*")))
         if file_path:
             memory = file_path[:file_path.rindex('/') + 1]
@@ -1443,7 +1443,7 @@ class Root(Tk):
         split_file_path = filedialog.askopenfilename(
             initialdir=self.last_place,
             title=self.language_dict['title'][8],
-            filetype=(("Easy Sampler Split", "*.ess"),
+            filetypes=(("Easy Sampler Split", "*.ess"),
                       (self.language_dict['title'][1], "*.*")))
         if split_file_path:
             memory = split_file_path[:split_file_path.rindex('/') + 1]
@@ -1483,7 +1483,7 @@ class Root(Tk):
         filename = filedialog.askopenfilename(
             initialdir=self.last_place,
             title=self.language_dict['title'][10],
-            filetype=((self.language_dict['title'][11], "*.txt"),
+            filetypes=((self.language_dict['title'][11], "*.txt"),
                       (self.language_dict['title'][1], "*.*")))
         if filename:
             memory = filename[:filename.rindex('/') + 1]
@@ -1536,7 +1536,7 @@ class Root(Tk):
         filename = filedialog.askopenfilename(
             initialdir=self.last_place,
             title=self.language_dict['title'][12],
-            filetype=(("Easy Sampler Project",
+            filetypes=(("Easy Sampler Project",
                        "*.esp"), (self.language_dict['title'][11], "*.txt"),
                       (self.language_dict['title'][1], "*.*")))
         if filename:
@@ -1601,7 +1601,7 @@ class Root(Tk):
         filename = filedialog.asksaveasfilename(
             initialdir=self.last_place,
             title=self.language_dict['title'][13],
-            filetype=(("Easy Sampler Project",
+            filetypes=(("Easy Sampler Project",
                        "*.esp"), (self.language_dict['title'][11], "*.txt"),
                       (self.language_dict['title'][1], "*.*")),
             defaultextension=f".esp",
@@ -1619,7 +1619,7 @@ class Root(Tk):
         filename = filedialog.asksaveasfilename(
             initialdir=self.last_place,
             title=self.language_dict['title'][14],
-            filetype=((self.language_dict['title'][1], "*.*"), ),
+            filetypes=((self.language_dict['title'][1], "*.*"), ),
             defaultextension=f".txt",
             initialfile=self.language_dict['untitled'])
         if filename:
@@ -1649,7 +1649,7 @@ class Root(Tk):
             filename = filedialog.askopenfilename(
                 initialdir=self.last_place,
                 title=self.language_dict['title'][15],
-                filetype=((self.language_dict['title'][11], "*.txt"),
+                filetypes=((self.language_dict['title'][11], "*.txt"),
                           (self.language_dict['title'][1], "*.*")))
             if filename:
                 memory = filename[:filename.rindex('/') + 1]
@@ -1745,7 +1745,7 @@ class Root(Tk):
             filename = filedialog.asksaveasfilename(
                 initialdir=self.last_place,
                 title=self.language_dict['title'][3],
-                filetype=((self.language_dict['title'][1], "*.*"), ),
+                filetypes=((self.language_dict['title'][1], "*.*"), ),
                 defaultextension=f".{mode}",
                 initialfile=self.language_dict['untitled'])
             if not filename:
@@ -2077,7 +2077,7 @@ class Root(Tk):
         filename = filedialog.asksaveasfilename(
             initialdir=self.last_place,
             title=self.language_dict['title'][17],
-            filetype=((self.language_dict['title'][1], "*.*"), ),
+            filetypes=((self.language_dict['title'][1], "*.*"), ),
             defaultextension=f".mid",
             initialfile=self.language_dict['untitled'])
         if not filename:
@@ -2476,7 +2476,7 @@ class Root(Tk):
             filename = filedialog.askopenfilename(
                 initialdir=self.last_place,
                 title=self.language_dict['title'][18],
-                filetype=(("MIDI", "*.mid"), (self.language_dict['title'][1],
+                filetypes=(("MIDI", "*.mid"), (self.language_dict['title'][1],
                                               "*.*")))
         else:
             filename = self.load_midi_file_entry.get()
