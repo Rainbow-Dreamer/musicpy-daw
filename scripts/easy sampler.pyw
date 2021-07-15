@@ -515,16 +515,8 @@ class Root(Tk):
         self.bind('<Control-d>', lambda e: self.save_current_musicpy_code())
         self.bind('<Control-g>', lambda e: self.open_export_menu())
         self.bind('<Control-h>', lambda e: self.load_midi_file_func())
-        self.menubar = Menu(self,
-                            tearoff=False,
-                            bg=background_color,
-                            activebackground=active_background_color,
-                            activeforeground=active_foreground_color,
-                            disabledforeground=disabled_foreground_color,
-                            font=(font_type, font_size))
-        self.set_musicpy_code_text.bind(
-            "<Button-3>",
-            lambda x: self.rightKey(x, self.set_musicpy_code_text))
+        self.set_musicpy_code_text.bind("<Button-3>",
+                                        lambda e: self.rightKey(e))
 
         self.stop_button = ttk.Button(self,
                                       text='Stop',
@@ -691,37 +683,36 @@ class Root(Tk):
         self.after(10, self.initialize)
 
     def initialize_menu(self):
-        self.menubar.delete(0, END)
-        self.menubar.add_command(
-            label=self.language_dict['right key'][0],
-            command=lambda: self.cut(self.set_musicpy_code_text),
-            foreground=foreground_color)
-        self.menubar.add_command(
-            label=self.language_dict['right key'][1],
-            command=lambda: self.copy(self.set_musicpy_code_text),
-            foreground=foreground_color)
-        self.menubar.add_command(
-            label=self.language_dict['right key'][2],
-            command=lambda: self.paste(self.set_musicpy_code_text),
-            foreground=foreground_color)
-        self.menubar.add_command(
-            label=self.language_dict['right key'][3],
-            command=lambda: self.choose_all(self.set_musicpy_code_text),
-            foreground=foreground_color)
-        self.menubar.add_command(
-            label=self.language_dict['right key'][4],
-            command=lambda: self.inputs_undo(self.set_musicpy_code_text),
-            foreground=foreground_color)
-        self.menubar.add_command(
-            label=self.language_dict['right key'][5],
-            command=lambda: self.inputs_redo(self.set_musicpy_code_text),
-            foreground=foreground_color)
-        self.menubar.add_command(
-            label=self.language_dict['right key'][6],
-            command=lambda: self.save_current_musicpy_code(),
-            foreground=foreground_color)
+        self.menubar = Menu(self,
+                            tearoff=False,
+                            bg=background_color,
+                            activebackground=active_background_color,
+                            activeforeground=active_foreground_color,
+                            disabledforeground=disabled_foreground_color,
+                            font=(font_type, font_size))
+        self.menubar.add_command(label=self.language_dict['right key'][0],
+                                 command=self.cut,
+                                 foreground=foreground_color)
+        self.menubar.add_command(label=self.language_dict['right key'][1],
+                                 command=self.copy,
+                                 foreground=foreground_color)
+        self.menubar.add_command(label=self.language_dict['right key'][2],
+                                 command=self.paste,
+                                 foreground=foreground_color)
+        self.menubar.add_command(label=self.language_dict['right key'][3],
+                                 command=self.choose_all,
+                                 foreground=foreground_color)
+        self.menubar.add_command(label=self.language_dict['right key'][4],
+                                 command=self.inputs_undo,
+                                 foreground=foreground_color)
+        self.menubar.add_command(label=self.language_dict['right key'][5],
+                                 command=self.inputs_redo,
+                                 foreground=foreground_color)
+        self.menubar.add_command(label=self.language_dict['right key'][6],
+                                 command=self.save_current_musicpy_code,
+                                 foreground=foreground_color)
         self.menubar.add_command(label=self.language_dict['right key'][7],
-                                 command=lambda: self.load_musicpy_code(),
+                                 command=self.load_musicpy_code,
                                  foreground=foreground_color)
 
         self.export_menubar = Menu(
@@ -1500,34 +1491,34 @@ class Root(Tk):
                 self.set_musicpy_code_text.delete('1.0', END)
                 self.show_msg(self.language_dict["msg"][12])
 
-    def cut(self, editor, event=None):
-        editor.event_generate("<<Cut>>")
+    def cut(self):
+        self.set_musicpy_code_text.event_generate("<<Cut>>")
 
-    def copy(self, editor, event=None):
-        editor.event_generate("<<Copy>>")
+    def copy(self):
+        self.set_musicpy_code_text.event_generate("<<Copy>>")
 
-    def paste(self, editor, event=None):
-        editor.event_generate('<<Paste>>')
+    def paste(self):
+        self.set_musicpy_code_text.event_generate('<<Paste>>')
 
-    def choose_all(self, editor, event=None):
-        editor.tag_add(SEL, '1.0', END)
-        editor.mark_set(INSERT, END)
-        editor.see(INSERT)
+    def choose_all(self):
+        self.set_musicpy_code_text.tag_add(SEL, '1.0', END)
+        self.set_musicpy_code_text.mark_set(INSERT, END)
+        self.set_musicpy_code_text.see(INSERT)
 
-    def inputs_undo(self, editor, event=None):
+    def inputs_undo(self):
         try:
-            editor.edit_undo()
+            self.set_musicpy_code_text.edit_undo()
         except:
             pass
 
-    def inputs_redo(self, editor, event=None):
+    def inputs_redo(self):
         try:
-            editor.edit_redo()
+            self.set_musicpy_code_text.edit_redo()
         except:
             pass
 
-    def rightKey(self, event, editor):
-        self.menubar.post(event.x_root, event.y_root)
+    def rightKey(self, event):
+        self.menubar.tk_popup(event.x_root, event.y_root)
 
     def open_project_file(self):
         if not self.default_load:
