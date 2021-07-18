@@ -390,7 +390,6 @@ def pulse(freq=440, duty_cycle=0.5, duration=1000, volume=0):
 def get_wave(sound, mode='sine', bpm=120, volume=None):
     # volume: percentage, from 0% to 100%
     temp = copy(sound)
-    freq_list = [get_freq(i) for i in sound]
     if volume is None:
         volume = [velocity_to_db(i) for i in temp.get_volume()]
     else:
@@ -399,26 +398,32 @@ def get_wave(sound, mode='sine', bpm=120, volume=None):
         volume = [percentage_to_db(i) for i in volume]
     for i in range(1, len(temp) + 1):
         current_note = temp[i]
-        if mode == 'sine':
-            temp[i] = sine(
-                get_freq(current_note),
-                root.bar_to_real_time(current_note.duration, bpm, 1),
-                volume[i - 1])
-        elif mode == 'triangle':
-            temp[i] = triangle(
-                get_freq(current_note),
-                root.bar_to_real_time(current_note.duration, bpm, 1),
-                volume[i - 1])
-        elif mode == 'sawtooth':
-            temp[i] = sawtooth(
-                get_freq(current_note),
-                root.bar_to_real_time(current_note.duration, bpm, 1),
-                volume[i - 1])
-        elif mode == 'square':
-            temp[i] = square(
-                get_freq(current_note),
-                root.bar_to_real_time(current_note.duration, bpm, 1),
-                volume[i - 1])
+        if type(current_note) == note:
+            if mode == 'sine':
+                temp[i] = sine(
+                    get_freq(current_note),
+                    root.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i - 1])
+            elif mode == 'triangle':
+                temp[i] = triangle(
+                    get_freq(current_note),
+                    root.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i - 1])
+            elif mode == 'sawtooth':
+                temp[i] = sawtooth(
+                    get_freq(current_note),
+                    root.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i - 1])
+            elif mode == 'square':
+                temp[i] = square(
+                    get_freq(current_note),
+                    root.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i - 1])
+            else:
+                temp[i] = mode(
+                    get_freq(current_note),
+                    root.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i - 1])
     return temp
 
 
