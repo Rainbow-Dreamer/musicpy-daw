@@ -9,3 +9,4 @@ start program.pyw
 ffmpeg.exe
 ffplay.exe
 ffprobe.exe
+scripts/settings.py
