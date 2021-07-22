@@ -306,6 +306,10 @@ def read(name,
             if curren_tempo:
                 whole_bpm = unit.tempo2bpm(curren_tempo[0].tempo)
                 break
+    if len(changes) == 1:
+        first_change = changes[0]
+        if first_change.bpm == whole_bpm and first_change.start_time == 1:
+            changes = []
     if mode == 'find':
         for each in whole_tracks:
             if any(each_msg.type == 'note_on' for each_msg in each):
@@ -755,6 +759,11 @@ def write(name_of_midi,
                     MyMIDI.addPitchWheelEvent(i, pitch_bend_channel,
                                               pitch_bend_time,
                                               current_note.value)
+                elif current_type == tuning:
+                    MyMIDI.changeNoteTuning(i, current_note.tunings,
+                                            current_note.sysExChannel,
+                                            current_note.realTime,
+                                            current_note.tuningProgam)
 
         if not ignore_other_messages:
             if current_chord.other_messages:
