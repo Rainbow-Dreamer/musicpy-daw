@@ -1,6 +1,6 @@
 # easy sampler
 
-[English] [[中文]](#easy-sampler-1)
+[English] [[中文](#easy-sampler-1)]
 
 This is a music sampler and tracker to make music with musicpy.
 
@@ -39,6 +39,8 @@ Note that when you have any special effects, pans, volumes in your musicpy data 
 `esp` is the project file format I invented specially for easy sampler, which stands for `Easy Sampler Project`, it stores the information of your current project, and you can save your current working progress to an esp file at any time and reload it by opening the esp file again in easy sampler.
 
 # easy sampler
+
+[[English](#easy-sampler)] [中文]
 
 这是一个音乐采样器和tracker，用musicpy制作音乐。
 
