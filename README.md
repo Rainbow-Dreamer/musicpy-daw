@@ -48,25 +48,25 @@ Note that when you have any special effects, pans, volumes in your musicpy data 
 
 要播放或导出一个musicpy数据结构，如音符、和弦、音轨和乐曲，有2种方法可以在输入文本区写。
 
-1. 你可以只写一行musicpy数据结构，然后按`播放musicpy代码`来播放它，按`导出`来导出音频文件。
+1. 你可以只写一行musicpy数据结构，然后按`演奏musicpy代码`来播放它，按`导出`来导出音频文件。
 注意，在这种方式下，你必须把musicpy的数据结构写在一行中才行，比如说。
 ```python
 C('Cmaj7') % (1, 1/8) % 2
 ```
 
-2. 要写更复杂的musicpy代码来获得你想播放或导出的musicpy数据结构，你可以像往常一样写musicpy代码，但在最后一行你必须写`play [musicpy data structure], bpm, channel number`，BPM和通道号可以省略，如果省略BPM，采样器将使用默认BPM，如果省略通道号，采样器将使用通道号1。
-注意，通道号是基于1的。下面是一个例子。
+2. 要写更复杂的musicpy代码来获得你想播放或导出的musicpy数据结构，你可以像往常一样写musicpy代码，但在最后一行你必须写`play [musicpy data structure], bpm, channel number`，BPM和通道编号可以省略，如果省略BPM，采样器将使用默认BPM，如果省略通道编号，采样器将使用通道编号1。
+注意，通道编号是基于1的。下面是一个例子。
 ```python
 part1 = C('Cmaj7') % (1, 1/8) % 2
 part2 = C('Am7') % (1, 1/8) % 2
-结果 = part1 | part2
-播放结果
-#用BPM和通道号：播放结果，150，1
+result = part1 | part2
+play result
+#用BPM和通道编号: play result, 150, 1
 ```
 
 输入文本区可以接受任何python代码，因此你可以将musicpy代码与任何python代码结合起来（musicpy本身就是一个python包）。
 
-关于简易采样器的所有功能和特点，你可以参考musicpy采样器模块的文档（点击[这里](https://github.com/Rainbow-Dreamer/musicpy/wiki/musicpy-sampler-module)）。
+关于easy sampler的所有功能和特点，你可以参考musicpy采样器模块的文档（点击[这里](https://github.com/Rainbow-Dreamer/musicpy/wiki/musicpy-sampler-module)）。
 
 如果easy sampler中的某些功能部分（按钮和列表框）有可视化的替换，那么你不需要看这些部分，因为它们是easy sampler的非GUI版本的功能，而且在easy sampler的输入文本区不支持它们。
 
