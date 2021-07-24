@@ -1,5 +1,7 @@
 # easy sampler
 
+[English] [[中文]](#easy-sampler-1)
+
 This is a music sampler and tracker to make music with musicpy.
 
 ![image](https://github.com/Rainbow-Dreamer/easy-sampler/blob/main/previews/1.jpg?raw=True)
@@ -35,3 +37,39 @@ For the other parts, they are supported in the input text area in easy sampler.
 Note that when you have any special effects, pans, volumes in your musicpy data structure to play, easy sampler will automatically convert it to an audio object firstly and then play it, this will usually be slower than directly play it, so you need to wait for a little time. 
 
 `esp` is the project file format I invented specially for easy sampler, which stands for `Easy Sampler Project`, it stores the information of your current project, and you can save your current working progress to an esp file at any time and reload it by opening the esp file again in easy sampler.
+
+# easy sampler
+
+这是一个音乐采样器和tracker，用musicpy制作音乐。
+
+你可以在底部的输入文本区写任何musicpy代码。
+
+要播放或导出一个musicpy数据结构，如音符、和弦、音轨和乐曲，有2种方法可以在输入文本区写。
+
+1. 你可以只写一行musicpy数据结构，然后按`播放musicpy代码`来播放它，按`导出`来导出音频文件。
+注意，在这种方式下，你必须把musicpy的数据结构写在一行中才行，比如说。
+```python
+C('Cmaj7') % (1, 1/8) % 2
+```
+
+2. 要写更复杂的musicpy代码来获得你想播放或导出的musicpy数据结构，你可以像往常一样写musicpy代码，但在最后一行你必须写`play [musicpy data structure], bpm, channel number`，BPM和通道号可以省略，如果省略BPM，采样器将使用默认BPM，如果省略通道号，采样器将使用通道号1。
+注意，通道号是基于1的。下面是一个例子。
+```python
+part1 = C('Cmaj7') % (1, 1/8) % 2
+part2 = C('Am7') % (1, 1/8) % 2
+结果 = part1 | part2
+播放结果
+#用BPM和通道号：播放结果，150，1
+```
+
+输入文本区可以接受任何python代码，因此你可以将musicpy代码与任何python代码结合起来（musicpy本身就是一个python包）。
+
+关于简易采样器的所有功能和特点，你可以参考musicpy采样器模块的文档（点击[这里](https://github.com/Rainbow-Dreamer/musicpy/wiki/musicpy-sampler-module)）。
+
+如果easy sampler中的某些功能部分（按钮和列表框）有可视化的替换，那么你不需要看这些部分，因为它们是easy sampler的非GUI版本的功能，而且在easy sampler的输入文本区不支持它们。
+
+对于其他部分，它们在easy sampler的输入文本区中是被支持的。
+
+注意，当你的musicpy数据结构中有任何特效、平移、音量要播放时，easy sampler会先自动把它转换成音频对象，然后再播放，这通常会比直接播放慢，所以你需要等待一点时间。
+
+`esp`是我专门为easy sampler发明的工程文件格式，它代表`Easy Sampler Project`，它存储了你当前工程的信息，你可以随时把你当前的工程进度保存到esp文件中，并在easy sampler中再次打开esp文件来重新加载。
