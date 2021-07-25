@@ -113,11 +113,11 @@ play_audio_fadeout_time_ratio = 2
 play_audio_fadeout_time = 800
 play_fadeout_use_ratio = True
 
-background_color = 'white'
+background_color = 'alice blue'
 foreground_color = 'black'
-active_background_color = 'ivory2'
+active_background_color = 'light green'
 active_foreground_color = 'black'
-disabled_foreground_color = 'white'
-button_background_color = 'lavender'
+disabled_foreground_color = 'black'
+button_background_color = 'light blue'
 menu_label_background_color = 'light grey'
 menu_label_foreground_color = 'white'
