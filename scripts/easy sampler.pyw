@@ -1958,6 +1958,9 @@ class Root(Tk):
                 each_name = str(each)
                 if each_name not in current_sounds:
                     each_name = str(~each)
+                if each_name not in current_sounds:
+                    current_position += interval
+                    continue
                 current_sound = current_sounds[each_name]
                 if current_sound is None:
                     current_position += interval

@@ -15,14 +15,15 @@ from ast import literal_eval
 from io import BytesIO
 import math
 import array
-import simpleaudio
+#import simpleaudio
 from pydub import AudioSegment
 from pydub.playback import _play_with_simpleaudio as play_sound
 from pydub.generators import Sine, Triangle, Sawtooth, Square, WhiteNoise, Pulse
 import librosa
 import soundfile
 
-abs_path = os.path.dirname(os.path.abspath(__file__))
+abs_path = os.path.dirname(sys.executable)
+#abs_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(abs_path)
 sys.path.append(abs_path)
 sys.path.append('scripts')
