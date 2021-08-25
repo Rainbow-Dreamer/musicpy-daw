@@ -31,7 +31,11 @@ sys.path.append('scripts')
 with open('scripts/musicpy/__init__.py', encoding='utf-8-sig') as f:
     exec(f.read())
 
-from read_sf2 import read_sf2 as rs
+try:
+    from read_sf2 import read_sf2 as rs
+except:
+    os.chdir('..')
+    from read_sf2_32bit import read_sf2 as rs
 
 os.chdir('..')
 
