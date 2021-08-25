@@ -19,7 +19,9 @@
     self.file_top: 'File',
     self.file_top_options: 'Options',
     self.file_top_tools: 'Tools',
-    self.load_musicpy_code_button: 'Import musicpy code'
+    self.load_musicpy_code_button: 'Import musicpy code',
+    self.configure_sf2_button: 'Configure Soundfonts',
+    self.load_sf2_button: 'Load Soundfonts'
 }, {
     'Converting note':
     'Converting note',
@@ -54,8 +56,10 @@
         'Change Note Name', 'Change Note Value', 'Add New Note', 'Remove Note',
         'Reload Sound Modules', 'Clear All Notes'
     ],
-    'configure_sf2': ['Configure Soundfont', 'Bank Number', 'Preset Number',
-                      'Change Bank', 'Change Preset', 'Listen'],
+    'configure_sf2': [
+        'Configure Soundfont', 'Bank Number', 'Preset Number', 'Change Bank',
+        'Change Preset', 'Listen'
+    ],
     'error':
     'Error: ',
     'export':
