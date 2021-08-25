@@ -572,6 +572,7 @@ class Root(Tk):
             height=7,
             exportselection=False,
             font=(font_type, font_size))
+        self.choose_channels.config(activestyle='none')
         self.choose_channels.bind('<<ListboxSelect>>',
                                   lambda e: self.show_current_channel())
         self.choose_channels.bind('<z>', lambda e: self.add_new_channel())
@@ -600,7 +601,7 @@ class Root(Tk):
                                                              font=(font_type,
                                                                    font_size))
         self.current_channel_sound_modules_entry.bind(
-            '<Return>', lambda e: self.change_current_sound_path(mode=1))
+            '<Return>', lambda e: self.change_current_sound_path_func())
         self.current_channel_sound_modules_label.place(x=250, y=200)
         self.current_channel_sound_modules_entry.place(x=410, y=200)
 
@@ -1683,48 +1684,56 @@ class Root(Tk):
                 f'{current_msg[0]}{os.path.basename(filename)}{current_msg[1]}{current_ind+1}'
             )
 
-    def load_sf2_file(self, mode=0):
-        current_ind = self.choose_channels.index(ANCHOR)
+    def load_sf2_file(self, mode=0, current_ind=None, sound_path=None):
+        if current_ind is None:
+            current_ind = self.choose_channels.index(ANCHOR)
         if current_ind < self.channel_num and self.channel_list_focus:
             self.show_msg('')
-            if mode == 0:
-                filename = filedialog.askopenfilename(
-                    initialdir=self.last_place,
-                    title=self.language_dict['title'][19],
-                    filetypes=(("Soundfont", "*.sf2"),
-                               (self.language_dict['title'][1], "*.*")))
+            if sound_path is not None:
+                self.channel_sound_modules[current_ind] = rs.sf2_loader(
+                    sound_path)
+                self.channel_sound_modules_name[current_ind] = sound_path
             else:
-                filename = self.current_channel_sound_modules_entry.get()
-            if filename:
-                memory = filename[:filename.rindex('/') + 1]
-                with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
-                    f.write(memory)
-                self.last_place = memory
-                try:
-                    self.show_msg(
-                        f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
-                    )
-                    self.msg.update()
-                    sound_path = filename
-                    self.channel_sound_modules[current_ind] = rs.sf2_loader(
-                        sound_path)
-                    self.channel_note_sounds_path[current_ind].clear()
-                    self.channel_sound_modules_name[current_ind] = sound_path
-                    self.channel_sound_audiosegments[current_ind].clear()
+                if mode == 0:
+                    filename = filedialog.askopenfilename(
+                        initialdir=self.last_place,
+                        title=self.language_dict['title'][19],
+                        filetypes=(("Soundfont", "*.sf2"),
+                                   (self.language_dict['title'][1], "*.*")))
+                else:
+                    filename = self.current_channel_sound_modules_entry.get()
+                if filename:
+                    memory = filename[:filename.rindex('/') + 1]
+                    with open('browse memory.txt', 'w',
+                              encoding='utf-8-sig') as f:
+                        f.write(memory)
+                    self.last_place = memory
+                    try:
+                        self.show_msg(
+                            f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
+                        )
+                        self.msg.update()
+                        sound_path = filename
+                        self.channel_sound_modules[
+                            current_ind] = rs.sf2_loader(sound_path)
+                        self.channel_note_sounds_path[current_ind].clear()
+                        self.channel_sound_modules_name[
+                            current_ind] = sound_path
+                        self.channel_sound_audiosegments[current_ind].clear()
 
-                    self.current_channel_sound_modules_entry.delete(0, END)
-                    self.current_channel_sound_modules_entry.insert(
-                        END, sound_path)
-                    current_msg = self.language_dict["msg"][29].split('|')
-                    self.show_msg(
-                        f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
-                    )
-                    self.choose_channels.see(current_ind)
-                    self.choose_channels.selection_anchor(current_ind)
-                    self.choose_channels.selection_set(current_ind)
-                except Exception as e:
-                    print(str(e))
-                    self.show_msg(self.language_dict["msg"][30])
+                        self.current_channel_sound_modules_entry.delete(0, END)
+                        self.current_channel_sound_modules_entry.insert(
+                            END, sound_path)
+                        current_msg = self.language_dict["msg"][29].split('|')
+                        self.show_msg(
+                            f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
+                        )
+                        self.choose_channels.see(current_ind)
+                        self.choose_channels.selection_anchor(current_ind)
+                        self.choose_channels.selection_set(current_ind)
+                    except Exception as e:
+                        print(str(e))
+                        self.show_msg(self.language_dict["msg"][30])
 
     def configure_sf2_file(self):
         if self.open_configure_sf2_file:
@@ -1764,6 +1773,7 @@ class Root(Tk):
                     yscrollcommand=self.preset_configs_bar.set,
                     exportselection=False,
                     font=(font_type, font_size))
+                self.preset_configs.config(activestyle='none')
                 self.preset_configs.bind(
                     '<<ListboxSelect>>',
                     lambda e: self.show_current_preset_configs())
@@ -1979,17 +1989,38 @@ class Root(Tk):
                     each.duration = self.real_time_to_bar(
                         len(each), current_bpm)
                     each.volume = 127
-            apply_fadeout_obj = self.apply_fadeout(current_chord, current_bpm)
-            whole_duration = apply_fadeout_obj.eval_time(
-                current_bpm, mode='number', audio_mode=1) * 1000
-            current_start_times = 0
-            current_chord = current_chord.only_notes(audio_mode=1)
-            silent_audio = AudioSegment.silent(duration=whole_duration)
-            silent_audio = self.channel_to_audio(current_chord,
-                                                 current_channel_num,
-                                                 silent_audio,
-                                                 current_bpm,
-                                                 mode=action)
+
+            current_sound_modules = self.channel_sound_modules[
+                current_channel_num]
+            if type(current_sound_modules) == rs.sf2_loader:
+                if action == 'export':
+                    current_msg = self.language_dict["msg"][27].split('|')
+                    self.show_msg(
+                        f'{current_msg[0]} {self.language_dict["channel"]} {current_channel_num + 1} (soundfont)'
+                    )
+                    self.msg.update()
+                for k in current_chord.notes:
+                    if check_reverse(k) or check_fade(k) or check_offset(
+                            k) or check_adsr(k):
+                        rs.convert_effect(k, add=True)
+                silent_audio = current_sound_modules.export_chord(
+                    current_chord,
+                    bpm=current_bpm,
+                    get_audio=True,
+                    other_effects=rs.convert_effect(current_chord))
+            else:
+                apply_fadeout_obj = self.apply_fadeout(current_chord,
+                                                       current_bpm)
+                whole_duration = apply_fadeout_obj.eval_time(
+                    current_bpm, mode='number', audio_mode=1) * 1000
+                current_start_times = 0
+                # current_chord = current_chord.only_notes(audio_mode=1)
+                silent_audio = AudioSegment.silent(duration=whole_duration)
+                silent_audio = self.channel_to_audio(current_chord,
+                                                     current_channel_num,
+                                                     silent_audio,
+                                                     current_bpm,
+                                                     mode=action)
             try:
                 if action == 'export':
                     silent_audio.export(filename, format=mode)
@@ -2016,7 +2047,7 @@ class Root(Tk):
             ]
             for i in range(len(current_chord.tracks)):
                 each_channel = current_chord.tracks[i]
-                each_channel = each_channel.only_notes(audio_mode=1)
+                # each_channel = each_channel.only_notes(audio_mode=1)
                 for each in each_channel:
                     if type(each) == AudioSegment:
                         each.duration = self.real_time_to_bar(
@@ -2028,14 +2059,41 @@ class Root(Tk):
                 current_bpm, mode='number', audio_mode=1) * 1000
             silent_audio = AudioSegment.silent(duration=whole_duration)
             for i in range(len(current_chord)):
-                silent_audio = self.channel_to_audio(current_tracks[i],
-                                                     current_channels[i],
-                                                     silent_audio,
-                                                     current_bpm,
-                                                     current_pan[i],
-                                                     current_volume[i],
-                                                     current_start_times[i],
-                                                     mode=action)
+                current_sound_modules = self.channel_sound_modules[
+                    current_channels[i]]
+                current_track = current_tracks[i]
+                if type(current_sound_modules) == rs.sf2_loader:
+                    if action == 'export':
+                        current_msg = self.language_dict["msg"][27].split('|')
+                        self.show_msg(
+                            f'{current_msg[0]} {self.language_dict["channel"]} {current_channels[i] + 1} (soundfont)'
+                        )
+                        self.msg.update()
+
+                    for k in current_track.notes:
+                        if check_reverse(k) or check_fade(k) or check_offset(
+                                k) or check_adsr(k):
+                            rs.convert_effect(k, add=True)
+                    silent_audio = silent_audio.overlay(
+                        current_sound_modules.export_chord(
+                            current_track,
+                            bpm=current_bpm,
+                            get_audio=True,
+                            other_effects=rs.convert_effect(current_track),
+                            pan=current_pan[i],
+                            volume=current_volume[i]),
+                        position=self.bar_to_real_time(current_start_times[i],
+                                                       current_bpm, 1))
+                else:
+                    silent_audio = self.channel_to_audio(
+                        current_tracks[i],
+                        current_channels[i],
+                        silent_audio,
+                        current_bpm,
+                        current_pan[i],
+                        current_volume[i],
+                        current_start_times[i],
+                        mode=action)
             if check_adsr(current_chord):
                 current_adsr = current_chord.adsr
                 attack, decay, sustain, release = current_adsr
@@ -2144,68 +2202,74 @@ class Root(Tk):
                 self.msg.update()
                 counter += 1
             each = current_chord.notes[i]
-            interval = self.bar_to_real_time(current_intervals[i], current_bpm,
-                                             1)
-            duration = self.bar_to_real_time(
-                current_durations[i], current_bpm,
-                1) if type(each) != AudioSegment else len(each)
-            volume = velocity_to_db(current_volumes[i])
-            current_offset = 0
-            if check_offset(each):
-                current_offset = self.bar_to_real_time(each.offset,
-                                                       current_bpm, 1)
-            current_fadeout_time = int(
-                duration * export_audio_fadeout_time_ratio
-            ) if export_fadeout_use_ratio else int(export_audio_fadeout_time)
-            if type(each) == AudioSegment:
-                current_sound = each[current_offset:duration]
-            else:
-                each_name = str(each)
-                if each_name not in current_sounds:
-                    each_name = str(~each)
-                if each_name not in current_sounds:
-                    current_position += interval
-                    continue
-                current_sound = current_sounds[each_name]
-                if current_sound is None:
-                    current_position += interval
-                    continue
-                current_max_time = min(len(current_sound),
-                                       duration + current_fadeout_time)
-                current_max_fadeout_time = min(len(current_sound),
-                                               current_fadeout_time)
-                current_sound = current_sound[current_offset:current_max_time]
-            if check_adsr(each):
-                current_adsr = each.adsr
-                attack, decay, sustain, release = current_adsr
-                change_db = percentage_to_db(sustain)
-                result_db = current_sound.dBFS + change_db
-                if attack > 0:
-                    current_sound = current_sound.fade_in(attack)
-                if decay > 0:
-                    current_sound = current_sound.fade(to_gain=result_db,
-                                                       start=attack,
-                                                       duration=decay)
+            current_type = type(each)
+            if current_type == note or current_type == AudioSegment:
+                interval = self.bar_to_real_time(current_intervals[i],
+                                                 current_bpm, 1)
+                duration = self.bar_to_real_time(
+                    current_durations[i], current_bpm,
+                    1) if type(each) != AudioSegment else len(each)
+                volume = velocity_to_db(current_volumes[i])
+                current_offset = 0
+                if check_offset(each):
+                    current_offset = self.bar_to_real_time(
+                        each.offset, current_bpm, 1)
+                current_fadeout_time = int(
+                    duration * export_audio_fadeout_time_ratio
+                ) if export_fadeout_use_ratio else int(
+                    export_audio_fadeout_time)
+                if type(each) == AudioSegment:
+                    current_sound = each[current_offset:duration]
                 else:
-                    current_sound = current_sound[:attack].append(
-                        current_sound[attack:] + change_db)
-                if release > 0:
-                    current_sound = current_sound.fade_out(release)
-            if check_fade(each):
-                if each.fade_in_time > 0:
-                    current_sound = current_sound.fade_in(each.fade_in_time)
-                if each.fade_out_time > 0:
-                    current_sound = current_sound.fade_out(each.fade_out_time)
-            if check_reverse(each):
-                current_sound = current_sound.reverse()
+                    each_name = str(each)
+                    if each_name not in current_sounds:
+                        each_name = str(~each)
+                    if each_name not in current_sounds:
+                        current_position += interval
+                        continue
+                    current_sound = current_sounds[each_name]
+                    if current_sound is None:
+                        current_position += interval
+                        continue
+                    current_max_time = min(len(current_sound),
+                                           duration + current_fadeout_time)
+                    current_max_fadeout_time = min(len(current_sound),
+                                                   current_fadeout_time)
+                    current_sound = current_sound[
+                        current_offset:current_max_time]
+                if check_adsr(each):
+                    current_adsr = each.adsr
+                    attack, decay, sustain, release = current_adsr
+                    change_db = percentage_to_db(sustain)
+                    result_db = current_sound.dBFS + change_db
+                    if attack > 0:
+                        current_sound = current_sound.fade_in(attack)
+                    if decay > 0:
+                        current_sound = current_sound.fade(to_gain=result_db,
+                                                           start=attack,
+                                                           duration=decay)
+                    else:
+                        current_sound = current_sound[:attack].append(
+                            current_sound[attack:] + change_db)
+                    if release > 0:
+                        current_sound = current_sound.fade_out(release)
+                if check_fade(each):
+                    if each.fade_in_time > 0:
+                        current_sound = current_sound.fade_in(
+                            each.fade_in_time)
+                    if each.fade_out_time > 0:
+                        current_sound = current_sound.fade_out(
+                            each.fade_out_time)
+                if check_reverse(each):
+                    current_sound = current_sound.reverse()
 
-            if current_fadeout_time != 0 and type(each) != AudioSegment:
-                current_sound = current_sound.fade_out(
-                    duration=current_max_fadeout_time)
-            current_sound += volume
-            current_silent_audio = current_silent_audio.overlay(
-                current_sound, position=current_position)
-            current_position += interval
+                if current_fadeout_time != 0 and type(each) != AudioSegment:
+                    current_sound = current_sound.fade_out(
+                        duration=current_max_fadeout_time)
+                current_sound += volume
+                current_silent_audio = current_silent_audio.overlay(
+                    current_sound, position=current_position)
+                current_position += interval
         if current_pan:
             pan_ranges = [
                 self.bar_to_real_time(i.start_time - 1, current_bpm, 1)
@@ -2478,6 +2542,7 @@ class Root(Tk):
                     yscrollcommand=self.dict_configs_bar.set,
                     exportselection=False,
                     font=(font_type, font_size))
+                self.dict_configs.config(activestyle='none')
                 self.dict_configs.bind(
                     '<<ListboxSelect>>',
                     lambda e: self.show_current_dict_configs())
@@ -2613,34 +2678,38 @@ class Root(Tk):
             current_mode = 1
         self.show_msg('')
         current_ind = self.current_channel_dict_num if not current_mode else current_ind
-        try:
-            self.show_msg(
-                f'{self.language_dict["msg"][28]}{self.channel_names[current_ind]} ...'
-            )
-            self.msg.update()
-            sound_path = self.channel_sound_modules_name[current_ind]
-            notedict = self.channel_dict[current_ind]
-            note_sounds = load(notedict, sound_path, global_volume)
-            note_sounds_path = load_sounds(note_sounds)
-            self.channel_sound_modules[current_ind] = note_sounds
-            self.channel_sound_audiosegments[current_ind] = load_audiosegments(
-                notedict, sound_path)
-            self.channel_note_sounds_path[current_ind] = note_sounds_path
-            if not current_mode:
-                self.current_channel_sound_modules_entry.delete(0, END)
-                self.current_channel_sound_modules_entry.insert(
-                    END, sound_path)
-            current_msg = self.language_dict["msg"][29].split('|')
-            self.show_msg(
-                f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
-            )
-            if not current_mode:
-                self.choose_channels.see(current_ind)
-                self.choose_channels.selection_anchor(current_ind)
-                self.choose_channels.selection_set(current_ind)
-        except Exception as e:
-            print(str(e))
-            self.show_msg(self.language_dict["msg"][30])
+        sound_path = self.channel_sound_modules_name[current_ind]
+        if os.path.isfile(sound_path):
+            self.load_sf2_file(current_ind=current_ind, sound_path=sound_path)
+        else:
+            try:
+                self.show_msg(
+                    f'{self.language_dict["msg"][28]}{self.channel_names[current_ind]} ...'
+                )
+                self.msg.update()
+
+                notedict = self.channel_dict[current_ind]
+                note_sounds = load(notedict, sound_path, global_volume)
+                note_sounds_path = load_sounds(note_sounds)
+                self.channel_sound_modules[current_ind] = note_sounds
+                self.channel_sound_audiosegments[
+                    current_ind] = load_audiosegments(notedict, sound_path)
+                self.channel_note_sounds_path[current_ind] = note_sounds_path
+                if not current_mode:
+                    self.current_channel_sound_modules_entry.delete(0, END)
+                    self.current_channel_sound_modules_entry.insert(
+                        END, sound_path)
+                current_msg = self.language_dict["msg"][29].split('|')
+                self.show_msg(
+                    f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
+                )
+                if not current_mode:
+                    self.choose_channels.see(current_ind)
+                    self.choose_channels.selection_anchor(current_ind)
+                    self.choose_channels.selection_set(current_ind)
+            except Exception as e:
+                print(str(e))
+                self.show_msg(self.language_dict["msg"][30])
 
     def show_current_dict_configs(self):
         current_note = self.dict_configs.get(ANCHOR)
@@ -2709,6 +2778,13 @@ class Root(Tk):
             self.set_musicpy_code_text.insert(
                 END, f'read("{filename}", mode="all", merge=True)[1]')
             self.show_msg(self.language_dict["msg"][32])
+
+    def change_current_sound_path_func(self):
+        current_path = self.current_channel_sound_modules_entry.get()
+        if os.path.isdir(current_path):
+            self.change_current_sound_path(1)
+        elif os.path.isfile(current_path):
+            self.load_sf2_file(1)
 
     def change_current_sound_path(self, mode=0):
         current_ind = self.choose_channels.index(ANCHOR)
@@ -2895,7 +2971,9 @@ class Root(Tk):
             if has_offset:
                 current_chord.offset = has_offset
         if type(current_chord) == piece:
-            if check_special(current_chord):
+            if check_special(current_chord) or any(
+                    type(self.channel_sound_modules[i]) == rs.sf2_loader
+                    for i in current_chord.channels):
                 self.export_audio_file(action='play')
                 return
             current_tracks = current_chord.tracks
@@ -2926,28 +3004,36 @@ class Root(Tk):
                 f'{self.language_dict["channel"]}{current_channel_num+1} {self.language_dict["msg"][26]}'
             )
             return
-        current_chord = current_chord.only_notes()
-        current_intervals = current_chord.interval
-        current_durations = current_chord.get_duration()
-        current_volumes = current_chord.get_volume()
-        current_time = 0
-        for i in range(len(current_chord)):
-            each = current_chord.notes[i]
-            if i == 0:
-                self.play_note_func(f'{standardize_note(each.name)}{each.num}',
-                                    current_durations[i], current_volumes[i],
-                                    current_channel_num)
-            else:
-                duration = current_durations[i]
-                volume = current_volumes[i]
-                current_time += self.bar_to_real_time(current_intervals[i - 1],
-                                                      self.current_bpm, 1)
-                current_id = self.after(
-                    int(current_time),
-                    lambda each=each, duration=duration, volume=volume: self.
-                    play_note_func(f'{standardize_note(each.name)}{each.num}',
-                                   duration, volume, current_channel_num))
-                self.current_playing.append(current_id)
+        current_sound_modules = self.channel_sound_modules[current_channel_num]
+        if type(current_sound_modules) == rs.sf2_loader:
+            current_sound_modules.play_chord(current_chord,
+                                             bpm=self.current_bpm)
+        else:
+            # current_chord = current_chord.only_notes()
+            current_intervals = current_chord.interval
+            current_durations = current_chord.get_duration()
+            current_volumes = current_chord.get_volume()
+            current_time = 0
+            for i in range(len(current_chord)):
+                each = current_chord.notes[i]
+                if type(each) == note:
+                    if i == 0:
+                        self.play_note_func(
+                            f'{standardize_note(each.name)}{each.num}',
+                            current_durations[i], current_volumes[i],
+                            current_channel_num)
+                    else:
+                        duration = current_durations[i]
+                        volume = current_volumes[i]
+                        current_time += self.bar_to_real_time(
+                            current_intervals[i - 1], self.current_bpm, 1)
+                        current_id = self.after(
+                            int(current_time),
+                            lambda each=each, duration=duration, volume=volume:
+                            self.play_note_func(
+                                f'{standardize_note(each.name)}{each.num}',
+                                duration, volume, current_channel_num))
+                        self.current_playing.append(current_id)
 
     def play_current_chord(self):
         if not self.default_load:
