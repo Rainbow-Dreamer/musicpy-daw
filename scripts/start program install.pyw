@@ -21,7 +21,6 @@ from pydub.playback import _play_with_simpleaudio as play_sound
 from pydub.generators import Sine, Triangle, Sawtooth, Square, WhiteNoise, Pulse
 import librosa
 import soundfile
-from read_sf2 import read_sf2 as rs
 
 abs_path = os.path.dirname(sys.executable)
 #abs_path = os.path.dirname(os.path.abspath(__file__))
@@ -31,6 +30,10 @@ sys.path.append('scripts')
 
 with open('scripts/musicpy/__init__.py', encoding='utf-8-sig') as f:
     exec(f.read())
+
+from read_sf2 import read_sf2 as rs
+
+os.chdir('..')
 
 with open('scripts/easy sampler.pyw', encoding='utf-8-sig') as f:
     exec(f.read())
