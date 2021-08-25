@@ -54,6 +54,8 @@
         'Change Note Name', 'Change Note Value', 'Add New Note', 'Remove Note',
         'Reload Sound Modules', 'Clear All Notes'
     ],
+    'configure_sf2': ['Configure Soundfont', 'Bank Number', 'Preset Number',
+                      'Change Bank', 'Change Preset', 'Listen'],
     'error':
     'Error: ',
     'export':

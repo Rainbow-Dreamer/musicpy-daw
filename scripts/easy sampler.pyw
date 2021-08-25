@@ -460,7 +460,7 @@ class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
         self.title("Easy Sampler")
-        self.minsize(1000, 650)
+        self.minsize(1100, 650)
         self.configure(bg=background_color)
         self.icon_image = PhotoImage(file='resources/images/easy_sampler.png')
         self.iconphoto(False, self.icon_image)
@@ -637,10 +637,21 @@ class Root(Tk):
             command=self.load_channel_settings)
         self.load_channel_settings_button.place(x=700, y=300)
 
+        self.configure_sf2_button = ttk.Button(self,
+                                               text='Configure Soundfonts',
+                                               command=self.configure_sf2_file)
+        self.configure_sf2_button.place(x=870, y=300)
+
+        self.load_sf2_button = ttk.Button(self,
+                                          text='Load Soundfonts',
+                                          command=self.load_sf2_file)
+        self.load_sf2_button.place(x=870, y=250)
+
         self.piece_playing = []
 
         self.open_change_channel_dict = False
         self.open_pitch_shifter_window = False
+        self.open_configure_sf2_file = False
 
         self.export_button = ttk.Button(self,
                                         text='Export',
@@ -1672,6 +1683,200 @@ class Root(Tk):
                 f'{current_msg[0]}{os.path.basename(filename)}{current_msg[1]}{current_ind+1}'
             )
 
+    def load_sf2_file(self, mode=0):
+        current_ind = self.choose_channels.index(ANCHOR)
+        if current_ind < self.channel_num and self.channel_list_focus:
+            self.show_msg('')
+            if mode == 0:
+                filename = filedialog.askopenfilename(
+                    initialdir=self.last_place,
+                    title=self.language_dict['title'][19],
+                    filetypes=(("Soundfont", "*.sf2"),
+                               (self.language_dict['title'][1], "*.*")))
+            else:
+                filename = self.current_channel_sound_modules_entry.get()
+            if filename:
+                memory = filename[:filename.rindex('/') + 1]
+                with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+                    f.write(memory)
+                self.last_place = memory
+                try:
+                    self.show_msg(
+                        f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
+                    )
+                    self.msg.update()
+                    sound_path = filename
+                    self.channel_sound_modules[current_ind] = rs.sf2_loader(
+                        sound_path)
+                    self.channel_note_sounds_path[current_ind].clear()
+                    self.channel_sound_modules_name[current_ind] = sound_path
+                    self.channel_sound_audiosegments[current_ind].clear()
+
+                    self.current_channel_sound_modules_entry.delete(0, END)
+                    self.current_channel_sound_modules_entry.insert(
+                        END, sound_path)
+                    current_msg = self.language_dict["msg"][29].split('|')
+                    self.show_msg(
+                        f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
+                    )
+                    self.choose_channels.see(current_ind)
+                    self.choose_channels.selection_anchor(current_ind)
+                    self.choose_channels.selection_set(current_ind)
+                except Exception as e:
+                    print(str(e))
+                    self.show_msg(self.language_dict["msg"][30])
+
+    def configure_sf2_file(self):
+        if self.open_configure_sf2_file:
+            self.configure_sf2_file_window.focus_set()
+            return
+        else:
+            current_ind = self.choose_channels.index(ANCHOR)
+            if current_ind < self.channel_num and self.channel_list_focus:
+                current_sf2 = self.channel_sound_modules[current_ind]
+                if type(current_sf2) != rs.sf2_loader:
+                    return
+                self.open_configure_sf2_file = True
+                self.configure_sf2_file_window = Toplevel(self)
+                self.configure_sf2_file_window.iconphoto(
+                    False, self.icon_image)
+                self.configure_sf2_file_window.configure(bg=background_color)
+                x = self.winfo_x()
+                y = self.winfo_y()
+                w = self.configure_sf2_file_window.winfo_width()
+                h = self.configure_sf2_file_window.winfo_height()
+                self.configure_sf2_file_window.geometry(
+                    "%dx%d+%d+%d" % (w, h, x + 200, y + 200))
+                self.configure_sf2_file_window.protocol(
+                    "WM_DELETE_WINDOW", self.close_configure_sf2_file_window)
+                self.configure_sf2_file_window.title(
+                    self.language_dict['configure_sf2'][0])
+                self.configure_sf2_file_window.minsize(500, 300)
+                self.configure_sf2_file_window.focus_set()
+                self.preset_configs_bar = Scrollbar(
+                    self.configure_sf2_file_window)
+                self.preset_configs_bar.place(x=167,
+                                              y=90,
+                                              height=185,
+                                              anchor=CENTER)
+                self.preset_configs = Listbox(
+                    self.configure_sf2_file_window,
+                    yscrollcommand=self.preset_configs_bar.set,
+                    exportselection=False,
+                    font=(font_type, font_size))
+                self.preset_configs.bind(
+                    '<<ListboxSelect>>',
+                    lambda e: self.show_current_preset_configs())
+                self.preset_configs_bar.config(
+                    command=self.preset_configs.yview)
+                self.preset_configs.place(x=0, y=0, height=185, width=160)
+                try:
+                    self.current_preset, self.current_preset_ind = current_sf2.get_all_instrument_names(
+                        get_ind=True)
+                except:
+                    self.current_preset, self.current_preset_ind = [], []
+                for each in self.current_preset:
+                    self.preset_configs.insert(END, each)
+                self.current_bank_num = ttk.Label(
+                    self.configure_sf2_file_window,
+                    text=self.language_dict['configure_sf2'][1])
+                self.current_bank_num.place(x=200, y=0)
+                self.current_bank_num_entry = ttk.Entry(
+                    self.configure_sf2_file_window,
+                    width=10,
+                    font=(font_type, font_size))
+                self.current_bank_num_entry.insert(
+                    END, str(current_sf2.current_bank_num))
+                self.current_bank_num_entry.place(x=300, y=0)
+                self.current_preset_num = ttk.Label(
+                    self.configure_sf2_file_window,
+                    text=self.language_dict['configure_sf2'][2])
+                self.current_preset_num.place(x=200, y=50)
+                self.current_preset_num_entry = ttk.Entry(
+                    self.configure_sf2_file_window,
+                    width=10,
+                    font=(font_type, font_size))
+                self.current_preset_num_entry.insert(
+                    END, str(current_sf2.current_preset_num + 1))
+                self.current_preset_num_entry.place(x=300, y=50)
+                if current_sf2.current_preset_num in self.current_preset_ind:
+                    current_preset_ind = self.current_preset_ind.index(
+                        current_sf2.current_preset_num)
+                    self.preset_configs.selection_clear(0, END)
+                    self.preset_configs.selection_set(current_preset_ind)
+                    self.preset_configs.see(current_preset_ind)
+                self.change_current_bank_num_button = ttk.Button(
+                    self.configure_sf2_file_window,
+                    text=self.language_dict['configure_sf2'][3],
+                    command=self.change_current_bank_num)
+                self.change_current_preset_num_button = ttk.Button(
+                    self.configure_sf2_file_window,
+                    text=self.language_dict['configure_sf2'][4],
+                    command=self.change_current_preset_num)
+                self.listen_preset_button = ttk.Button(
+                    self.configure_sf2_file_window,
+                    text=self.language_dict['configure_sf2'][5],
+                    command=self.listen_preset)
+                self.change_current_bank_num_button.place(x=200, y=100)
+                self.change_current_preset_num_button.place(x=320, y=100)
+                self.listen_preset_button.place(x=200, y=150)
+                self.preset_configs.bind(
+                    '<Double-1>', lambda e: self.change_current_preset_num(1))
+
+    def change_current_bank_num(self):
+        current_ind = self.choose_channels.index(ANCHOR)
+        current_bank_num = self.current_bank_num_entry.get()
+        current_sf2 = self.channel_sound_modules[current_ind]
+        if current_bank_num.isdigit():
+            current_bank_num = int(current_bank_num)
+            current_sf2.program_select(bank_num=current_bank_num,
+                                       preset_num=0,
+                                       correct=False)
+            try:
+                self.current_preset, self.current_preset_ind = current_sf2.get_all_instrument_names(
+                    get_ind=True, mode=1)
+            except:
+                self.current_preset, self.current_preset_ind = [], []
+            self.current_preset_num_entry.delete(0, END)
+            self.current_preset_num_entry.insert(
+                END, '1' if not self.current_preset_ind else
+                str(self.current_preset_ind[0] + 1))
+            self.preset_configs.delete(0, END)
+            for each in self.current_preset:
+                self.preset_configs.insert(END, each)
+            self.preset_configs.selection_clear(0, END)
+            self.preset_configs.selection_set(0)
+            self.preset_configs.see(0)
+
+    def change_current_preset_num(self, mode=0):
+        current_ind = self.choose_channels.index(ANCHOR)
+        if mode == 1:
+            current_preset_num = str(self.current_preset_ind[
+                self.preset_configs.curselection()[0]] + 1)
+        else:
+            current_preset_num = self.current_preset_num_entry.get()
+        current_sf2 = self.channel_sound_modules[current_ind]
+        if current_preset_num.isdigit():
+            current_preset_num = int(current_preset_num)
+            current_sf2.program_select(preset_num=current_preset_num - 1)
+            if current_preset_num - 1 in self.current_preset_ind:
+                self.preset_configs.selection_clear(0, END)
+                current_preset_ind = self.current_preset_ind.index(
+                    current_preset_num - 1)
+                self.preset_configs.selection_set(current_preset_ind)
+                self.preset_configs.see(current_preset_ind)
+
+    def listen_preset(self):
+        current_ind = self.choose_channels.index(ANCHOR)
+        current_sf2 = self.channel_sound_modules[current_ind]
+        current_sf2.play_note('C5')
+
+    def show_current_preset_configs(self):
+        current_ind = self.preset_configs.index(ANCHOR)
+        self.current_preset_num_entry.delete(0, END)
+        self.current_preset_num_entry.insert(
+            END, str(self.current_preset_ind[current_ind] + 1))
+
     def open_export_menu(self):
         self.export_menubar.tk_popup(x=self.winfo_pointerx(),
                                      y=self.winfo_pointery())
@@ -2343,6 +2548,10 @@ class Root(Tk):
     def close_change_dict_window(self):
         self.change_dict_window.destroy()
         self.open_change_channel_dict = False
+
+    def close_configure_sf2_file_window(self):
+        self.configure_sf2_file_window.destroy()
+        self.open_configure_sf2_file = False
 
     def change_current_note_name(self):
         current_note = self.dict_configs.get(ANCHOR)
