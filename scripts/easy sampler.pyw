@@ -51,7 +51,6 @@ class pitch:
                             self.sample_rate,
                             format='wav')
             result = AudioSegment.from_wav(current_sound)
-            #result = result.set_channels(self.channels)
         elif mode == 'pydub':
             new_sample_rate = int(self.sample_rate * (2**(semitones / 12)))
             result = self.sounds._spawn(
@@ -2014,7 +2013,6 @@ class Root(Tk):
                 whole_duration = apply_fadeout_obj.eval_time(
                     current_bpm, mode='number', audio_mode=1) * 1000
                 current_start_times = 0
-                # current_chord = current_chord.only_notes(audio_mode=1)
                 silent_audio = AudioSegment.silent(duration=whole_duration)
                 silent_audio = self.channel_to_audio(current_chord,
                                                      current_channel_num,
@@ -2047,7 +2045,6 @@ class Root(Tk):
             ]
             for i in range(len(current_chord.tracks)):
                 each_channel = current_chord.tracks[i]
-                # each_channel = each_channel.only_notes(audio_mode=1)
                 for each in each_channel:
                     if type(each) == AudioSegment:
                         each.duration = self.real_time_to_bar(
@@ -3009,7 +3006,6 @@ class Root(Tk):
             current_sound_modules.play_chord(current_chord,
                                              bpm=self.current_bpm)
         else:
-            # current_chord = current_chord.only_notes()
             current_intervals = current_chord.interval
             current_durations = current_chord.get_duration()
             current_volumes = current_chord.get_volume()
