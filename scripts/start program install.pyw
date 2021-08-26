@@ -31,13 +31,9 @@ sys.path.append('scripts')
 with open('scripts/musicpy/__init__.py', encoding='utf-8-sig') as f:
     exec(f.read())
 
-try:
-    from read_sf2 import read_sf2 as rs
-except:
-    os.chdir('..')
-    from read_sf2_32bit import read_sf2 as rs
+import sf2_loader as rs
 
-os.chdir('..')
+os.chdir('../..')
 
 with open('scripts/easy sampler.pyw', encoding='utf-8-sig') as f:
     exec(f.read())
