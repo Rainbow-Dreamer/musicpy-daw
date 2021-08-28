@@ -1587,6 +1587,10 @@ class Root(Tk):
         self.current_channel_sound_modules_entry.delete(0, END)
         self.choose_channels.selection_clear(0, END)
         self.current_project_name.configure(text=os.path.basename(filename))
+        current_soundfonts = self.project_dict['soundfont']
+        for each in current_soundfonts:
+            self.channel_sound_modules[each].program_select(
+                *current_soundfonts[each])
         self.show_msg(self.language_dict["msg"][14])
 
     def save_as_project_file(self):
@@ -1605,6 +1609,21 @@ class Root(Tk):
         self.project_dict[
             'current_musicpy_code'] = self.set_musicpy_code_text.get(
                 '1.0', 'end-1c')
+        current_soundfonts = {
+            i: self.channel_sound_modules[i]
+            for i in range(len(self.channel_sound_modules))
+        }
+        self.project_dict['soundfont'] = {}
+        for i in range(len(self.channel_sound_modules)):
+            current_sound_modules = self.channel_sound_modules[i]
+            if type(current_sound_modules) == rs.sf2_loader:
+                current_info = [
+                    current_sound_modules.current_track,
+                    current_sound_modules.current_sfid,
+                    current_sound_modules.current_bank_num,
+                    current_sound_modules.current_preset_num
+                ]
+                self.project_dict['soundfont'][i] = current_info
         filename = filedialog.asksaveasfilename(
             initialdir=self.last_place,
             title=self.language_dict['title'][13],
@@ -1715,10 +1734,10 @@ class Root(Tk):
                         sound_path = filename
                         self.channel_sound_modules[
                             current_ind] = rs.sf2_loader(sound_path)
-                        self.channel_note_sounds_path[current_ind].clear()
+                        self.channel_note_sounds_path[current_ind] = None
                         self.channel_sound_modules_name[
                             current_ind] = sound_path
-                        self.channel_sound_audiosegments[current_ind].clear()
+                        self.channel_sound_audiosegments[current_ind] = None
 
                         self.current_channel_sound_modules_entry.delete(0, END)
                         self.current_channel_sound_modules_entry.insert(
@@ -2071,6 +2090,32 @@ class Root(Tk):
                         if check_reverse(k) or check_fade(k) or check_offset(
                                 k) or check_adsr(k):
                             rs.convert_effect(k, add=True)
+
+                    current_instrument = current_chord.instruments_numbers[i]
+                    # instrument of a track of the piece type could be preset_num or [preset_num, bank_num, (track), (sfid)]
+                    if type(current_instrument) == int:
+                        current_instrument = [
+                            current_instrument - 1,
+                            current_sound_modules.current_bank_num
+                        ]
+                    else:
+                        current_instrument = [current_instrument[0] - 1
+                                              ] + current_instrument[1:]
+
+                    current_track2 = copy(current_sound_modules.current_track)
+                    current_sfid = copy(current_sound_modules.current_sfid)
+                    current_bank_num = copy(
+                        current_sound_modules.current_bank_num)
+                    current_preset_num = copy(
+                        current_sound_modules.current_preset_num)
+
+                    current_sound_modules.program_select(
+                        track=(current_instrument[2]
+                               if len(current_instrument) > 2 else None),
+                        sfid=(current_instrument[3]
+                              if len(current_instrument) > 3 else None),
+                        bank_num=current_instrument[1],
+                        preset_num=current_instrument[0])
                     silent_audio = silent_audio.overlay(
                         current_sound_modules.export_chord(
                             current_track,
@@ -2081,6 +2126,9 @@ class Root(Tk):
                             volume=current_volume[i]),
                         position=self.bar_to_real_time(current_start_times[i],
                                                        current_bpm, 1))
+                    current_sound_modules.program_select(
+                        current_track2, current_sfid, current_bank_num,
+                        current_preset_num)
                 else:
                     silent_audio = self.channel_to_audio(
                         current_tracks[i],
