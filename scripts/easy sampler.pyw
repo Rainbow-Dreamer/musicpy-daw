@@ -2,6 +2,20 @@ with open('scripts/settings.py', encoding='utf-8-sig') as f:
     exec(f.read())
 
 
+class esi:
+    def __init__(self,
+                 samples,
+                 settings=None,
+                 info=None,
+                 others=None,
+                 name_dict=None):
+        self.samples = samples
+        self.settings = settings
+        self.info = info
+        self.others = others
+        self.name_dict = name_dict
+
+
 class custom_channel:
     def __init__(self, channel):
         self.channel = channel
@@ -1302,36 +1316,36 @@ class Root(Tk):
             self.last_place = memory
         else:
             return
-        abs_path = os.getcwd()
-        filenames = os.listdir(file_path)
-        if not filenames:
-            self.show_msg(self.language_dict['msg'][6])
-            return
-        length_list = []
         export_path = filedialog.askdirectory(
             initialdir=self.last_place,
             title=self.language_dict['title'][6],
         )
         if not export_path:
             return
+        abs_path = os.getcwd()
         os.chdir(export_path)
+        filenames = os.listdir(file_path)
         name = os.path.basename(file_path)
-        with open(f'{name}.esi', 'wb') as file:
-            os.chdir(file_path)
-            for t in filenames:
+        if not filenames:
+            os.chdir(abs_path)
+            self.show_msg(self.language_dict['msg'][6])
+            return
+        os.chdir(file_path)
+        current_samples = {}
+        current_settings = None
+        for t in filenames:
+            if os.path.splitext(t)[1] == '.txt':
+                with open(t, encoding='utf-8-sig') as f:
+                    current_settings = f.read()
+            else:
                 with open(t, 'rb') as f:
-                    each = f.read()
-                    length_list.append(len(each))
-                    file.write(each)
+                    current_samples[t] = f.read()
+        current_esi = esi(current_samples, current_settings)
         os.chdir(export_path)
-
-        with open(f'{name}.ess', 'w', encoding='utf-8-sig') as f:
-            f.write(
-                str(length_list) + ',' +
-                str([os.path.basename(i) for i in filenames]))
-        current_msg = self.language_dict['msg'][7].split('|')
-        self.show_msg(
-            f'{current_msg[0]}{name}{current_msg[1]}{name}{current_msg[2]}')
+        with open(f'{name}.esi', 'wb') as f:
+            pickle.dump(current_esi, f)
+        current_msg = self.language_dict['msg'][7]
+        self.show_msg(f'{current_msg} {name}.esi')
         os.chdir(abs_path)
         return
 
@@ -1356,38 +1370,15 @@ class Root(Tk):
         else:
             return
 
-        split_file_path = filedialog.askopenfilename(
-            initialdir=self.last_place,
-            title=self.language_dict['title'][8],
-            filetypes=(("Easy Sampler Split", "*.ess"),
-                       (self.language_dict['title'][1], "*.*")))
-        if split_file_path:
-            memory = split_file_path[:split_file_path.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
-                f.write(memory)
-            self.last_place = memory
-        else:
-            return
-
         self.show_msg(
             f'{self.language_dict["msg"][9]}{os.path.basename(file_path)} ...')
         self.msg.update()
-        with open(split_file_path, 'r', encoding='utf-8-sig') as f:
-            unzip = f.read()
-        unzip_ind, filenames = literal_eval(unzip)
-        sound_files = []
-        channel_settings = None
         with open(file_path, 'rb') as file:
-            for each in range(len(filenames)):
-                current_filename = filenames[each]
-                current_length = unzip_ind[each]
-                current = file.read(current_length)
-                if current_filename[-4:] != '.txt':
-                    sound_files.append(current)
-                else:
-                    channel_settings = current.decode('utf-8-sig').replace(
-                        '\r', '')
-        filenames = [i for i in filenames if i[-4:] != '.txt']
+            current_esi = pickle.load(file)
+        channel_settings = current_esi.settings
+        current_samples = current_esi.samples
+        filenames = list(current_samples.keys())
+        sound_files = [current_samples[i] for i in filenames]
         sound_files_pygame = []
         os.chdir('scripts')
         for each in sound_files:
@@ -1397,16 +1388,15 @@ class Root(Tk):
         os.remove('temp')
         os.chdir('..')
         sound_files_audio = [
-            AudioSegment.from_file(
-                BytesIO(sound_files[i]),
-                format=filenames[i][filenames[i].rfind('.') + 1:])
-            for i in range(len(sound_files))
+            AudioSegment.from_file(BytesIO(current_samples[i]),
+                                   format=os.path.splitext(i)[1][1:])
+            for i in filenames
         ]
         self.channel_dict[current_ind] = copy(notedict)
         if channel_settings is not None:
             self.load_channel_settings(text=channel_settings)
         current_dict = self.channel_dict[current_ind]
-        filenames = [i[:i.rfind('.')] for i in filenames]
+        filenames = [os.path.splitext(i)[0] for i in filenames]
         result_pygame = {
             filenames[i]: sound_files_pygame[i]
             for i in range(len(sound_files))
@@ -1447,23 +1437,6 @@ class Root(Tk):
         else:
             return
 
-        split_file_path = filedialog.askopenfilename(
-            initialdir=self.last_place,
-            title=self.language_dict['title'][8],
-            filetypes=(("Easy Sampler Split", "*.ess"),
-                       (self.language_dict['title'][1], "*.*")))
-        if split_file_path:
-            memory = split_file_path[:split_file_path.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
-                f.write(memory)
-            self.last_place = memory
-        else:
-            return
-
-        with open(split_file_path, 'r', encoding='utf-8-sig') as f:
-            unzip = f.read()
-        unzip_ind, filenames = literal_eval(unzip)
-
         export_path = filedialog.askdirectory(
             initialdir=self.last_place,
             title=self.language_dict['title'][9],
@@ -1475,12 +1448,11 @@ class Root(Tk):
         if folder_name not in os.listdir():
             os.mkdir(folder_name)
         with open(file_path, 'rb') as file:
-            os.chdir(folder_name)
-            for each in range(len(filenames)):
-                current_filename = filenames[each]
-                current_length = unzip_ind[each]
-                with open(current_filename, 'wb') as f:
-                    f.write(file.read(current_length))
+            current_esi = pickle.load(file)
+        os.chdir(folder_name)
+        for each in current_esi.samples:
+            with open(each, 'wb') as f:
+                f.write(current_esi.samples[each])
         current_msg = self.language_dict["msg"][11].split('|')
         self.show_msg(
             f'{current_msg[0]}{os.path.basename(file_path)}{current_msg[1]}')
