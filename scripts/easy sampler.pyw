@@ -529,10 +529,12 @@ class Root(Tk):
         self.bind('<Control-e>', lambda e: self.stop_playing())
         self.bind('<Control-w>', lambda e: self.open_project_file())
         self.bind('<Control-s>', lambda e: self.save_as_project_file())
+        self.bind('<Control-b>', lambda e: self.save_as_project_file(new=True))
         self.bind('<Control-f>', lambda e: self.load_musicpy_code())
         self.bind('<Control-d>', lambda e: self.save_current_musicpy_code())
         self.bind('<Control-g>', lambda e: self.open_export_menu())
         self.bind('<Control-h>', lambda e: self.load_midi_file_func())
+        self.bind('<Control-q>', lambda e: self.destroy())
         self.set_musicpy_code_text.bind("<Button-3>",
                                         lambda e: self.rightKey(e))
 
@@ -674,6 +676,8 @@ class Root(Tk):
 
         self.current_project_name = ttk.Label(self, text='new.esp')
         self.current_project_name.place(x=0, y=30)
+        self.project_name = 'new.esp'
+        self.opening_project_name = None
 
         self.load_musicpy_code_button = ttk.Button(
             self, text='Import musicpy code', command=self.load_musicpy_code)
@@ -807,6 +811,9 @@ class Root(Tk):
                                    command=self.open_project_file)
         self.file_menu.add_command(label=self.language_dict['file'][1],
                                    command=self.save_as_project_file)
+        self.file_menu.add_command(
+            label=self.language_dict['file'][6],
+            command=lambda: self.save_as_project_file(new=True))
         self.file_menu.add_command(label=self.language_dict['file'][2],
                                    command=self.load_midi_file_func)
         self.file_menu.add_command(label=self.language_dict['file'][3],
@@ -1558,14 +1565,17 @@ class Root(Tk):
             self.reload_channel_sounds(i)
         self.current_channel_sound_modules_entry.delete(0, END)
         self.choose_channels.selection_clear(0, END)
-        self.current_project_name.configure(text=os.path.basename(filename))
+        current_project_name = os.path.basename(filename)
+        self.current_project_name.configure(text=current_project_name)
+        self.project_name = current_project_name
+        self.opening_project_name = filename
         current_soundfonts = self.project_dict['soundfont']
         for each in current_soundfonts:
             self.channel_sound_modules[each].program_select(
                 *current_soundfonts[each])
         self.show_msg(self.language_dict["msg"][14])
 
-    def save_as_project_file(self):
+    def save_as_project_file(self, new=False):
         if not self.default_load:
             return
         self.show_msg('')
@@ -1596,6 +1606,12 @@ class Root(Tk):
                     current_sound_modules.current_preset_num
                 ]
                 self.project_dict['soundfont'][i] = current_info
+        if not new and self.opening_project_name:
+            with open(self.opening_project_name, 'w',
+                      encoding='utf-8-sig') as f:
+                f.write(str(self.project_dict))
+            self.show_msg(self.language_dict["msg"][15])
+            return
         filename = filedialog.asksaveasfilename(
             initialdir=self.last_place,
             title=self.language_dict['title'][13],
@@ -1612,6 +1628,10 @@ class Root(Tk):
             with open(filename, 'w', encoding='utf-8-sig') as f:
                 f.write(str(self.project_dict))
             self.show_msg(self.language_dict["msg"][15])
+            current_project_name = os.path.basename(filename)
+            self.current_project_name.configure(text=current_project_name)
+            self.project_name = current_project_name
+            self.opening_project_name = filename
 
     def save_current_musicpy_code(self):
         filename = filedialog.asksaveasfilename(
@@ -1724,6 +1744,8 @@ class Root(Tk):
                     except Exception as e:
                         print(str(e))
                         self.show_msg(self.language_dict["msg"][30])
+        else:
+            self.show_msg(self.language_dict['msg'][8])
 
     def configure_sf2_file(self):
         if self.open_configure_sf2_file:

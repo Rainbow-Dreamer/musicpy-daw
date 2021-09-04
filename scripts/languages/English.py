@@ -41,7 +41,8 @@
     ],
     'file': [
         'Open project file', 'Save as project file', 'Import MIDI file',
-        'Save current musicpy code', 'Import musicpy code', 'Export'
+        'Save current musicpy code', 'Import musicpy code', 'Export',
+        'Save as new project file'
     ],
     'option': ['Change settings', 'Change channel dict', 'Change Language'],
     'tool': [
