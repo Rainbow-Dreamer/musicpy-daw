@@ -1697,7 +1697,8 @@ class Root(Tk):
     def load_sf2_file(self, mode=0, current_ind=None, sound_path=None):
         if current_ind is None:
             current_ind = self.choose_channels.index(ANCHOR)
-        if current_ind < self.channel_num and self.channel_list_focus:
+        if current_ind < self.channel_num and (self.channel_list_focus or
+                                               (current_ind is not None)):
             self.show_msg('')
             if sound_path is not None:
                 self.channel_sound_modules[current_ind] = rs.sf2_loader(
