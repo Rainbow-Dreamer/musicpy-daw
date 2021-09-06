@@ -2086,6 +2086,10 @@ class Root(Tk):
                                 k) or check_adsr(k):
                             rs.convert_effect(k, add=True)
 
+                    current_track = copy(current_track)
+                    current_track.apply_start_time_to_changes(
+                        -current_start_times[i])
+
                     current_instrument = current_chord.instruments_numbers[i]
                     # instrument of a track of the piece type could be preset_num or [preset_num, bank_num, (track), (sfid)]
                     if type(current_instrument) == int:
@@ -2121,6 +2125,7 @@ class Root(Tk):
                             volume=current_volume[i]),
                         position=self.bar_to_real_time(current_start_times[i],
                                                        current_bpm, 1))
+
                     current_sound_modules.program_select(
                         current_track2, current_sfid, current_bank_num,
                         current_preset_num)
