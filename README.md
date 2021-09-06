@@ -38,6 +38,8 @@ Note that when you have any special effects, pans, volumes in your musicpy data 
 
 `esp` is the project file format I invented specially for easy sampler, which stands for `Easy Sampler Project`, it stores the information of your current project, and you can save your current working progress to an esp file at any time and reload it by opening the esp file again in easy sampler.
 
+Update (2021/9/5): Now soundfonts files are supported, you can load any .sf2, .sf3, .dls files into this tracker and use it to play and export audio files, making music using soundfonts files with musicpy.
+
 # easy sampler
 
 [[English](#easy-sampler)] [中文]
@@ -77,3 +79,6 @@ play result
 注意，当你的musicpy数据结构中有任何特效、平移、音量要播放时，easy sampler会先自动把它转换成音频对象，然后再播放，这通常会比直接播放慢，所以你需要等待一点时间。
 
 `esp`是我专门为easy sampler发明的工程文件格式，它代表`Easy Sampler Project`，它存储了你当前工程的信息，你可以随时把你当前的工程进度保存到esp文件中，并在easy sampler中再次打开esp文件来重新加载。
+
+更新 (2021/9/5): 现在已经添加对于soundfonts音源文件的支持，你可以加载任何的.sf2, .sf3, .dls 音源文件到这个取样机中来播放和导出音频文件，用soundfonts音源文件和musicpy来制作音乐。
+
