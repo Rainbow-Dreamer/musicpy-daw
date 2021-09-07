@@ -16,11 +16,6 @@ class esi:
         self.name_dict = name_dict
 
 
-class custom_channel:
-    def __init__(self, channel):
-        self.channel = channel
-
-
 class pitch:
     def __init__(self, path, note='C5'):
         self.note = N(note) if type(note) == str else note
@@ -297,6 +292,25 @@ def adsr(sound, attack, decay, sustain, release):
 ADSR = adsr
 
 
+def custom(sound, func, *args, **kwargs):
+    current_func = lambda s: func(s, *args, **kwargs)
+    sound.custom_effect = current_func
+    return sound
+
+
+def check_custom(sound):
+    return hasattr(sound, 'custom_effect')
+
+
+def check_custom_all(sound):
+    types = type(sound)
+    if types == chord:
+        return check_custom(sound) or any(check_custom(i) for i in sound)
+    elif types == piece:
+        return check_custom(sound) or any(
+            check_custom_all(i) for i in sound.tracks)
+
+
 def check_reverse(sound):
     return hasattr(sound, 'reverse_audio')
 
@@ -365,7 +379,8 @@ def has_audio(sound):
 def check_special(sound):
     return check_pan_or_volume(sound) or check_reverse_all(
         sound) or check_offset_all(sound) or check_fade_all(
-            sound) or check_adsr_all(sound) or has_audio(sound)
+            sound) or check_adsr_all(sound) or has_audio(
+                sound) or check_custom_all(sound)
 
 
 def sine(freq=440, duration=1000, volume=0):
@@ -2014,7 +2029,7 @@ class Root(Tk):
                     self.msg.update()
                 for k in current_chord.notes:
                     if check_reverse(k) or check_fade(k) or check_offset(
-                            k) or check_adsr(k):
+                            k) or check_adsr(k) or check_custom(k):
                         rs.convert_effect(k, add=True)
                 silent_audio = current_sound_modules.export_chord(
                     current_chord,
@@ -2083,7 +2098,7 @@ class Root(Tk):
 
                     for k in current_track.notes:
                         if check_reverse(k) or check_fade(k) or check_offset(
-                                k) or check_adsr(k):
+                                k) or check_adsr(k) or check_custom(k):
                             rs.convert_effect(k, add=True)
 
                     current_track = copy(current_track)
@@ -2167,6 +2182,8 @@ class Root(Tk):
                     current_chord.offset, current_bpm, 1):]
             if check_reverse(current_chord):
                 silent_audio = silent_audio.reverse()
+            if check_custom(current_chord):
+                silent_audio = silent_audio.custom_effect(silent_audio)
             try:
                 if action == 'export':
                     silent_audio.export(filename, format=mode)
@@ -2307,6 +2324,8 @@ class Root(Tk):
                             each.fade_out_time)
                 if check_reverse(each):
                     current_sound = current_sound.reverse()
+                if check_custom(each):
+                    current_sound = current_sound.custom_effect(current_sound)
 
                 if current_fadeout_time != 0 and type(each) != AudioSegment:
                     current_sound = current_sound.fade_out(
@@ -2381,6 +2400,9 @@ class Root(Tk):
                 self.bar_to_real_time(current_chord.offset, current_bpm, 1):]
         if check_reverse(current_chord):
             current_silent_audio = current_silent_audio.reverse()
+        if check_custom(current_chord):
+            current_silent_audio = current_silent_audio.custom_effect(
+                current_silent_audio)
         silent_audio = silent_audio.overlay(current_silent_audio,
                                             position=current_start_time)
         return silent_audio
