@@ -254,8 +254,8 @@ def percentage_to_db(vol):
     return math.log(abs(vol / 100), 10) * 20
 
 
-def reverse(sound):
-    sound.reverse_audio = True
+def reverse(sound, value=True):
+    sound.reverse_audio = value
     return sound
 
 
@@ -312,7 +312,7 @@ def check_custom_all(sound):
 
 
 def check_reverse(sound):
-    return hasattr(sound, 'reverse_audio')
+    return hasattr(sound, 'reverse_audio') and sound.reverse_audio
 
 
 def check_offset(sound):
@@ -515,7 +515,7 @@ class Root(Tk):
         self.set_chord_button = ttk.Button(self,
                                            text='Play Notes',
                                            command=self.play_current_chord)
-        self.set_chord_button.place(x=0, y=350)
+        self.set_chord_button.place(x=0, y=260)
         self.set_chord_text = Text(self,
                                    width=50,
                                    height=5,
@@ -524,13 +524,13 @@ class Root(Tk):
                                    autoseparators=True,
                                    maxundo=-1,
                                    font=(font_type, font_size))
-        self.set_chord_text.place(x=100, y=350)
+        self.set_chord_text.place(x=100, y=260)
 
         self.set_musicpy_code_button = ttk.Button(
             self,
             text='Play Musicpy Code',
             command=self.play_current_musicpy_code)
-        self.set_musicpy_code_button.place(x=0, y=450)
+        self.set_musicpy_code_button.place(x=0, y=360)
         self.set_musicpy_code_text = Text(self,
                                           width=115,
                                           height=10,
@@ -539,7 +539,7 @@ class Root(Tk):
                                           autoseparators=True,
                                           maxundo=-1,
                                           font=(font_type, font_size))
-        self.set_musicpy_code_text.place(x=150, y=450, height=135)
+        self.set_musicpy_code_text.place(x=150, y=360, height=225)
         self.bind('<Control-r>', lambda e: self.play_current_musicpy_code())
         self.bind('<Control-e>', lambda e: self.stop_playing())
         self.bind('<Control-w>', lambda e: self.open_project_file())
@@ -556,16 +556,16 @@ class Root(Tk):
         self.stop_button = ttk.Button(self,
                                       text='Stop',
                                       command=self.stop_playing)
-        self.stop_button.place(x=0, y=500)
+        self.stop_button.place(x=0, y=410)
 
         self.change_current_bpm_button = ttk.Button(
             self, text='Change BPM', command=self.change_current_bpm)
-        self.change_current_bpm_button.place(x=0, y=300)
+        self.change_current_bpm_button.place(x=0, y=210)
         self.change_current_bpm_entry = ttk.Entry(self,
                                                   width=10,
                                                   font=(font_type, font_size))
         self.change_current_bpm_entry.insert(END, '120')
-        self.change_current_bpm_entry.place(x=100, y=300)
+        self.change_current_bpm_entry.place(x=100, y=210)
         self.current_bpm = 120
         self.current_playing = []
 
@@ -576,26 +576,26 @@ class Root(Tk):
             self,
             text='Change Sound Path',
             command=self.change_current_sound_path)
-        self.change_current_sound_path_button.place(x=550, y=300)
+        self.change_current_sound_path_button.place(x=550, y=210)
 
         self.load_midi_file_button = ttk.Button(
             self, text='Import MIDI File', command=self.load_midi_file_func)
-        self.load_midi_file_button.place(x=500, y=350)
+        self.load_midi_file_button.place(x=500, y=260)
         self.load_midi_file_entry = ttk.Entry(self,
                                               width=50,
                                               font=(font_type, font_size))
         self.load_midi_file_entry.insert(END, '')
         self.load_midi_file_entry.bind(
             '<Return>', lambda e: self.load_midi_file_func(mode=1))
-        self.load_midi_file_entry.place(x=630, y=350)
+        self.load_midi_file_entry.place(x=630, y=260)
 
         self.change_settings_button = ttk.Button(
             self, text='Change Settings', command=self.open_change_settings)
-        self.change_settings_button.place(x=0, y=600)
+        self.change_settings_button.place(x=0, y=510)
         self.open_settings = False
 
         self.choose_channels_bar = Scrollbar(self)
-        self.choose_channels_bar.place(x=227, y=215, height=125, anchor=CENTER)
+        self.choose_channels_bar.place(x=227, y=125, height=125, anchor=CENTER)
         self.choose_channels = Listbox(
             self,
             yscrollcommand=self.choose_channels_bar.set,
@@ -612,7 +612,7 @@ class Root(Tk):
         self.choose_channels.bind('<v>', lambda e: self.clear_all_channels())
         self.choose_channels.bind('<Button-3>',
                                   lambda e: self.cancel_choose_channels())
-        self.choose_channels.place(x=0, y=152, width=220, height=125)
+        self.choose_channels.place(x=0, y=62, width=220, height=125)
         self.choose_channels_bar.config(command=self.choose_channels.yview)
 
         self.current_channel_name_label = ttk.Label(self, text='Channel Name')
@@ -620,8 +620,8 @@ class Root(Tk):
                                                     width=30,
                                                     font=(font_type,
                                                           font_size))
-        self.current_channel_name_label.place(x=250, y=150)
-        self.current_channel_name_entry.place(x=350, y=150)
+        self.current_channel_name_label.place(x=250, y=60)
+        self.current_channel_name_entry.place(x=350, y=60)
         self.current_channel_name_entry.bind(
             '<Return>', lambda e: self.change_current_channel_name())
         self.current_channel_sound_modules_label = ttk.Label(
@@ -632,51 +632,51 @@ class Root(Tk):
                                                                    font_size))
         self.current_channel_sound_modules_entry.bind(
             '<Return>', lambda e: self.change_current_sound_path_func())
-        self.current_channel_sound_modules_label.place(x=250, y=200)
-        self.current_channel_sound_modules_entry.place(x=410, y=200)
+        self.current_channel_sound_modules_label.place(x=250, y=110)
+        self.current_channel_sound_modules_entry.place(x=410, y=110)
 
         self.change_current_channel_name_button = ttk.Button(
             self,
             text='Change Channel Name',
             command=self.change_current_channel_name)
-        self.change_current_channel_name_button.place(x=550, y=250)
+        self.change_current_channel_name_button.place(x=550, y=160)
 
         self.add_new_channel_button = ttk.Button(self,
                                                  text='Add New Channel',
                                                  command=self.add_new_channel)
-        self.add_new_channel_button.place(x=250, y=250)
+        self.add_new_channel_button.place(x=250, y=160)
 
         self.delete_new_channel_button = ttk.Button(
             self, text='Delete Channel', command=self.delete_channel)
-        self.delete_new_channel_button.place(x=400, y=250)
+        self.delete_new_channel_button.place(x=400, y=160)
 
         self.clear_all_channels_button = ttk.Button(
             self, text='Clear All Channels', command=self.clear_all_channels)
-        self.clear_all_channels_button.place(x=250, y=300)
+        self.clear_all_channels_button.place(x=250, y=210)
 
         self.clear_channel_button = ttk.Button(
             self, text='Clear Channel', command=self.clear_current_channel)
-        self.clear_channel_button.place(x=400, y=300)
+        self.clear_channel_button.place(x=400, y=210)
 
         self.change_channel_dict_button = ttk.Button(
             self, text='Change Channel Dict', command=self.change_channel_dict)
-        self.change_channel_dict_button.place(x=700, y=250)
+        self.change_channel_dict_button.place(x=700, y=160)
 
         self.load_channel_settings_button = ttk.Button(
             self,
             text='Load Channel Settings',
             command=self.load_channel_settings)
-        self.load_channel_settings_button.place(x=700, y=300)
+        self.load_channel_settings_button.place(x=700, y=210)
 
         self.configure_sf2_button = ttk.Button(self,
                                                text='Configure Soundfonts',
                                                command=self.configure_sf2_file)
-        self.configure_sf2_button.place(x=870, y=300)
+        self.configure_sf2_button.place(x=870, y=210)
 
         self.load_sf2_button = ttk.Button(self,
                                           text='Load Soundfonts',
                                           command=self.load_sf2_file)
-        self.load_sf2_button.place(x=870, y=250)
+        self.load_sf2_button.place(x=870, y=160)
 
         self.piece_playing = []
 
@@ -687,7 +687,7 @@ class Root(Tk):
         self.export_button = ttk.Button(self,
                                         text='Export',
                                         command=self.open_export_menu)
-        self.export_button.place(x=500, y=400)
+        self.export_button.place(x=500, y=310)
 
         self.current_project_name = ttk.Label(self, text='new.esp')
         self.current_project_name.place(x=0, y=30)
@@ -696,7 +696,7 @@ class Root(Tk):
 
         self.load_musicpy_code_button = ttk.Button(
             self, text='Import musicpy code', command=self.load_musicpy_code)
-        self.load_musicpy_code_button.place(x=0, y=550)
+        self.load_musicpy_code_button.place(x=0, y=460)
 
         try:
             with open('browse memory.txt', encoding='utf-8-sig') as f:
@@ -1965,7 +1965,8 @@ class Root(Tk):
                           obj=None,
                           mode='wav',
                           action='export',
-                          channel_num=0):
+                          channel_num=0,
+                          inner=True):
         if mode == 'other':
             self.ask_other_format()
             return
@@ -2427,6 +2428,19 @@ class Root(Tk):
         write(filename, current_chord, self.current_bpm)
         self.show_msg(f'{self.language_dict["msg"][24]}{filename}')
 
+    def inherit_effects(self, current_chord, current_chord_temp):
+        if check_reverse(current_chord_temp):
+            current_chord.reverse_audio = current_chord_temp.reverse_audio
+        if check_offset(current_chord_temp):
+            current_chord.offset = current_chord_temp.offset
+        if check_fade(current_chord_temp):
+            current_chord.fade_in_time = current_chord_temp.fade_in_time
+            current_chord.fade_out_time = current_chord_temp.fade_out_time
+        if check_adsr(current_chord_temp):
+            current_chord.adsr = current_chord_temp.adsr
+        if check_custom(current_chord_temp):
+            current_chord.custom_effect = current_chord_temp.custom_effect
+
     def get_current_musicpy_chords(self):
         current_notes = self.set_musicpy_code_text.get('1.0', 'end-1c')
         current_channel_num = 0
@@ -2459,30 +2473,20 @@ class Root(Tk):
                 self.show_msg(self.language_dict["msg"][4])
                 return
         if type(current_chord) == note:
-            has_reverse = check_reverse(current_chord)
-            has_offset = check_offset(current_chord)
             current_chord = chord([current_chord])
-            if has_reverse:
-                current_chord.reverse_audio = True
-            if has_offset:
-                current_chord.offset = has_offset
         elif type(current_chord) == list and all(
                 type(i) == chord for i in current_chord):
             current_chord = concat(current_chord, mode='|')
         if type(current_chord) == chord:
             return 'chord', current_chord, current_channel_num
         if type(current_chord) == track:
-            has_reverse = check_reverse(current_chord)
-            has_offset = check_offset(current_chord)
+            current_chord_temp = copy(current_chord)
             current_chord = build(
                 current_chord,
                 bpm=current_chord.tempo
                 if current_chord.tempo is not None else current_bpm,
                 name=current_chord.name)
-            if has_reverse:
-                current_chord.reverse_audio = True
-            if has_offset:
-                current_chord.offset = has_offset
+            self.inherit_effects(current_chord, current_chord_temp)
         if type(current_chord) == piece:
             current_bpm = current_chord.tempo
             current_start_times = current_chord.start_times
@@ -3009,13 +3013,7 @@ class Root(Tk):
                             current_bpm=None,
                             current_channel_num=None):
         if type(current_chord) == note:
-            has_reverse = check_reverse(current_chord)
-            has_offset = check_offset(current_chord)
             current_chord = chord([current_chord])
-            if has_reverse:
-                current_chord.reverse_audio = True
-            if has_offset:
-                current_chord.offset = has_offset
         elif type(current_chord) == list and all(
                 type(i) == chord for i in current_chord):
             current_chord = concat(current_chord, mode='|')
@@ -3026,17 +3024,13 @@ class Root(Tk):
             else:
                 self.play_channel(current_chord, current_channel_num)
         elif type(current_chord) == track:
-            has_reverse = check_reverse(current_chord)
-            has_offset = check_offset(current_chord)
+            current_chord_temp = copy(current_chord)
             current_chord = build(
                 current_chord,
                 bpm=current_chord.tempo
                 if current_chord.tempo is not None else current_bpm,
                 name=current_chord.name)
-            if has_reverse:
-                current_chord.reverse_audio = True
-            if has_offset:
-                current_chord.offset = has_offset
+            self.inherit_effects(current_chord, current_chord_temp)
         if type(current_chord) == piece:
             if check_special(current_chord) or any(
                     type(self.channel_sound_modules[i]) == rs.sf2_loader
@@ -3171,6 +3165,17 @@ class start_window(Tk):
         pygame.mixer.init(frequency, sound_size, channel, buffer)
         pygame.mixer.set_num_channels(maxinum_channels)
         self.after(500, open_main_window)
+
+
+play_midi = play
+
+
+def play(current_chord, bpm=None, channel_num=None):
+    pass
+
+
+def export(current_chord, mode='wav', action='export', channel_num=0):
+    pass
 
 
 current_start_window = start_window()
