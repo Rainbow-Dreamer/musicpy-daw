@@ -1,6 +1,8 @@
 with open('scripts/settings.py', encoding='utf-8-sig') as f:
     exec(f.read())
 
+global_play = False
+
 
 class esi:
     def __init__(self,
@@ -1285,7 +1287,8 @@ class Root(Tk):
                     current_chord, current_bpm = current_chord
                 elif length == 3:
                     current_chord, current_bpm, current_channel_num = current_chord
-                    current_channel_num -= 1
+                    if current_channel_num > 0:
+                        current_channel_num -= 1
                 self.change_current_bpm_entry.delete(0, END)
                 self.change_current_bpm_entry.insert(END, current_bpm)
                 self.change_current_bpm(1)
@@ -1966,7 +1969,11 @@ class Root(Tk):
                           mode='wav',
                           action='export',
                           channel_num=0,
-                          inner=True):
+                          inner=True,
+                          length=None,
+                          extra_length=None,
+                          track_lengths=None,
+                          track_extra_lengths=None):
         if mode == 'other':
             self.ask_other_format()
             return
@@ -1990,7 +1997,7 @@ class Root(Tk):
                 initialfile=self.language_dict['untitled'])
             if not filename:
                 return
-        if action == 'get':
+        if action == 'get' or (not inner):
             result = obj
             if type(result) == chord:
                 result = ['chord', result, channel_num]
@@ -2036,7 +2043,9 @@ class Root(Tk):
                     current_chord,
                     bpm=current_bpm,
                     get_audio=True,
-                    other_effects=rs.convert_effect(current_chord))
+                    other_effects=rs.convert_effect(current_chord),
+                    length=length,
+                    extra_length=extra_length)
             else:
                 apply_fadeout_obj = self.apply_fadeout(current_chord,
                                                        current_bpm)
@@ -2082,8 +2091,13 @@ class Root(Tk):
                         each.volume = 127
                 current_chord.tracks[i] = each_channel
             apply_fadeout_obj = self.apply_fadeout(current_chord, current_bpm)
-            whole_duration = apply_fadeout_obj.eval_time(
-                current_bpm, mode='number', audio_mode=1) * 1000
+            if length:
+                whole_duration = length * 1000
+            else:
+                whole_duration = apply_fadeout_obj.eval_time(
+                    current_bpm, mode='number', audio_mode=1) * 1000
+                if extra_length:
+                    whole_duration += extra_length * 1000
             silent_audio = AudioSegment.silent(duration=whole_duration)
             for i in range(len(current_chord)):
                 current_sound_modules = self.channel_sound_modules[
@@ -2138,7 +2152,11 @@ class Root(Tk):
                             get_audio=True,
                             other_effects=rs.convert_effect(current_track),
                             pan=current_pan[i],
-                            volume=current_volume[i]),
+                            volume=current_volume[i],
+                            length=None
+                            if not track_lengths else track_lengths[i],
+                            extra_length=None if not track_extra_lengths else
+                            track_extra_lengths[i]),
                         position=self.bar_to_real_time(current_start_times[i],
                                                        current_bpm, 1))
 
@@ -2464,7 +2482,8 @@ class Root(Tk):
                             current_chord, current_bpm = current_chord
                         elif length == 3:
                             current_chord, current_bpm, current_channel_num = current_chord
-                            current_channel_num -= 1
+                            if current_channel_num > 0:
+                                current_channel_num -= 1
                         self.change_current_bpm_entry.delete(0, END)
                         self.change_current_bpm_entry.insert(END, current_bpm)
                         self.change_current_bpm(1)
@@ -2972,6 +2991,8 @@ class Root(Tk):
             return
 
         self.stop_playing()
+        global global_play
+        global_play = False
         current_notes = self.set_musicpy_code_text.get('1.0', 'end-1c')
         current_channel_num = 0
         current_bpm = self.current_bpm
@@ -2996,22 +3017,30 @@ class Root(Tk):
                             current_chord, current_bpm = current_chord
                         elif length == 3:
                             current_chord, current_bpm, current_channel_num = current_chord
-                            current_channel_num -= 1
+                            if current_channel_num > 0:
+                                current_channel_num -= 1
                         self.change_current_bpm_entry.delete(0, END)
                         self.change_current_bpm_entry.insert(END, current_bpm)
                         self.change_current_bpm(1)
 
             except Exception as e:
                 print(str(e))
-                self.show_msg(self.language_dict["msg"][4])
+                if not global_play:
+                    self.show_msg(self.language_dict["msg"][4])
                 return
-        self.play_musicpy_sounds(current_chord, current_bpm,
-                                 current_channel_num)
+        if current_chord is not None:
+            self.play_musicpy_sounds(current_chord, current_bpm,
+                                     current_channel_num)
 
     def play_musicpy_sounds(self,
                             current_chord,
                             current_bpm=None,
-                            current_channel_num=None):
+                            current_channel_num=None,
+                            inner=True,
+                            length=None,
+                            extra_length=None,
+                            track_lengths=None,
+                            track_extra_lengths=None):
         if type(current_chord) == note:
             current_chord = chord([current_chord])
         elif type(current_chord) == list and all(
@@ -3020,7 +3049,13 @@ class Root(Tk):
         if type(current_chord) == chord:
             if check_special(current_chord):
                 self.export_audio_file(action='play',
-                                       channel_num=current_channel_num)
+                                       channel_num=current_channel_num,
+                                       obj=None if inner else current_chord,
+                                       inner=inner,
+                                       length=length,
+                                       extra_length=extra_length,
+                                       track_lengths=track_lengths,
+                                       track_extra_lengths=track_extra_lengths)
             else:
                 self.play_channel(current_chord, current_channel_num)
         elif type(current_chord) == track:
@@ -3035,7 +3070,14 @@ class Root(Tk):
             if check_special(current_chord) or any(
                     type(self.channel_sound_modules[i]) == rs.sf2_loader
                     for i in current_chord.channels):
-                self.export_audio_file(action='play')
+                self.export_audio_file(action='play',
+                                       obj=None if inner else current_chord,
+                                       inner=inner,
+                                       length=length,
+                                       extra_length=extra_length,
+                                       track_lengths=track_lengths,
+                                       track_extra_lengths=track_extra_lengths)
+                self.show_msg(self.language_dict["msg"][22])
                 return
             current_tracks = current_chord.tracks
             current_channel_nums = current_chord.channels if current_chord.channels else [
@@ -3170,12 +3212,57 @@ class start_window(Tk):
 play_midi = play
 
 
-def play(current_chord, bpm=None, channel_num=None):
-    pass
+def play(current_chord,
+         bpm=None,
+         channel=1,
+         length=None,
+         extra_length=None,
+         track_lengths=None,
+         track_extra_lengths=None):
+    global global_play
+    global_play = True
+    if channel > 0:
+        channel -= 1
+    if bpm is not None:
+        root.change_current_bpm_entry.delete(0, END)
+        root.change_current_bpm_entry.insert(END, bpm)
+        root.change_current_bpm(1)
+    root.play_musicpy_sounds(current_chord,
+                             bpm,
+                             channel,
+                             inner=False,
+                             length=length,
+                             extra_length=extra_length,
+                             track_lengths=track_lengths,
+                             track_extra_lengths=track_extra_lengths)
 
 
-def export(current_chord, mode='wav', action='export', channel_num=0):
-    pass
+def export(current_chord,
+           mode='wav',
+           action='export',
+           channel=1,
+           bpm=None,
+           length=None,
+           extra_length=None,
+           track_lengths=None,
+           track_extra_lengths=None):
+    global global_play
+    global_play = True
+    if channel > 0:
+        channel -= 1
+    if bpm is not None:
+        root.change_current_bpm_entry.delete(0, END)
+        root.change_current_bpm_entry.insert(END, bpm)
+        root.change_current_bpm(1)
+    root.export_audio_file(obj=current_chord,
+                           mode=mode,
+                           action=action,
+                           channel_num=channel,
+                           inner=False,
+                           length=length,
+                           extra_length=extra_length,
+                           track_lengths=track_lengths,
+                           track_extra_lengths=track_extra_lengths)
 
 
 current_start_window = start_window()
