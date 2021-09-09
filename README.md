@@ -87,19 +87,19 @@ Update (2021/9/5): Now soundfonts files are supported, you can load any .sf2, .s
    ```
 
 2. 要写更复杂的musicpy代码来获得你想播放或导出的musicpy数据结构，你可以像往常一样写musicpy代码，但你必须写
-  ```python
-  play [musicpy数据结构], bpm, 通道编号
-  ```
-  来设置要用来播放或者导出的音乐对象。当你运行代码时，会播放这个musicpy的数据结构，当你点击导出按钮进行导出时，会导出这个musicpy的数据结构。
-  BPM和通道编号可以省略，如果省略BPM，取样机将使用默认BPM，如果省略通道编号，取样机将使用通道编号1。
-  注意，通道编号是基于1的。下面是一个例子
-  ```python
-  part1 = C('Cmaj7') % (1, 1/8) % 2
-  part2 = C('Am7') % (1, 1/8) % 2
-  result = part1 | part2
-  play result
-  # 用BPM和通道编号: play result, 150, 1
-  ```
+   ```python
+   play [musicpy数据结构], bpm, 通道编号
+   ```
+   来设置要用来播放或者导出的音乐对象。当你运行代码时，会播放这个musicpy的数据结构，当你点击导出按钮进行导出时，会导出这个musicpy的数据结构。
+   BPM和通道编号可以省略，如果省略BPM，取样机将使用默认BPM，如果省略通道编号，取样机将使用通道编号1。
+   注意，通道编号是基于1的。下面是一个例子
+   ```python
+   part1 = C('Cmaj7') % (1, 1/8) % 2
+   part2 = C('Am7') % (1, 1/8) % 2
+   result = part1 | part2
+   play result
+   # 用BPM和通道编号: play result, 150, 1
+   ```
 
 3. 你也可以使用和musicpy取样机模块的取样机的`play`和`export`函数的参数基本相同的`play`和`export`函数，支持更多参数和更加定制化的播放和导出的要求。  
    如何使用`play`和`export`函数，你可以参考musicpy取样机模块的使用文档，我在下面会给链接。
