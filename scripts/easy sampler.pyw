@@ -2426,7 +2426,7 @@ class Root(Tk):
                                             position=current_start_time)
         return silent_audio
 
-    def export_midi_file(self):
+    def export_midi_file(self, current_chord=None, **write_args):
         self.show_msg('')
         filename = filedialog.asksaveasfilename(
             initialdir=self.last_place,
@@ -2436,14 +2436,15 @@ class Root(Tk):
             initialfile=self.language_dict['untitled'])
         if not filename:
             return
-        result = self.get_current_musicpy_chords()
-        if result is None:
-            return
-        current_chord = result[1]
+        if current_chord is None:
+            result = self.get_current_musicpy_chords()
+            if result is None:
+                return
+            current_chord = result[1]
         self.stop_playing()
         self.show_msg(f'{self.language_dict["msg"][21]}{filename}')
         self.msg.update()
-        write(filename, current_chord, self.current_bpm)
+        write(filename, current_chord, self.current_bpm, **write_args)
         self.show_msg(f'{self.language_dict["msg"][24]}{filename}')
 
     def inherit_effects(self, current_chord, current_chord_temp):
@@ -3245,7 +3246,8 @@ def export(current_chord,
            length=None,
            extra_length=None,
            track_lengths=None,
-           track_extra_lengths=None):
+           track_extra_lengths=None,
+           **write_args):
     global global_play
     global_play = True
     if channel > 0:
@@ -3254,15 +3256,18 @@ def export(current_chord,
         root.change_current_bpm_entry.delete(0, END)
         root.change_current_bpm_entry.insert(END, bpm)
         root.change_current_bpm(1)
-    root.export_audio_file(obj=current_chord,
-                           mode=mode,
-                           action=action,
-                           channel_num=channel,
-                           inner=False,
-                           length=length,
-                           extra_length=extra_length,
-                           track_lengths=track_lengths,
-                           track_extra_lengths=track_extra_lengths)
+    if mode == 'mid' or mode == 'midi':
+        root.export_midi_file(current_chord, **write_args)
+    else:
+        root.export_audio_file(obj=current_chord,
+                               mode=mode,
+                               action=action,
+                               channel_num=channel,
+                               inner=False,
+                               length=length,
+                               extra_length=extra_length,
+                               track_lengths=track_lengths,
+                               track_extra_lengths=track_extra_lengths)
 
 
 current_start_window = start_window()
