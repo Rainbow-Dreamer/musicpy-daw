@@ -8,23 +8,51 @@ This is a music sampler and tracker to make music with musicpy.
 
 You can write any musicpy codes inside the input text area at the bottom.
 
-To play or export a musicpy data structure, like note, chord, track and piece, there are 2 ways to write in the input text area.
+To play or export a musicpy data structure, like note, chord, track and piece, there are 3 ways to write in the input text area.
 
 1. You can just write the musicpy data structure in one line and press `Play Musicpy Code` to play it and press `Export` to export to audio files. 
-Note that in this way you must write the musicpy data structure in one line to make it work, for example,
-```python
-C('Cmaj7') % (1, 1/8) % 2
-```
+   Note that in this way you must write the musicpy data structure in one line to make it work, for example,
+   ```python
+   C('Cmaj7') % (1, 1/8) % 2
+   ```
 
-2. To write more complicated musicpy codes to get the resulted musicpy data structure you want to play or export, you can just write musicpy codes as usual, but on the last line you must write `play [musicpy data structure], bpm, channel number`, the BPM and channel number could be omitted, if the BPM is omitted, the sampler will use default BPM, if the channel number is omitted, the sampler will use channel number 1. 
-Note that channel number is 1-based. Here is an example,
-```python
-part1 = C('Cmaj7') % (1, 1/8) % 2
-part2 = C('Am7') % (1, 1/8) % 2
-result = part1 | part2
-play result
-# with BPM and channel number: play result, 150, 1
-```
+2. To write more complicated musicpy codes to get the resulted musicpy data structure you want to play or export, you can just write musicpy codes as usual, but you must write
+  ```python
+  play [musicpy data structure], bpm, channel number
+  ```
+  to set the current music object to be play or export. When you run the code, it will play the musicpy data structure, when you click the export button to export, it will export the musicpy data structure.  
+  The BPM and channel number could be omitted, if the BPM is omitted, the sampler will use default BPM, if the channel number is omitted, the sampler will use channel number 1.
+  Note that channel number is 1-based.
+  Here is an example,
+  ```python
+  part1 = C('Cmaj7') % (1, 1/8) % 2
+  part2 = C('Am7') % (1, 1/8) % 2
+  result = part1 | part2
+  play result
+  # with BPM and channel number: play result, 150, 1
+  ```
+
+3. You can also use `play` and `export` function that takes essentially the same parameters as the `play` and `export` function of the sampler in musicpy sampler module, which supports more parameters 
+   for more customized play and export requirements. For the usage of `play` and `export` function, you can refer to the documentation of musicpy sampler module, I will give the link below.
+   ```python
+   play(current_chord,
+         bpm=None,
+         channel=1,
+         length=None,
+         extra_length=None,
+         track_lengths=None,
+         track_extra_lengths=None)
+   
+   export(current_chord,
+           mode='wav',
+           action='export',
+           channel=1,
+           bpm=None,
+           length=None,
+           extra_length=None,
+           track_lengths=None,
+           track_extra_lengths=None)
+   ```
 
 The input text area can accept any python codes, so you can combine musicpy codes with any of the python codes (musicpy itself is a python package).
 
@@ -50,7 +78,7 @@ Update (2021/9/5): Now soundfonts files are supported, you can load any .sf2, .s
 
 你可以在底部的输入文本区写任何musicpy代码。
 
-要播放或导出一个musicpy数据结构，如音符、和弦、音轨和乐曲，有2种方法可以在输入文本区写。
+要播放或导出一个musicpy数据结构，如音符、和弦、音轨和乐曲，有3种方法可以在输入文本区写。
 
 1. 你可以只写一行musicpy数据结构，然后按`演奏musicpy代码`来播放它，按`导出`来导出音频文件。
 注意，在这种方式下，你必须把musicpy的数据结构写在一行中才行，比如说
@@ -58,8 +86,14 @@ Update (2021/9/5): Now soundfonts files are supported, you can load any .sf2, .s
 C('Cmaj7') % (1, 1/8) % 2
 ```
 
-2. 要写更复杂的musicpy代码来获得你想播放或导出的musicpy数据结构，你可以像往常一样写musicpy代码，但在最后一行你必须写`play [musicpy data structure], bpm, channel number`，BPM和通道编号可以省略，如果省略BPM，取样机将使用默认BPM，如果省略通道编号，取样机将使用通道编号1。
-注意，通道编号是基于1的。下面是一个例子
+2. 要写更复杂的musicpy代码来获得你想播放或导出的musicpy数据结构，你可以像往常一样写musicpy代码，但在最后一行你必须写
+
+  ```python
+  play [musicpy数据结构], bpm, 通道编号
+  ```
+
+  BPM和通道编号可以省略，如果省略BPM，取样机将使用默认BPM，如果省略通道编号，取样机将使用通道编号1。
+  注意，通道编号是基于1的。下面是一个例子
 ```python
 part1 = C('Cmaj7') % (1, 1/8) % 2
 part2 = C('Am7') % (1, 1/8) % 2
