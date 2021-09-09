@@ -17,23 +17,23 @@ To play or export a musicpy data structure, like note, chord, track and piece, t
    ```
 
 2. To write more complicated musicpy codes to get the resulted musicpy data structure you want to play or export, you can just write musicpy codes as usual, but you must write
-  ```python
-  play [musicpy data structure], bpm, channel number
-  ```
-  to set the current music object to be play or export. When you run the code, it will play the musicpy data structure, when you click the export button to export, it will export the musicpy data structure.  
-  The BPM and channel number could be omitted, if the BPM is omitted, the sampler will use default BPM, if the channel number is omitted, the sampler will use channel number 1.
-  Note that channel number is 1-based.
-  Here is an example,
-  ```python
-  part1 = C('Cmaj7') % (1, 1/8) % 2
-  part2 = C('Am7') % (1, 1/8) % 2
-  result = part1 | part2
-  play result
-  # with BPM and channel number: play result, 150, 1
-  ```
+   ```python
+   play [musicpy data structure], bpm, channel number
+   ```
+   to set the current music object to be play or export. When you run the code, it will play the musicpy data structure, when you click the export button to export, it will export  the musicpy data structure.  
+   The BPM and channel number could be omitted, if the BPM is omitted, the sampler will use default BPM, if the channel number is omitted, the sampler will use channel number 1.
+   Note that channel number is 1-based.
+   Here is an example,
+   ```python
+   part1 = C('Cmaj7') % (1, 1/8) % 2
+   part2 = C('Am7') % (1, 1/8) % 2
+   result = part1 | part2
+   play result
+   # with BPM and channel number: play result, 150, 1
+   ```
 
-3. You can also use `play` and `export` function that takes essentially the same parameters as the `play` and `export` function of the sampler in musicpy sampler module, which supports more parameters 
-   for more customized play and export requirements. For the usage of `play` and `export` function, you can refer to the documentation of musicpy sampler module, I will give the link below.
+3. You can also use `play` and `export` function that takes essentially the same parameters as the `play` and `export` function of the sampler in musicpy sampler module, which supports more parameters for more customized play and export requirements.  
+   For the usage of `play` and `export` function, you can refer to the documentation of musicpy sampler module, I will give the link below.
    ```python
    play(current_chord,
          bpm=None,
@@ -81,30 +81,51 @@ Update (2021/9/5): Now soundfonts files are supported, you can load any .sf2, .s
 要播放或导出一个musicpy数据结构，如音符、和弦、音轨和乐曲，有3种方法可以在输入文本区写。
 
 1. 你可以只写一行musicpy数据结构，然后按`演奏musicpy代码`来播放它，按`导出`来导出音频文件。
-注意，在这种方式下，你必须把musicpy的数据结构写在一行中才行，比如说
-```python
-C('Cmaj7') % (1, 1/8) % 2
-```
+   注意，在这种方式下，你必须把musicpy的数据结构写在一行中才行，比如说
+   ```python
+   C('Cmaj7') % (1, 1/8) % 2
+   ```
 
-2. 要写更复杂的musicpy代码来获得你想播放或导出的musicpy数据结构，你可以像往常一样写musicpy代码，但在最后一行你必须写
-
+2. 要写更复杂的musicpy代码来获得你想播放或导出的musicpy数据结构，你可以像往常一样写musicpy代码，但你必须写
   ```python
   play [musicpy数据结构], bpm, 通道编号
   ```
-
+  来设置要用来播放或者导出的音乐对象。当你运行代码时，会播放这个musicpy的数据结构，当你点击导出按钮进行导出时，会导出这个musicpy的数据结构。
   BPM和通道编号可以省略，如果省略BPM，取样机将使用默认BPM，如果省略通道编号，取样机将使用通道编号1。
   注意，通道编号是基于1的。下面是一个例子
-```python
-part1 = C('Cmaj7') % (1, 1/8) % 2
-part2 = C('Am7') % (1, 1/8) % 2
-result = part1 | part2
-play result
-#用BPM和通道编号: play result, 150, 1
-```
+  ```python
+  part1 = C('Cmaj7') % (1, 1/8) % 2
+  part2 = C('Am7') % (1, 1/8) % 2
+  result = part1 | part2
+  play result
+  # 用BPM和通道编号: play result, 150, 1
+  ```
+
+3. 你也可以使用和musicpy取样机模块的取样机的`play`和`export`函数的参数基本相同的`play`和`export`函数，支持更多参数和更加定制化的播放和导出的要求。  
+   如何使用`play`和`export`函数，你可以参考musicpy取样机模块的使用文档，我在下面会给链接。
+   ```python
+   play(current_chord,
+         bpm=None,
+         channel=1,
+         length=None,
+         extra_length=None,
+         track_lengths=None,
+         track_extra_lengths=None)
+   
+   export(current_chord,
+           mode='wav',
+           action='export',
+           channel=1,
+           bpm=None,
+           length=None,
+           extra_length=None,
+           track_lengths=None,
+           track_extra_lengths=None)
+   ```
 
 输入文本区可以接受任何python代码，因此你可以将musicpy代码与任何python代码结合起来（musicpy本身就是一个python包）。
 
-关于easy sampler的所有功能和特点，你可以参考musicpy取样机模块的文档(点击[这里](https://github.com/Rainbow-Dreamer/musicpy/wiki/musicpy-sampler-module-musicpy%E5%8F%96%E6%A0%B7%E6%9C%BA%E6%A8%A1%E5%9D%97))。
+关于easy sampler的所有功能和特点，你可以参考musicpy取样机模块的使用文档(点击[这里](https://github.com/Rainbow-Dreamer/musicpy/wiki/musicpy-sampler-module-musicpy%E5%8F%96%E6%A0%B7%E6%9C%BA%E6%A8%A1%E5%9D%97))。
 
 如果easy sampler中的某些功能部分（按钮和列表框）有可视化的替换，那么你不需要看这些部分，因为它们是easy sampler的非GUI版本的功能，而且在easy sampler的输入文本区不支持它们。
 
