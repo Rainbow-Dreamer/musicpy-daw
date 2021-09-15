@@ -2902,7 +2902,8 @@ class piece:
         return len(self.tracks)
 
     def mute(self, i=None):
-        self.muted_msg = [each.get_volume() for each in self.tracks]
+        if not hasattr(self, 'muted_msg'):
+            self.muted_msg = [each.get_volume() for each in self.tracks]
         if i is None:
             for k in range(len(self.tracks)):
                 self.tracks[k].setvolume(0)
