@@ -1,6 +1,5 @@
 ({
     self.set_musicpy_code_button: '演奏musicpy代码',
-    self.set_chord_button: '演奏和弦',
     self.stop_button: '停止',
     self.change_current_bpm_button: '改变BPM',
     self.change_current_sound_path_button: '更改音源路径',

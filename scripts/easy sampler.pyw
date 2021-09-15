@@ -289,13 +289,6 @@ def load_sounds(dic):
     return wavedict
 
 
-def play_note(name):
-    if name in note_sounds:
-        current_sound = note_sounds[name]
-        if current_sound:
-            current_sound.play(maxtime=note_play_last_time)
-
-
 def standardize_note(i):
     if i in standard_dict:
         i = standard_dict[i]
@@ -538,25 +531,11 @@ class Root(Tk):
                   background=[('active', active_background_color)],
                   foreground=[('active', active_foreground_color)])
 
-        self.set_chord_button = ttk.Button(self,
-                                           text='Play Notes',
-                                           command=self.play_current_chord)
-        self.set_chord_button.place(x=0, y=260)
-        self.set_chord_text = Text(self,
-                                   width=50,
-                                   height=5,
-                                   wrap='none',
-                                   undo=True,
-                                   autoseparators=True,
-                                   maxundo=-1,
-                                   font=(font_type, font_size))
-        self.set_chord_text.place(x=100, y=260)
-
         self.set_musicpy_code_button = ttk.Button(
             self,
             text='Play Musicpy Code',
             command=self.play_current_musicpy_code)
-        self.set_musicpy_code_button.place(x=0, y=360)
+        self.set_musicpy_code_button.place(x=0, y=310)
         self.set_musicpy_code_text = Text(self,
                                           width=115,
                                           height=10,
@@ -565,7 +544,7 @@ class Root(Tk):
                                           autoseparators=True,
                                           maxundo=-1,
                                           font=(font_type, font_size))
-        self.set_musicpy_code_text.place(x=150, y=360, height=225)
+        self.set_musicpy_code_text.place(x=150, y=250, height=335)
         self.bind('<Control-r>', lambda e: self.play_current_musicpy_code())
         self.bind('<Control-e>', lambda e: self.stop_playing())
         self.bind('<Control-w>', lambda e: self.open_project_file())
@@ -582,7 +561,7 @@ class Root(Tk):
         self.stop_button = ttk.Button(self,
                                       text='Stop',
                                       command=self.stop_playing)
-        self.stop_button.place(x=0, y=410)
+        self.stop_button.place(x=0, y=360)
 
         self.change_current_bpm_button = ttk.Button(
             self, text='Change BPM', command=self.change_current_bpm)
@@ -606,18 +585,18 @@ class Root(Tk):
 
         self.load_midi_file_button = ttk.Button(
             self, text='Import MIDI File', command=self.load_midi_file_func)
-        self.load_midi_file_button.place(x=500, y=260)
+        self.load_midi_file_button.place(x=590, y=60)
         self.load_midi_file_entry = ttk.Entry(self,
                                               width=50,
                                               font=(font_type, font_size))
         self.load_midi_file_entry.insert(END, '')
         self.load_midi_file_entry.bind(
             '<Return>', lambda e: self.load_midi_file_func(mode=1))
-        self.load_midi_file_entry.place(x=630, y=260)
+        self.load_midi_file_entry.place(x=720, y=60)
 
         self.change_settings_button = ttk.Button(
             self, text='Change Settings', command=self.open_change_settings)
-        self.change_settings_button.place(x=0, y=510)
+        self.change_settings_button.place(x=0, y=460)
         self.open_settings = False
 
         self.choose_channels_bar = Scrollbar(self)
@@ -653,7 +632,7 @@ class Root(Tk):
         self.current_channel_sound_modules_label = ttk.Label(
             self, text='Channel Sound Modules')
         self.current_channel_sound_modules_entry = ttk.Entry(self,
-                                                             width=80,
+                                                             width=90,
                                                              font=(font_type,
                                                                    font_size))
         self.current_channel_sound_modules_entry.bind(
@@ -713,7 +692,7 @@ class Root(Tk):
         self.export_button = ttk.Button(self,
                                         text='Export',
                                         command=self.open_export_menu)
-        self.export_button.place(x=500, y=310)
+        self.export_button.place(x=0, y=260)
 
         self.current_project_name = ttk.Label(self, text='new.esp')
         self.current_project_name.place(x=0, y=30)
@@ -722,7 +701,7 @@ class Root(Tk):
 
         self.load_musicpy_code_button = ttk.Button(
             self, text='Import musicpy code', command=self.load_musicpy_code)
-        self.load_musicpy_code_button.place(x=0, y=460)
+        self.load_musicpy_code_button.place(x=0, y=410)
 
         try:
             with open('browse memory.txt', encoding='utf-8-sig') as f:
@@ -3082,25 +3061,6 @@ class Root(Tk):
                             f'{standardize_note(each.name)}{each.num}',
                             duration, volume, current_channel_num))
                     self.current_playing.append(current_id)
-
-    def play_current_chord(self):
-        if not self.default_load:
-            return
-        self.show_msg('')
-        current_notes = self.set_chord_text.get('1.0', 'end-1c')
-        if ',' in current_notes:
-            current_notes = current_notes.replace(' ', '').split(',')
-        else:
-            current_notes = current_notes.replace('  ', ' ').split(' ')
-        try:
-            current_notes = chord(current_notes)
-            self.show_msg(self.language_dict["msg"][36])
-        except:
-            self.show_msg(self.language_dict["msg"][37])
-            return
-        self.stop_playing()
-        for each in current_notes:
-            play_note(f'{standardize_note(each.name)}{each.num}')
 
     def open_change_settings(self):
         if not self.open_settings:

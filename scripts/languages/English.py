@@ -1,6 +1,5 @@
 ({
     self.set_musicpy_code_button: 'Play Musicpy Code',
-    self.set_chord_button: 'Play Notes',
     self.stop_button: 'Stop',
     self.change_current_bpm_button: 'Change BPM',
     self.change_current_sound_path_button: 'Change Sound Path',
