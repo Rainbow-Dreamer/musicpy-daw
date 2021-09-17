@@ -1976,7 +1976,8 @@ class Root(Tk):
                           length=None,
                           extra_length=None,
                           track_lengths=None,
-                          track_extra_lengths=None):
+                          track_extra_lengths=None,
+                          export_args={}):
         if mode == 'other':
             self.ask_other_format()
             return
@@ -2067,7 +2068,7 @@ class Root(Tk):
                                                      extra_length=extra_length)
             try:
                 if action == 'export':
-                    silent_audio.export(filename, format=mode)
+                    silent_audio.export(filename, format=mode, **export_args)
                 elif action == 'play':
                     self.show_msg(self.language_dict["msg"][22])
                     play_audio(silent_audio)
@@ -2185,7 +2186,7 @@ class Root(Tk):
                                               bpm=current_bpm)
             try:
                 if action == 'export':
-                    silent_audio.export(filename, format=mode)
+                    silent_audio.export(filename, format=mode, **export_args)
                 elif action == 'play':
                     self.show_msg(self.language_dict["msg"][22])
                     play_audio(silent_audio)
@@ -3162,6 +3163,7 @@ def export(current_chord,
            extra_length=None,
            track_lengths=None,
            track_extra_lengths=None,
+           export_args={},
            **write_args):
     global global_play
     global_play = True
@@ -3182,7 +3184,8 @@ def export(current_chord,
                                length=length,
                                extra_length=extra_length,
                                track_lengths=track_lengths,
-                               track_extra_lengths=track_extra_lengths)
+                               track_extra_lengths=track_extra_lengths,
+                               export_args=export_args)
 
 
 current_start_window = start_window()
