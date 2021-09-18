@@ -1262,30 +1262,47 @@ class Root(Tk):
         if not self.channel_sound_modules:
             self.show_msg(self.language_dict['msg'][3])
             return
-
         try:
             current_notes = self.set_musicpy_code_text.selection_get()
         except:
             return
-        current_codes = self.set_musicpy_code_text.get('1.0', 'end-1c')
         current_channel_num = 0
         current_bpm = self.current_bpm
-        if 'current_chord' in globals():
-            del globals()['current_chord']
+        current_globals = globals()
+        if 'current_chord' in current_globals:
+            del current_globals['current_chord']
+        current_codes = self.set_musicpy_code_text.get('1.0', 'end-1c')
         try:
-            lines = current_codes.split('\n')
-            for k in range(len(lines)):
-                each = lines[k]
-                if each.startswith('play '):
-                    lines[k] = 'current_chord = ' + each[5:]
-            current_codes = '\n'.join(lines)
-            exec(current_codes, globals(), globals())
+            exec(current_codes, current_globals, current_globals)
         except:
             pass
+        lines = current_notes.split('\n')
+        find_command = False
+        for k in range(len(lines)):
+            each = lines[k]
+            if each.startswith('play '):
+                find_command = True
+                lines[k] = 'current_chord = ' + each[5:]
+            elif each.startswith('play(') or each.startswith('export('):
+                find_command = True
+        if not find_command:
+            current_notes = f'current_chord = {current_notes}'
+        else:
+            current_notes = '\n'.join(lines)
         try:
-            current_chord = eval(current_notes, globals(), globals())
+            exec(current_notes, current_globals, current_globals)
+        except Exception as e:
+            print(str(e))
+            if not global_play:
+                self.show_msg(self.language_dict["msg"][4])
+            return
+        if 'current_chord' in current_globals:
+            current_chord = current_globals['current_chord']
+        else:
+            return
+        if type(current_chord) == tuple:
             length = len(current_chord)
-            if type(current_chord) == tuple and length > 1:
+            if length > 1:
                 if length == 2:
                     current_chord, current_bpm = current_chord
                 elif length == 3:
@@ -1295,14 +1312,10 @@ class Root(Tk):
                 self.change_current_bpm_entry.delete(0, END)
                 self.change_current_bpm_entry.insert(END, current_bpm)
                 self.change_current_bpm(1)
-
-        except Exception as e:
-            print(str(e))
-            self.show_msg(self.language_dict['msg'][4])
-            return
-        self.stop_playing()
-        self.play_musicpy_sounds(current_chord, current_bpm,
-                                 current_channel_num)
+        if current_chord is not None:
+            self.stop_playing()
+            self.play_musicpy_sounds(current_chord, current_bpm,
+                                     current_channel_num)
 
     def play_selected_audio(self):
         if not self.default_load:
@@ -1312,15 +1325,10 @@ class Root(Tk):
             current_notes = self.set_musicpy_code_text.selection_get()
         except:
             return
+        current_globals = globals()
         current_codes = self.set_musicpy_code_text.get('1.0', 'end-1c')
         try:
-            lines = current_codes.split('\n')
-            for k in range(len(lines)):
-                each = lines[k]
-                if each.startswith('play '):
-                    lines[k] = 'current_chord = ' + each[5:]
-            current_codes = '\n'.join(lines)
-            exec(current_codes, globals(), globals())
+            exec(current_codes, current_globals, current_globals)
         except:
             pass
         try:
@@ -2385,34 +2393,45 @@ class Root(Tk):
         current_notes = self.set_musicpy_code_text.get('1.0', 'end-1c')
         current_channel_num = 0
         current_bpm = self.current_bpm
+        current_globals = globals()
+        if 'current_chord' in current_globals:
+            del current_globals['current_chord']
+        lines = current_notes.split('\n')
+        find_command = False
+        for k in range(len(lines)):
+            each = lines[k]
+            if each.startswith('play '):
+                find_command = True
+                lines[k] = 'current_chord = ' + each[5:]
+            elif each.startswith('play(') or each.startswith('export('):
+                find_command = True
+        if not find_command:
+            current_notes = f'current_chord = {current_notes}'
+        else:
+            current_notes = '\n'.join(lines)
         try:
-            current_chord = eval(current_notes, globals(), globals())
-        except:
-            try:
-                lines = current_notes.split('\n')
-                for k in range(len(lines)):
-                    each = lines[k]
-                    if each.startswith('play '):
-                        lines[k] = 'current_chord = ' + each[5:]
-                current_notes = '\n'.join(lines)
-                exec(current_notes, globals(), globals())
-                current_chord = globals()['current_chord']
-                if type(current_chord) == tuple:
-                    length = len(current_chord)
-                    if length > 1:
-                        if length == 2:
-                            current_chord, current_bpm = current_chord
-                        elif length == 3:
-                            current_chord, current_bpm, current_channel_num = current_chord
-                            if current_channel_num > 0:
-                                current_channel_num -= 1
-                        self.change_current_bpm_entry.delete(0, END)
-                        self.change_current_bpm_entry.insert(END, current_bpm)
-                        self.change_current_bpm(1)
-            except Exception as e:
-                print(str(e))
-                self.show_msg(self.language_dict["msg"][4])
-                return
+            exec(current_notes, current_globals, current_globals)
+        except Exception as e:
+            print(str(e))
+            return
+        if 'current_chord' in current_globals:
+            current_chord = current_globals['current_chord']
+        else:
+            return
+        if type(current_chord) == tuple:
+            length = len(current_chord)
+            if length > 1:
+                if length == 2:
+                    current_chord, current_bpm = current_chord
+                elif length == 3:
+                    current_chord, current_bpm, current_channel_num = current_chord
+                    if current_channel_num > 0:
+                        current_channel_num -= 1
+                self.change_current_bpm_entry.delete(0, END)
+                self.change_current_bpm_entry.insert(END, current_bpm)
+                self.change_current_bpm(1)
+        elif current_chord is None:
+            return
         if type(current_chord) == note:
             current_chord = chord([current_chord])
         elif type(current_chord) == list and all(
@@ -2922,38 +2941,45 @@ class Root(Tk):
         current_notes = self.set_musicpy_code_text.get('1.0', 'end-1c')
         current_channel_num = 0
         current_bpm = self.current_bpm
-        if 'current_chord' in globals():
-            del globals()['current_chord']
+        current_globals = globals()
+        if 'current_chord' in current_globals:
+            del current_globals['current_chord']
+        lines = current_notes.split('\n')
+        find_command = False
+        for k in range(len(lines)):
+            each = lines[k]
+            if each.startswith('play '):
+                find_command = True
+                lines[k] = 'current_chord = ' + each[5:]
+            elif each.startswith('play(') or each.startswith('export('):
+                find_command = True
+        if not find_command:
+            current_notes = f'current_chord = {current_notes}'
+        else:
+            current_notes = '\n'.join(lines)
         try:
-            current_chord = eval(current_notes, globals(), globals())
-        except:
-            try:
-                lines = current_notes.split('\n')
-                for k in range(len(lines)):
-                    each = lines[k]
-                    if each.startswith('play '):
-                        lines[k] = 'current_chord = ' + each[5:]
-                current_notes = '\n'.join(lines)
-                exec(current_notes, globals(), globals())
-                current_chord = globals()['current_chord']
-                if type(current_chord) == tuple:
-                    length = len(current_chord)
-                    if length > 1:
-                        if length == 2:
-                            current_chord, current_bpm = current_chord
-                        elif length == 3:
-                            current_chord, current_bpm, current_channel_num = current_chord
-                            if current_channel_num > 0:
-                                current_channel_num -= 1
-                        self.change_current_bpm_entry.delete(0, END)
-                        self.change_current_bpm_entry.insert(END, current_bpm)
-                        self.change_current_bpm(1)
-
-            except Exception as e:
-                print(str(e))
-                if not global_play:
-                    self.show_msg(self.language_dict["msg"][4])
-                return
+            exec(current_notes, current_globals, current_globals)
+        except Exception as e:
+            print(str(e))
+            if not global_play:
+                self.show_msg(self.language_dict["msg"][4])
+            return
+        if 'current_chord' in current_globals:
+            current_chord = current_globals['current_chord']
+        else:
+            return
+        if type(current_chord) == tuple:
+            length = len(current_chord)
+            if length > 1:
+                if length == 2:
+                    current_chord, current_bpm = current_chord
+                elif length == 3:
+                    current_chord, current_bpm, current_channel_num = current_chord
+                    if current_channel_num > 0:
+                        current_channel_num -= 1
+                self.change_current_bpm_entry.delete(0, END)
+                self.change_current_bpm_entry.insert(END, current_bpm)
+                self.change_current_bpm(1)
         if current_chord is not None:
             self.play_musicpy_sounds(current_chord, current_bpm,
                                      current_channel_num)
