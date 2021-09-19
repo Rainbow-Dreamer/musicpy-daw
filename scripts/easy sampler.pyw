@@ -1738,7 +1738,7 @@ class Root(Tk):
                     filename = filedialog.askopenfilename(
                         initialdir=self.last_place,
                         title=self.language_dict['title'][19],
-                        filetypes=(("Soundfont", "*.sf2"),
+                        filetypes=(("Soundfont", ["*.sf2", "*.sf3", "*.dls"]),
                                    (self.language_dict['title'][1], "*.*")))
                 else:
                     filename = self.current_channel_sound_modules_entry.get()
