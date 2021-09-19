@@ -1283,7 +1283,8 @@ class Root(Tk):
             if each.startswith('play '):
                 find_command = True
                 lines[k] = 'current_chord = ' + each[5:]
-            elif each.startswith('play(') or each.startswith('export('):
+            elif each.startswith('play(') or each.startswith(
+                    'export(') or each.startswith('play_midi('):
                 find_command = True
         if not find_command:
             current_notes = f'current_chord = {current_notes}'
@@ -2403,7 +2404,8 @@ class Root(Tk):
             if each.startswith('play '):
                 find_command = True
                 lines[k] = 'current_chord = ' + each[5:]
-            elif each.startswith('play(') or each.startswith('export('):
+            elif each.startswith('play(') or each.startswith(
+                    'export(') or each.startswith('play_midi('):
                 find_command = True
         if not find_command:
             current_notes = f'current_chord = {current_notes}'
@@ -2951,7 +2953,8 @@ class Root(Tk):
             if each.startswith('play '):
                 find_command = True
                 lines[k] = 'current_chord = ' + each[5:]
-            elif each.startswith('play(') or each.startswith('export('):
+            elif each.startswith('play(') or each.startswith(
+                    'export(') or each.startswith('play_midi('):
                 find_command = True
         if not find_command:
             current_notes = f'current_chord = {current_notes}'
