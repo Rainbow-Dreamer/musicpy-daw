@@ -2059,6 +2059,7 @@ class Root(Tk):
                 silent_audio = current_sound_modules.export_chord(
                     current_chord,
                     bpm=current_bpm,
+                    start_time=current_chord.start_time,
                     get_audio=True,
                     effects=current_chord.effects
                     if check_effect(current_chord) else None,
@@ -2071,18 +2072,22 @@ class Root(Tk):
                     whole_duration = length * 1000
                 else:
                     whole_duration = apply_fadeout_obj.eval_time(
-                        current_bpm, mode='number', audio_mode=1) * 1000
+                        current_bpm,
+                        mode='number',
+                        audio_mode=1,
+                        start_time=current_chord.start_time) * 1000
                     if extra_length:
                         whole_duration += extra_length * 1000
-                current_start_times = 0
                 silent_audio = AudioSegment.silent(duration=whole_duration)
-                silent_audio = self.channel_to_audio(current_chord,
-                                                     current_channel_num,
-                                                     silent_audio,
-                                                     current_bpm,
-                                                     mode=action,
-                                                     length=length,
-                                                     extra_length=extra_length)
+                silent_audio = self.channel_to_audio(
+                    current_chord,
+                    current_channel_num,
+                    silent_audio,
+                    current_bpm,
+                    mode=action,
+                    length=length,
+                    extra_length=extra_length,
+                    current_start_time=current_chord.start_time)
             try:
                 if action == 'export':
                     silent_audio.export(filename, format=mode, **export_args)
@@ -2456,8 +2461,7 @@ class Root(Tk):
                 current_effects = copy(current_chord.effects)
             current_chord = build(current_chord,
                                   bpm=current_chord.bpm if current_chord.bpm
-                                  is not None else current_bpm,
-                                  name=current_chord.name)
+                                  is not None else current_bpm)
             if has_effect:
                 current_chord.effects = current_effects
         if type(current_chord) == piece:
@@ -3021,7 +3025,14 @@ class Root(Tk):
                                        track_lengths=track_lengths,
                                        track_extra_lengths=track_extra_lengths)
             else:
-                self.play_channel(current_chord, current_channel_num)
+                if current_chord.start_time == 0:
+                    self.play_channel(current_chord, current_channel_num)
+                else:
+                    self.play_channel(current_chord,
+                                      current_channel_num,
+                                      start_time=bar_to_real_time(
+                                          current_chord.start_time,
+                                          current_bpm, 1))
         elif type(current_chord) == track:
             has_effect = False
             if check_effect(current_chord):
@@ -3029,8 +3040,7 @@ class Root(Tk):
                 current_effects = copy(current_chord.effects)
             current_chord = build(current_chord,
                                   bpm=current_chord.bpm
-                                  if current_chord.bpm is not None else bpm,
-                                  name=current_chord.name)
+                                  if current_chord.bpm is not None else bpm)
             if has_effect:
                 current_chord.effects = current_effects
         if type(current_chord) == piece:
@@ -3064,7 +3074,7 @@ class Root(Tk):
                 self.piece_playing.append(current_id)
         self.show_msg(self.language_dict["msg"][22])
 
-    def play_channel(self, current_chord, current_channel_num=0):
+    def play_channel(self, current_chord, current_channel_num=0, start_time=0):
         if len(self.channel_sound_modules) <= current_channel_num:
             self.show_msg(
                 f'{self.language_dict["msg"][25]}{current_channel_num+1}')
@@ -3077,27 +3087,20 @@ class Root(Tk):
         current_intervals = current_chord.interval
         current_durations = current_chord.get_duration()
         current_volumes = current_chord.get_volume()
-        current_time = 0
+        current_time = start_time
         for i in range(len(current_chord)):
             each = current_chord.notes[i]
             if type(each) == note:
-                if i == 0:
-                    self.play_note_func(
-                        f'{standardize_note(each.name)}{each.num}',
-                        current_durations[i], current_volumes[i],
-                        current_channel_num)
-                else:
-                    duration = current_durations[i]
-                    volume = current_volumes[i]
-                    current_time += self.bar_to_real_time(
-                        current_intervals[i - 1], self.current_bpm, 1)
-                    current_id = self.after(
-                        int(current_time),
-                        lambda each=each, duration=duration, volume=volume:
-                        self.play_note_func(
-                            f'{standardize_note(each.name)}{each.num}',
-                            duration, volume, current_channel_num))
-                    self.current_playing.append(current_id)
+                duration = current_durations[i]
+                volume = current_volumes[i]
+                current_id = self.after(
+                    int(current_time),
+                    lambda each=each, duration=duration, volume=volume: self.
+                    play_note_func(f'{standardize_note(each.name)}{each.num}',
+                                   duration, volume, current_channel_num))
+                self.current_playing.append(current_id)
+                current_time += self.bar_to_real_time(current_intervals[i - 1],
+                                                      self.current_bpm, 1)
 
     def open_change_settings(self):
         if not self.open_settings:
