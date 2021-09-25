@@ -488,7 +488,7 @@ def audio(obj, channel_num=1):
     if type(obj) == note:
         obj = chord([obj])
     elif type(obj) == track:
-        obj = build(obj, bpm=obj.tempo, name=obj.name)
+        obj = build(obj, bpm=obj.bpm, name=obj.name)
     result = root.export_audio_file(obj, action='get', channel_num=channel_num)
     return result
 
@@ -2099,7 +2099,7 @@ class Root(Tk):
                 return
         elif types == 'piece':
             current_name = current_chord.name
-            current_bpm = current_chord.tempo
+            current_bpm = current_chord.bpm
             current_start_times = current_chord.start_times
             current_pan = current_chord.pan
             current_volume = current_chord.volume
@@ -2454,15 +2454,14 @@ class Root(Tk):
             if check_effect(current_chord):
                 has_effect = True
                 current_effects = copy(current_chord.effects)
-            current_chord = build(
-                current_chord,
-                bpm=current_chord.tempo
-                if current_chord.tempo is not None else current_bpm,
-                name=current_chord.name)
+            current_chord = build(current_chord,
+                                  bpm=current_chord.bpm if current_chord.bpm
+                                  is not None else current_bpm,
+                                  name=current_chord.name)
             if has_effect:
                 current_chord.effects = current_effects
         if type(current_chord) == piece:
-            current_bpm = current_chord.tempo
+            current_bpm = current_chord.bpm
             current_start_times = current_chord.start_times
             self.change_current_bpm_entry.delete(0, END)
             self.change_current_bpm_entry.insert(END, current_bpm)
@@ -3029,8 +3028,8 @@ class Root(Tk):
                 has_effect = True
                 current_effects = copy(current_chord.effects)
             current_chord = build(current_chord,
-                                  bpm=current_chord.tempo
-                                  if current_chord.tempo is not None else bpm,
+                                  bpm=current_chord.bpm
+                                  if current_chord.bpm is not None else bpm,
                                   name=current_chord.name)
             if has_effect:
                 current_chord.effects = current_effects
@@ -3051,7 +3050,7 @@ class Root(Tk):
                 self.show_msg(self.language_dict["msg"][22])
                 return
             current_tracks = current_chord.tracks
-            current_bpm = current_chord.tempo
+            current_bpm = current_chord.bpm
             current_start_times = current_chord.start_times
             self.change_current_bpm_entry.delete(0, END)
             self.change_current_bpm_entry.insert(END, current_bpm)
