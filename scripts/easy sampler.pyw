@@ -3099,7 +3099,7 @@ class Root(Tk):
                     play_note_func(f'{standardize_note(each.name)}{each.num}',
                                    duration, volume, current_channel_num))
                 self.current_playing.append(current_id)
-                current_time += self.bar_to_real_time(current_intervals[i - 1],
+                current_time += self.bar_to_real_time(current_intervals[i],
                                                       self.current_bpm, 1)
 
     def open_change_settings(self):
