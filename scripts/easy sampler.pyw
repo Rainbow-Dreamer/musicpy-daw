@@ -2400,7 +2400,7 @@ class Root(Tk):
         self.stop_playing()
         self.show_msg(f'{self.language_dict["msg"][21]}{filename}')
         self.msg.update()
-        write(filename, current_chord, self.current_bpm, **write_args)
+        write(current_chord, self.current_bpm, name=filename, **write_args)
         self.show_msg(f'{self.language_dict["msg"][24]}{filename}')
 
     def get_current_musicpy_chords(self):
