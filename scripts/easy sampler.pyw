@@ -1609,8 +1609,16 @@ class Root(Tk):
         self.opening_project_name = filename
         current_soundfonts = self.project_dict['soundfont']
         for each in current_soundfonts:
-            self.channel_sound_modules[each].program_select(
-                *current_soundfonts[each])
+            current_sf2 = self.channel_sound_modules[each]
+            current_sf2_info = current_soundfonts[each]
+            current_bank_num = current_sf2_info[2]
+            current_sf2.change_bank(current_bank_num)
+            try:
+                current_sf2.current_preset, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
+                    get_ind=True, mode=1, return_mode=1)
+            except:
+                current_sf2.current_preset, current_sf2.current_preset_ind = [], []
+            current_sf2.program_select(*current_sf2_info)
         self.show_msg(self.language_dict["msg"][14])
 
     def save_as_project_file(self, new=False):
@@ -1739,8 +1747,17 @@ class Root(Tk):
                                                (current_ind is not None)):
             self.show_msg('')
             if sound_path is not None:
-                self.channel_sound_modules[current_ind] = rs.sf2_loader(
-                    sound_path)
+                current_sf2 = rs.sf2_loader(sound_path)
+                current_sf2.all_instruments_dict = current_sf2.all_instruments(
+                )
+                current_sf2.all_available_banks = list(
+                    current_sf2.all_instruments_dict.keys())
+                try:
+                    current_sf2.current_preset, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
+                        get_ind=True, return_mode=1)
+                except:
+                    current_sf2.current_preset, current_sf2.current_preset_ind = [], []
+                self.channel_sound_modules[current_ind] = current_sf2
                 self.channel_sound_modules_name[current_ind] = sound_path
             else:
                 if mode == 0:
@@ -1763,8 +1780,17 @@ class Root(Tk):
                         )
                         self.msg.update()
                         sound_path = filename
-                        self.channel_sound_modules[
-                            current_ind] = rs.sf2_loader(sound_path)
+                        current_sf2 = rs.sf2_loader(sound_path)
+                        current_sf2.all_instruments_dict = current_sf2.all_instruments(
+                        )
+                        current_sf2.all_available_banks = list(
+                            current_sf2.all_instruments_dict.keys())
+                        try:
+                            current_sf2.current_preset, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
+                                get_ind=True, return_mode=1)
+                        except:
+                            current_sf2.current_preset, current_sf2.current_preset_ind = [], []
+                        self.channel_sound_modules[current_ind] = current_sf2
                         self.channel_note_sounds_path[current_ind] = None
                         self.channel_sound_modules_name[
                             current_ind] = sound_path
@@ -1811,12 +1837,13 @@ class Root(Tk):
                     "WM_DELETE_WINDOW", self.close_configure_sf2_file_window)
                 self.configure_sf2_file_window.title(
                     self.language_dict['configure_sf2'][0])
-                self.configure_sf2_file_window.minsize(500, 300)
+                self.configure_sf2_file_window.minsize(700, 300)
                 self.configure_sf2_file_window.focus_set()
+
                 self.preset_configs_bar = Scrollbar(
                     self.configure_sf2_file_window)
-                self.preset_configs_bar.place(x=167,
-                                              y=90,
+                self.preset_configs_bar.place(x=367,
+                                              y=120,
                                               height=185,
                                               anchor=CENTER)
                 self.preset_configs = Listbox(
@@ -1830,38 +1857,57 @@ class Root(Tk):
                     lambda e: self.show_current_preset_configs())
                 self.preset_configs_bar.config(
                     command=self.preset_configs.yview)
-                self.preset_configs.place(x=0, y=0, height=185, width=160)
-                try:
-                    self.current_preset, self.current_preset_ind = current_sf2.get_all_instrument_names(
-                        get_ind=True)
-                except:
-                    self.current_preset, self.current_preset_ind = [], []
-                for each in self.current_preset:
+                self.preset_configs.place(x=200, y=30, height=185, width=160)
+
+                self.bank_configs_bar = Scrollbar(
+                    self.configure_sf2_file_window)
+                self.bank_configs_bar.place(x=167,
+                                            y=120,
+                                            height=185,
+                                            anchor=CENTER)
+                self.bank_configs = Listbox(
+                    self.configure_sf2_file_window,
+                    yscrollcommand=self.bank_configs_bar.set,
+                    exportselection=False,
+                    font=(font_type, font_size))
+                self.bank_configs.config(activestyle='none')
+                self.bank_configs.bind(
+                    '<<ListboxSelect>>',
+                    lambda e: self.show_current_bank_configs())
+                self.bank_configs_bar.config(command=self.bank_configs.yview)
+                self.bank_configs.place(x=0, y=30, height=185, width=160)
+
+                self.current_all_available_banks = current_sf2.all_available_banks
+                self.current_preset_ind = current_sf2.current_preset_ind
+
+                for each in current_sf2.current_preset:
                     self.preset_configs.insert(END, each)
+                for each in current_sf2.all_available_banks:
+                    self.bank_configs.insert(END, each)
                 self.current_bank_num = ttk.Label(
                     self.configure_sf2_file_window,
                     text=self.language_dict['configure_sf2'][1])
-                self.current_bank_num.place(x=200, y=0)
+                self.current_bank_num.place(x=400, y=30)
                 self.current_bank_num_entry = ttk.Entry(
                     self.configure_sf2_file_window,
                     width=10,
                     font=(font_type, font_size))
                 self.current_bank_num_entry.insert(
                     END, str(current_sf2.current_bank_num))
-                self.current_bank_num_entry.place(x=300, y=0)
+                self.current_bank_num_entry.place(x=500, y=30)
                 self.current_preset_num = ttk.Label(
                     self.configure_sf2_file_window,
                     text=self.language_dict['configure_sf2'][2])
-                self.current_preset_num.place(x=200, y=50)
+                self.current_preset_num.place(x=400, y=80)
                 self.current_preset_num_entry = ttk.Entry(
                     self.configure_sf2_file_window,
                     width=10,
                     font=(font_type, font_size))
                 self.current_preset_num_entry.insert(
                     END, str(current_sf2.current_preset_num + 1))
-                self.current_preset_num_entry.place(x=300, y=50)
-                if current_sf2.current_preset_num in self.current_preset_ind:
-                    current_preset_ind = self.current_preset_ind.index(
+                self.current_preset_num_entry.place(x=500, y=80)
+                if current_sf2.current_preset_num in current_sf2.current_preset_ind:
+                    current_preset_ind = current_sf2.current_preset_ind.index(
                         current_sf2.current_preset_num)
                     self.preset_configs.selection_clear(0, END)
                     self.preset_configs.selection_set(current_preset_ind)
@@ -1878,36 +1924,50 @@ class Root(Tk):
                     self.configure_sf2_file_window,
                     text=self.language_dict['configure_sf2'][5],
                     command=self.listen_preset)
-                self.change_current_bank_num_button.place(x=200, y=100)
-                self.change_current_preset_num_button.place(x=320, y=100)
-                self.listen_preset_button.place(x=200, y=150)
-                self.preset_configs.bind(
-                    '<Double-1>', lambda e: self.change_current_preset_num(1))
+                self.change_current_bank_num_button.place(x=400, y=130)
+                self.change_current_preset_num_button.place(x=520, y=130)
+                self.listen_preset_button.place(x=400, y=180)
+                self.preset_label = ttk.Label(self.configure_sf2_file_window,
+                                              text='Presets')
+                self.preset_label.place(x=200, y=0)
+                self.bank_label = ttk.Label(self.configure_sf2_file_window,
+                                            text='Banks')
+                self.bank_label.place(x=0, y=0)
 
-    def change_current_bank_num(self):
+    def change_current_bank_num(self, mode=0):
         current_ind = self.choose_channels.index(ANCHOR)
-        current_bank_num = self.current_bank_num_entry.get()
+        if mode == 0:
+            current_bank_num = self.current_bank_num_entry.get()
+            if not current_bank_num.isdigit():
+                return
+            else:
+                current_bank_num = int(current_bank_num)
+        elif mode == 1:
+            current_bank_ind = self.bank_configs.index(ANCHOR)
+            current_bank_num = self.current_all_available_banks[
+                current_bank_ind]
         current_sf2 = self.channel_sound_modules[current_ind]
-        if current_bank_num.isdigit():
-            current_bank_num = int(current_bank_num)
-            current_sf2.program_select(bank_num=current_bank_num,
-                                       preset_num=0,
-                                       correct=False)
-            try:
-                self.current_preset, self.current_preset_ind = current_sf2.get_all_instrument_names(
-                    get_ind=True, mode=1)
-            except:
-                self.current_preset, self.current_preset_ind = [], []
-            self.current_preset_num_entry.delete(0, END)
-            self.current_preset_num_entry.insert(
-                END, '1' if not self.current_preset_ind else
-                str(self.current_preset_ind[0] + 1))
-            self.preset_configs.delete(0, END)
-            for each in self.current_preset:
-                self.preset_configs.insert(END, each)
-            self.preset_configs.selection_clear(0, END)
-            self.preset_configs.selection_set(0)
-            self.preset_configs.see(0)
+        if current_bank_num == current_sf2.current_bank_num:
+            return
+        current_sf2.program_select(bank_num=current_bank_num,
+                                   preset_num=0,
+                                   correct=False)
+        try:
+            current_sf2.current_preset, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
+                get_ind=True, mode=1, return_mode=1)
+        except:
+            current_sf2.current_preset, current_sf2.current_preset_ind = [], []
+        self.current_preset_ind = current_sf2.current_preset_ind
+        self.current_preset_num_entry.delete(0, END)
+        self.current_preset_num_entry.insert(
+            END, '1' if not current_sf2.current_preset_ind else
+            str(current_sf2.current_preset_ind[0] + 1))
+        self.preset_configs.delete(0, END)
+        for each in current_sf2.current_preset:
+            self.preset_configs.insert(END, each)
+        self.preset_configs.selection_clear(0, END)
+        self.preset_configs.selection_set(0)
+        self.preset_configs.see(0)
 
     def change_current_preset_num(self, mode=0):
         current_ind = self.choose_channels.index(ANCHOR)
@@ -1920,9 +1980,9 @@ class Root(Tk):
         if current_preset_num.isdigit():
             current_preset_num = int(current_preset_num)
             current_sf2.program_select(preset_num=current_preset_num - 1)
-            if current_preset_num - 1 in self.current_preset_ind:
+            if current_preset_num - 1 in current_sf2.current_preset_ind:
                 self.preset_configs.selection_clear(0, END)
-                current_preset_ind = self.current_preset_ind.index(
+                current_preset_ind = current_sf2.current_preset_ind.index(
                     current_preset_num - 1)
                 self.preset_configs.selection_set(current_preset_ind)
                 self.preset_configs.see(current_preset_ind)
@@ -1937,6 +1997,14 @@ class Root(Tk):
         self.current_preset_num_entry.delete(0, END)
         self.current_preset_num_entry.insert(
             END, str(self.current_preset_ind[current_ind] + 1))
+        self.change_current_preset_num(1)
+
+    def show_current_bank_configs(self):
+        current_ind = self.bank_configs.index(ANCHOR)
+        current_bank_num = self.current_all_available_banks[current_ind]
+        self.current_bank_num_entry.delete(0, END)
+        self.current_bank_num_entry.insert(END, str(current_bank_num))
+        self.change_current_bank_num(mode=1)
 
     def open_export_menu(self):
         self.export_menubar.tk_popup(x=self.winfo_pointerx(),
