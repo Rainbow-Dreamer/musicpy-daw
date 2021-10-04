@@ -22,6 +22,7 @@ from pydub.playback import _play_with_simpleaudio as play_sound
 from pydub.generators import Sine, Triangle, Sawtooth, Square, WhiteNoise, Pulse
 import librosa
 import soundfile
+import py
 
 abs_path = os.path.dirname(sys.executable)
 #abs_path = os.path.dirname(os.path.abspath(__file__))

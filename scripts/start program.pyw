@@ -29,6 +29,7 @@ from pydub.playback import _play_with_simpleaudio as play_sound
 from pydub.generators import Sine, Triangle, Sawtooth, Square, WhiteNoise, Pulse
 import librosa
 import soundfile
+import py
 import sf2_loader as rs
 
 os.chdir('../..')
