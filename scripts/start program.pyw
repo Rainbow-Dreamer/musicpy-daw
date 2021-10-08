@@ -32,7 +32,7 @@ import soundfile
 import py
 import sf2_loader as rs
 
-os.chdir('../..')
+os.chdir('..')
 
 with open('scripts/easy sampler.pyw', encoding='utf-8-sig') as f:
     exec(f.read())

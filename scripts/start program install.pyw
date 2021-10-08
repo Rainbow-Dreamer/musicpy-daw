@@ -35,7 +35,7 @@ with open('scripts/musicpy/__init__.py', encoding='utf-8-sig') as f:
 
 import sf2_loader as rs
 
-os.chdir('../..')
+os.chdir('..')
 
 with open('scripts/easy sampler.pyw', encoding='utf-8-sig') as f:
     exec(f.read())
