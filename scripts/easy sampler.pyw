@@ -2122,7 +2122,7 @@ class Root(Tk):
                 if action == 'export':
                     current_msg = self.language_dict["msg"][27].split('|')
                     self.show_msg(
-                        f'{current_msg[0]} {self.language_dict["channel"]} {current_channel_num + 1} (soundfont)'
+                        f'{current_msg[0]} {self.language_dict["channel"]} {current_channel_num + 1} (soundfont){current_msg[2]} 1'
                     )
                     self.msg.update()
                 silent_audio = current_sound_modules.export_chord(
@@ -2206,7 +2206,7 @@ class Root(Tk):
                     if action == 'export':
                         current_msg = self.language_dict["msg"][27].split('|')
                         self.show_msg(
-                            f'{current_msg[0]} {self.language_dict["channel"]} {current_channels[i] + 1} (soundfont)'
+                            f'{current_msg[0]} {self.language_dict["channel"]} {current_channels[i] + 1} (soundfont){current_msg[2]} {i+1}'
                         )
                         self.msg.update()
 
@@ -2270,7 +2270,8 @@ class Root(Tk):
                         mode=action,
                         length=None if not track_lengths else track_lengths[i],
                         extra_length=None
-                        if not track_extra_lengths else track_extra_lengths[i])
+                        if not track_extra_lengths else track_extra_lengths[i],
+                        track_ind=i)
             if check_effect(current_chord):
                 silent_audio = process_effect(silent_audio,
                                               current_chord.effects,
@@ -2320,7 +2321,8 @@ class Root(Tk):
                          current_start_time=0,
                          mode='export',
                          length=None,
-                         extra_length=None):
+                         extra_length=None,
+                         track_ind=0):
         if len(self.channel_sound_modules) <= current_channel_num:
             self.show_msg(
                 f'{self.language_dict["msg"][25]}{current_channel_num+1}')
@@ -2357,7 +2359,7 @@ class Root(Tk):
         for i in range(whole_length):
             if mode == 'export' and show_convert_progress:
                 self.show_msg(
-                    f'{current_msg[0]}{round((counter / whole_length) * 100, 3):.3f}{current_msg[1]}{current_channel_num + 1}'
+                    f'{current_msg[0]}{round((counter / whole_length) * 100, 3):.3f}{current_msg[1]}{current_channel_num + 1}{current_msg[2]} {track_ind+1}'
                 )
                 self.msg.update()
                 counter += 1
