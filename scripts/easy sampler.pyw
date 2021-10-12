@@ -2110,6 +2110,8 @@ class Root(Tk):
         if types == 'chord':
             current_channel_num = result[2]
             current_bpm = self.current_bpm
+            current_chord = copy(current_chord)
+            current_chord.normalize_tempo(bpm=current_bpm)
             for each in current_chord:
                 if type(each) == AudioSegment:
                     each.duration = self.real_time_to_bar(
@@ -2173,6 +2175,7 @@ class Root(Tk):
                 return
         elif types == 'piece':
             current_chord = copy(current_chord)
+            current_chord.normalize_tempo()
             current_chord.apply_start_time_to_changes(
                 [-i for i in current_chord.start_times],
                 msg=True,
