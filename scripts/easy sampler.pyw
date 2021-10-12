@@ -2180,13 +2180,14 @@ class Root(Tk):
                 [-i for i in current_chord.start_times],
                 msg=True,
                 pan_volume=True)
+            current_chord.reset_channel(0)
             current_name = current_chord.name
             current_bpm = current_chord.bpm
             current_start_times = current_chord.start_times
             current_pan = current_chord.pan
             current_volume = current_chord.volume
             current_tracks = current_chord.tracks
-            current_channels = current_chord.channels if current_chord.channels else [
+            current_channels = current_chord.sampler_channels if current_chord.sampler_channels else [
                 i for i in range(len(current_chord))
             ]
             for i in range(len(current_chord.tracks)):
@@ -2206,15 +2207,24 @@ class Root(Tk):
                 if extra_length:
                     whole_duration += extra_length * 1000
             silent_audio = AudioSegment.silent(duration=whole_duration)
-            for i in range(len(current_chord)):
+            sound_modules_num = len(self.channel_sound_modules)
+            track_number = len(current_chord)
+            for i in range(track_number):
+                current_channel_number = current_channels[i]
+                if current_channel_number >= sound_modules_num:
+                    self.show_msg(
+                        f'{self.language_dict["track"]} {i+1} : {self.language_dict["msg"][25]}{current_channel_number+1}'
+                    )
+                    self.msg.update()
+                    continue
                 current_sound_modules = self.channel_sound_modules[
-                    current_channels[i]]
+                    current_channel_number]
                 current_track = current_tracks[i]
                 if type(current_sound_modules) == rs.sf2_loader:
                     if action == 'export':
                         current_msg = self.language_dict["msg"][27].split('|')
                         self.show_msg(
-                            f'{current_msg[0]} {self.language_dict["channel"]} {current_channels[i] + 1} (soundfont){current_msg[2]} {i+1}'
+                            f'{current_msg[0]}{self.language_dict["track"]} {i+1}/{track_number} {self.language_dict["channel"]} {current_channels[i] + 1} (soundfont)'
                         )
                         self.msg.update()
 
@@ -2275,7 +2285,8 @@ class Root(Tk):
                         length=None if not track_lengths else track_lengths[i],
                         extra_length=None
                         if not track_extra_lengths else track_extra_lengths[i],
-                        track_ind=i)
+                        track_ind=i,
+                        whole_track_number=track_number)
             if check_effect(current_chord):
                 silent_audio = process_effect(silent_audio,
                                               current_chord.effects,
@@ -2326,7 +2337,8 @@ class Root(Tk):
                          mode='export',
                          length=None,
                          extra_length=None,
-                         track_ind=0):
+                         track_ind=0,
+                         whole_track_number=1):
         if len(self.channel_sound_modules) <= current_channel_num:
             self.show_msg(
                 f'{self.language_dict["msg"][25]}{current_channel_num+1}')
@@ -2363,7 +2375,7 @@ class Root(Tk):
         for i in range(whole_length):
             if mode == 'export' and show_convert_progress:
                 self.show_msg(
-                    f'{current_msg[0]}{round((counter / whole_length) * 100, 3):.3f}{current_msg[1]}{current_channel_num + 1}{current_msg[2]} {track_ind+1}'
+                    f'{current_msg[0]}{round((counter / whole_length) * 100, 3):.3f}{current_msg[1]} {self.language_dict["track"]} {track_ind+1}/{whole_track_number} {self.language_dict["channel"]} {current_channel_num + 1}'
                 )
                 self.msg.update()
                 counter += 1
@@ -3119,7 +3131,7 @@ class Root(Tk):
             if has_effect:
                 current_chord.effects = current_effects
         if type(current_chord) == piece:
-            current_channel_nums = current_chord.channels if current_chord.channels else [
+            current_channel_nums = current_chord.sampler_channels if current_chord.sampler_channels else [
                 i for i in range(len(current_chord))
             ]
             if check_special(current_chord) or any(

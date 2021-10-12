@@ -51,6 +51,8 @@
     'init': ['Channel 1'],
     'channel':
     'Channel',
+    'track':
+    'Track',
     'change_channel_dict': [
         'Change Channel Dictionary', 'Note Name', 'Note Value',
         'Change Note Name', 'Change Note Value', 'Add New Note', 'Remove Note',
@@ -85,8 +87,8 @@
         'Start to convert current musicpy code to ', 'Start playing',
         ' file format is not supported', 'Successfully export ',
         'Cannot find Channel ', 'has not loaded any sounds yet',
-        'converting progress: |% of channel | for track',
-        'Loading the sounds of ', 'The sound path of | has changed',
+        'Converting progress: |%', 'Loading the sounds of ',
+        'The sound path of | has changed',
         'Error: The sound files in the sound path do not match with settings',
         'Error: This MIDI file does not exist',
         'The MIDI file is loaded, please click Play Musicpy Code button to play',
