@@ -516,7 +516,7 @@ class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
         self.title("Easy Sampler")
-        self.minsize(1100, 650)
+        self.minsize(1100, 670)
         self.configure(bg=background_color)
         self.icon_image = PhotoImage(file='resources/images/easy_sampler.png')
         self.iconphoto(False, self.icon_image)
@@ -554,6 +554,16 @@ class Root(Tk):
                                           maxundo=-1,
                                           font=(font_type, font_size))
         self.set_musicpy_code_text.place(x=150, y=250, height=335)
+        inputs_v = ttk.Scrollbar(self,
+                                 orient="vertical",
+                                 command=self.set_musicpy_code_text.yview)
+        inputs_h = ttk.Scrollbar(self,
+                                 orient="horizontal",
+                                 command=self.set_musicpy_code_text.xview)
+        self.set_musicpy_code_text.configure(yscrollcommand=inputs_v.set,
+                                             xscrollcommand=inputs_h.set)
+        inputs_v.place(x=960, y=250, height=335)
+        inputs_h.place(x=150, y=585, width=810)
         self.bind('<Control-r>', lambda e: self.play_current_musicpy_code())
         self.bind('<Control-e>', lambda e: self.stop_playing())
         self.bind('<Control-w>', lambda e: self.open_project_file())
@@ -584,7 +594,7 @@ class Root(Tk):
         self.current_playing = []
 
         self.msg = ttk.Label(self, text='')
-        self.msg.place(x=130, y=600)
+        self.msg.place(x=130, y=630)
 
         self.change_current_sound_path_button = ttk.Button(
             self,
@@ -607,6 +617,11 @@ class Root(Tk):
             self, text='Change Settings', command=self.open_change_settings)
         self.change_settings_button.place(x=0, y=460)
         self.open_settings = False
+
+        self.open_debug_window_button = ttk.Button(
+            self, text='Open Debug Window', command=self.open_debug_window)
+        self.open_debug_window_button.place(x=0, y=510)
+        self.is_open_debug_window = False
 
         self.choose_channels_bar = Scrollbar(self)
         self.choose_channels_bar.place(x=227, y=125, height=125, anchor=CENTER)
@@ -941,6 +956,7 @@ class Root(Tk):
                 self.reload_language()
         except Exception as e:
             print(str(e))
+            output(str(e))
             current_msg = self.language_dict['msg'][2].split('|')
             self.show_msg(f'{current_msg[0]}{language}.py{current_msg[1]}')
 
@@ -1258,11 +1274,16 @@ class Root(Tk):
             self.pitch_msg(f'{self.language_dict["msg"][45]}{new_pitch}')
         except Exception as e:
             print(str(e))
+            output(str(e))
             self.pitch_msg(self.language_dict["msg"][40])
 
     def close_pitch_shifter_window(self):
         self.pitch_shifter_window.destroy()
         self.open_pitch_shifter_window = False
+
+    def close_debug_window(self):
+        self.debug_window.destroy()
+        self.is_open_debug_window = False
 
     def play_selected_musicpy_code(self):
         if not self.default_load:
@@ -1305,6 +1326,7 @@ class Root(Tk):
             print(str(e))
             if not global_play:
                 self.show_msg(self.language_dict["msg"][4])
+                output(str(e))
             return
         if 'current_chord' in current_globals:
             current_chord = current_globals['current_chord']
@@ -1347,6 +1369,7 @@ class Root(Tk):
             play_audio(current_audio)
         except Exception as e:
             print(str(e))
+            output(str(e))
             self.show_msg(self.language_dict['msg'][5])
 
     def make_esi_file(self):
@@ -1809,6 +1832,7 @@ class Root(Tk):
                         self.choose_channels.selection_set(current_ind)
                     except Exception as e:
                         print(str(e))
+                        output(str(e))
                         self.show_msg(self.language_dict["msg"][30])
         else:
             self.show_msg(self.language_dict['msg'][8])
@@ -2515,6 +2539,7 @@ class Root(Tk):
             exec(current_notes, current_globals, current_globals)
         except Exception as e:
             print(str(e))
+            output(str(e))
             return
         if 'current_chord' in current_globals:
             current_chord = current_globals['current_chord']
@@ -2844,6 +2869,7 @@ class Root(Tk):
                     self.choose_channels.selection_set(current_ind)
             except Exception as e:
                 print(str(e))
+                output(str(e))
                 self.show_msg(self.language_dict["msg"][30])
 
     def show_current_dict_configs(self):
@@ -2966,6 +2992,7 @@ class Root(Tk):
                     self.choose_channels.selection_set(current_ind)
                 except Exception as e:
                     print(str(e))
+                    output(str(e))
                     self.show_msg(self.language_dict["msg"][30])
 
     def bar_to_real_time(self, bar, bpm, mode=0):
@@ -3052,7 +3079,8 @@ class Root(Tk):
                 find_command = True
                 lines[k] = 'current_chord = ' + each[5:]
             elif each.startswith('play(') or each.startswith(
-                    'export(') or each.startswith('play_midi('):
+                    'export(') or each.startswith(
+                        'play_midi(') or each.startswith('output('):
                 find_command = True
         if not find_command:
             current_notes = f'current_chord = {current_notes}'
@@ -3064,6 +3092,7 @@ class Root(Tk):
             print(str(e))
             if not global_play:
                 self.show_msg(self.language_dict["msg"][4])
+                output(str(e))
             return
         if 'current_chord' in current_globals:
             current_chord = current_globals['current_chord']
@@ -3210,7 +3239,53 @@ class Root(Tk):
         return self.channel_sound_modules_name[ind]
 
     def open_debug_window(self):
-        pass
+        if self.is_open_debug_window:
+            self.debug_window.focus_set()
+            return
+        else:
+            self.is_open_debug_window = True
+            self.debug_window = Toplevel(self)
+            self.debug_window.iconphoto(False, self.icon_image)
+            self.debug_window.configure(bg=background_color)
+            x = self.winfo_x()
+            y = self.winfo_y()
+            w = self.debug_window.winfo_width()
+            h = self.debug_window.winfo_height()
+            self.debug_window.geometry("%dx%d+%d+%d" %
+                                       (w, h, x + 200, y + 200))
+            self.debug_window.protocol("WM_DELETE_WINDOW",
+                                       self.close_debug_window)
+            self.debug_window.title(self.language_dict['debug window'])
+            self.debug_window.minsize(700, 400)
+            self.debug_window.focus_set()
+            self.debug_window.output_text = Text(self.debug_window,
+                                                 width=87,
+                                                 height=20,
+                                                 wrap='none',
+                                                 undo=True,
+                                                 autoseparators=True,
+                                                 maxundo=-1,
+                                                 font=(font_type, font_size))
+            self.debug_window.output_text.place(x=20, y=20)
+            self.debug_window.clear_text_button = ttk.Button(
+                self.debug_window,
+                text=self.language_dict['debug clear'],
+                command=lambda: self.debug_window.output_text.delete(
+                    '1.0', END))
+            self.debug_window.clear_text_button.place(x=600, y=350)
+            debug_inputs_v = ttk.Scrollbar(
+                self.debug_window,
+                orient="vertical",
+                command=self.debug_window.output_text.yview)
+            debug_inputs_h = ttk.Scrollbar(
+                self.debug_window,
+                orient="horizontal",
+                command=self.debug_window.output_text.xview)
+            self.debug_window.output_text.configure(
+                yscrollcommand=debug_inputs_v.set,
+                xscrollcommand=debug_inputs_h.set)
+            debug_inputs_v.place(x=632, y=20, height=285)
+            debug_inputs_h.place(x=20, y=305, width=612)
 
 
 def open_main_window():
@@ -3315,6 +3390,13 @@ def export(current_chord,
                                track_lengths=track_lengths,
                                track_extra_lengths=track_extra_lengths,
                                export_args=export_args)
+
+
+def output(*obj):
+    result = ' '.join([str(i) for i in obj]) + '\n'
+    if root.is_open_debug_window:
+        root.debug_window.output_text.insert(END, result)
+        root.debug_window.focus_set()
 
 
 current_start_window = start_window()

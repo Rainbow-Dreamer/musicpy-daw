@@ -20,7 +20,8 @@
     self.file_top_tools: '工具',
     self.load_musicpy_code_button: '导入musicpy代码',
     self.configure_sf2_button: '设置Soundfonts',
-    self.load_sf2_button: '加载Soundfonts'
+    self.load_sf2_button: '加载Soundfonts',
+    self.open_debug_window_button: '打开调试窗口'
 }, {
     'Converting note':
     '正在转换音符',
@@ -90,5 +91,9 @@
         '更改输出音源文件夹名称',
     ],
     'ask other format': ['其他格式', "请输入一个文件格式，如果支持的话我们会尝试转换", '确定', '取消'],
-    'other': ['清除所有通道', '你确定要清除所有通道吗? 这会停止现在正在播放中的音频。']
+    'other': ['清除所有通道', '你确定要清除所有通道吗? 这会停止现在正在播放中的音频。'],
+    'debug window':
+    '调试窗口',
+    'debug clear':
+    '清空'
 })

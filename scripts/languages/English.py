@@ -20,7 +20,8 @@
     self.file_top_tools: 'Tools',
     self.load_musicpy_code_button: 'Import musicpy code',
     self.configure_sf2_button: 'Configure Soundfonts',
-    self.load_sf2_button: 'Load Soundfonts'
+    self.load_sf2_button: 'Load Soundfonts',
+    self.open_debug_window_button: 'Open Debug Window'
 }, {
     'Converting note':
     'Converting note',
@@ -134,5 +135,9 @@
     'other': [
         'Clear All Channels',
         'Are you sure you want to clear all channels? This will stop current playing.'
-    ]
+    ],
+    'debug window':
+    'Debug Window',
+    'debug clear':
+    'Clear'
 })
