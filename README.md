@@ -68,6 +68,8 @@ Note that when you have any special effects, pans, volumes in your musicpy data 
 
 Update (2021/9/5): Now soundfonts files are supported, you can load any .sf2, .sf3, .dls files into this sampler and use it to play and export audio files, making music using soundfonts files with musicpy.
 
+Update (2021/10/12): Now there is a debug window, you can open the debug window first and then write `output(object1, object2, ...)` in the input text area, when you run the code, the objects in the `output` function will be printed in the debug window, the usage is like `print` function.
+
 # easy sampler
 
 [[English](#easy-sampler)] [中文]
@@ -136,4 +138,6 @@ Update (2021/9/5): Now soundfonts files are supported, you can load any .sf2, .s
 `esp`是我专门为easy sampler发明的工程文件格式，它代表`Easy Sampler Project`，它存储了你当前工程的信息，你可以随时把你当前的工程进度保存到esp文件中，并在easy sampler中再次打开esp文件来重新加载。
 
 更新 (2021/9/5): 现在已经添加对于soundfonts音源文件的支持，你可以加载任何的.sf2, .sf3, .dls 音源文件到这个取样机中来播放和导出音频文件，用soundfonts音源文件和musicpy来制作音乐。
+
+更新 (2021/10/12): 新增调试窗口，你可以打开调试窗口，然后在输入文本区写 `output(object1, object2, ...)`, 当你运行代码, 在 `output` 函数里的对象会被打印到调试窗口中, 用法与 `print` 函数相同。
 
