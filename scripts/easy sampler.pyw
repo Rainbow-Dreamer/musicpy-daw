@@ -1,8 +1,6 @@
 with open('scripts/settings.py', encoding='utf-8-sig') as f:
     exec(f.read())
 
-global_play = False
-
 
 class esi:
     def __init__(self,
@@ -239,277 +237,6 @@ class sound:
 
     def play(self):
         play_audio(self)
-
-
-def play_audio(audio):
-    if type(audio) in [pitch, sound]:
-        play_sound(audio.sounds)
-    else:
-        play_sound(audio)
-
-
-def load(dic, path, volume):
-    wavedict = {}
-    files = os.listdir(path)
-    filenames_only = [i[:i.rfind('.')] for i in files]
-    current_path = path + '/'
-    for i in dic:
-        try:
-            current_sound = pygame.mixer.Sound(
-                current_path + files[filenames_only.index(dic[i])])
-            wavedict[i] = current_sound
-        except:
-            wavedict[i] = None
-        root.update()
-    if volume != None:
-        [wavedict[x].set_volume(volume) for x in wavedict if wavedict[x]]
-    return wavedict
-
-
-def load_audiosegments(current_dict, current_sound_path):
-    current_sounds = {}
-    current_sound_files = os.listdir(current_sound_path)
-    current_sound_path += '/'
-    current_sound_filenames = [i[:i.rfind('.')] for i in current_sound_files]
-    for i in current_dict:
-        current_sound_obj = current_dict[i]
-        if current_sound_obj in current_sound_filenames:
-            current_filename = current_sound_files[
-                current_sound_filenames.index(current_sound_obj)]
-            current_sound_obj_path = current_sound_path + current_filename
-            current_sound_format = current_filename[current_filename.
-                                                    rfind('.') + 1:]
-            try:
-                current_sounds[i] = AudioSegment.from_file(
-                    current_sound_obj_path, format=current_sound_format)
-            except:
-                with open(current_sound_obj_path, 'rb') as f:
-                    current_data = f.read()
-                current_sounds[i] = AudioSegment.from_file(
-                    BytesIO(current_data), format=current_sound_format)
-        else:
-            current_sounds[i] = None
-        root.update()
-    return current_sounds
-
-
-def load_sounds(dic):
-    wavedict = {i: (dic[i].get_raw() if dic[i] else None) for i in dic}
-    return wavedict
-
-
-def standardize_note(i):
-    if i in standard_dict:
-        i = standard_dict[i]
-    return i
-
-
-def velocity_to_db(vol):
-    if vol == 0:
-        return -100
-    return math.log(vol / 127, 10) * 20
-
-
-def percentage_to_db(vol):
-    if vol == 0:
-        return -100
-    return math.log(abs(vol / 100), 10) * 20
-
-
-def bar_to_real_time(bar, bpm, mode=0):
-    # return time in ms
-    return int(
-        (60000 / bpm) * (bar * 4)) if mode == 0 else (60000 / bpm) * (bar * 4)
-
-
-def real_time_to_bar(time, bpm):
-    return (time / (60000 / bpm)) / 4
-
-
-def check_pan_or_volume(sound):
-    return type(sound) == piece and (any(i for i in sound.pan)
-                                     or any(i for i in sound.volume))
-
-
-def has_audio(sound):
-    types = type(sound)
-    if types == chord:
-        return any(type(i) == AudioSegment for i in sound.notes)
-    elif types == piece:
-        return any(has_audio(i) for i in sound.tracks)
-
-
-def check_special(sound):
-    return check_effect_all(sound) or check_pan_or_volume(sound) or has_audio(
-        sound)
-
-
-def check_effect(sound):
-    return hasattr(sound, 'effects') and type(
-        sound.effects) == list and sound.effects
-
-
-def check_effect_all(sound):
-    types = type(sound)
-    if types == chord:
-        return check_effect(sound) or any(check_effect(i) for i in sound)
-    elif types == piece:
-        return check_effect(sound) or any(
-            check_effect_all(i) for i in sound.tracks)
-    else:
-        return check_effect(sound)
-
-
-def process_effect(sound, effects, **kwargs):
-    current_args = kwargs
-    for each in effects:
-        each.process_unknown_args(**current_args)
-        sound = each.process(sound)
-    return sound
-
-
-def set_effect(sound, *effects):
-    if len(effects) == 1:
-        current_effect = effects[0]
-        types = type(current_effect)
-        if types != effect:
-            if types == effect_chain:
-                effects = current_effect.effects
-            else:
-                effects = list(current_effect)
-        else:
-            effects = list(effects)
-    else:
-        effects = list(effects)
-    sound.effects = effects
-    return sound
-
-
-def adsr_func(sound, attack, decay, sustain, release):
-    change_db = percentage_to_db(sustain)
-    result_db = sound.dBFS + change_db
-    if attack > 0:
-        sound = sound.fade_in(attack)
-    if decay > 0:
-        sound = sound.fade(to_gain=result_db, start=attack, duration=decay)
-    else:
-        sound = sound[:attack].append(sound[attack:] + change_db)
-    if release > 0:
-        sound = sound.fade_out(release)
-    return sound
-
-
-reverse = effect(lambda s: s.reverse(), 'reverse')
-offset = effect(lambda s, bar, bpm: s[bar_to_real_time(bar, bpm, 1):],
-                'offset',
-                unknown_args={'bpm': None})
-fade_in = effect(lambda s, duration: s.fade_in(duration), 'fade in')
-fade_out = effect(lambda s, duration: s.fade_out(duration), 'fade out')
-fade = effect(
-    lambda s, duration1, duration2=0: s.fade_in(duration1).fade_out(duration2),
-    'fade')
-adsr = effect(adsr_func, 'adsr')
-
-
-def sine(freq=440, duration=1000, volume=0):
-    if type(freq) in [str, note]:
-        freq = get_freq(freq)
-    return Sine(freq).to_audio_segment(duration, volume)
-
-
-def triangle(freq=440, duration=1000, volume=0):
-    if type(freq) in [str, note]:
-        freq = get_freq(freq)
-    return Triangle(freq).to_audio_segment(duration, volume)
-
-
-def sawtooth(freq=440, duration=1000, volume=0):
-    if type(freq) in [str, note]:
-        freq = get_freq(freq)
-    return Sawtooth(freq).to_audio_segment(duration, volume)
-
-
-def square(freq=440, duration=1000, volume=0):
-    if type(freq) in [str, note]:
-        freq = get_freq(freq)
-    return Square(freq).to_audio_segment(duration, volume)
-
-
-def white_noise(duration=1000, volume=0):
-    return WhiteNoise().to_audio_segment(duration, volume)
-
-
-def pulse(freq=440, duty_cycle=0.5, duration=1000, volume=0):
-    return Pulse(freq, duty_cycle).to_audio_segment(duration, volume)
-
-
-def get_wave(sound, mode='sine', bpm=120, volume=None):
-    # volume: percentage, from 0% to 100%
-    temp = copy(sound)
-    if volume is None:
-        volume = [velocity_to_db(i) for i in temp.get_volume()]
-    else:
-        volume = [volume for i in range(len(temp))
-                  ] if type(volume) != list else volume
-        volume = [percentage_to_db(i) for i in volume]
-    for i in range(1, len(temp) + 1):
-        current_note = temp[i]
-        if type(current_note) == note:
-            if mode == 'sine':
-                temp[i] = sine(
-                    get_freq(current_note),
-                    root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i - 1])
-            elif mode == 'triangle':
-                temp[i] = triangle(
-                    get_freq(current_note),
-                    root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i - 1])
-            elif mode == 'sawtooth':
-                temp[i] = sawtooth(
-                    get_freq(current_note),
-                    root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i - 1])
-            elif mode == 'square':
-                temp[i] = square(
-                    get_freq(current_note),
-                    root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i - 1])
-            else:
-                temp[i] = mode(
-                    get_freq(current_note),
-                    root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i - 1])
-    return temp
-
-
-def audio(obj, channel_num=1):
-    if channel_num > 0:
-        channel_num -= 1
-    if type(obj) == note:
-        obj = chord([obj])
-    elif type(obj) == track:
-        obj = build(obj, bpm=obj.bpm, name=obj.name)
-    result = root.export_audio_file(obj, action='get', channel_num=channel_num)
-    return result
-
-
-def audio_chord(audio_list, interval=0, duration=1 / 4, volume=127):
-    result = chord([])
-    result.notes = audio_list
-    result.interval = interval if type(interval) == list else [
-        interval for i in range(len(audio_list))
-    ]
-    durations = duration if type(duration) == list else [
-        duration for i in range(len(audio_list))
-    ]
-    volumes = volume if type(volume) == list else [
-        volume for i in range(len(audio_list))
-    ]
-    for i in range(len(result.notes)):
-        result.notes[i].duration = durations[i]
-        result.notes[i].volume = volumes[i]
-    return result
 
 
 class Root(Tk):
@@ -3074,7 +2801,7 @@ class Root(Tk):
         lines = current_notes.split('\n')
         find_command = False
         for k in range(len(lines)):
-            each = lines[k]
+            each = lines[k].lstrip(' ')
             if each.startswith('play '):
                 find_command = True
                 lines[k] = 'current_chord = ' + each[5:]
@@ -3288,17 +3015,6 @@ class Root(Tk):
             debug_inputs_h.place(x=20, y=305, width=612)
 
 
-def open_main_window():
-    current_start_window.destroy()
-    global root
-    root = Root()
-    root.lift()
-    root.attributes("-topmost", True)
-    root.focus_force()
-    root.attributes('-topmost', 0)
-    root.mainloop()
-
-
 class start_window(Tk):
     def __init__(self):
         super(start_window, self).__init__()
@@ -3330,7 +3046,274 @@ class start_window(Tk):
         self.after(500, open_main_window)
 
 
-play_midi = play
+def open_main_window():
+    current_start_window.destroy()
+    global root
+    root = Root()
+    root.lift()
+    root.attributes("-topmost", True)
+    root.focus_force()
+    root.attributes('-topmost', 0)
+    root.mainloop()
+
+
+def play_audio(audio):
+    if type(audio) in [pitch, sound]:
+        play_sound(audio.sounds)
+    else:
+        play_sound(audio)
+
+
+def load(dic, path, volume):
+    wavedict = {}
+    files = os.listdir(path)
+    filenames_only = [i[:i.rfind('.')] for i in files]
+    current_path = path + '/'
+    for i in dic:
+        try:
+            current_sound = pygame.mixer.Sound(
+                current_path + files[filenames_only.index(dic[i])])
+            wavedict[i] = current_sound
+        except:
+            wavedict[i] = None
+        root.update()
+    if volume != None:
+        [wavedict[x].set_volume(volume) for x in wavedict if wavedict[x]]
+    return wavedict
+
+
+def load_audiosegments(current_dict, current_sound_path):
+    current_sounds = {}
+    current_sound_files = os.listdir(current_sound_path)
+    current_sound_path += '/'
+    current_sound_filenames = [i[:i.rfind('.')] for i in current_sound_files]
+    for i in current_dict:
+        current_sound_obj = current_dict[i]
+        if current_sound_obj in current_sound_filenames:
+            current_filename = current_sound_files[
+                current_sound_filenames.index(current_sound_obj)]
+            current_sound_obj_path = current_sound_path + current_filename
+            current_sound_format = current_filename[current_filename.
+                                                    rfind('.') + 1:]
+            try:
+                current_sounds[i] = AudioSegment.from_file(
+                    current_sound_obj_path, format=current_sound_format)
+            except:
+                with open(current_sound_obj_path, 'rb') as f:
+                    current_data = f.read()
+                current_sounds[i] = AudioSegment.from_file(
+                    BytesIO(current_data), format=current_sound_format)
+        else:
+            current_sounds[i] = None
+        root.update()
+    return current_sounds
+
+
+def load_sounds(dic):
+    wavedict = {i: (dic[i].get_raw() if dic[i] else None) for i in dic}
+    return wavedict
+
+
+def standardize_note(i):
+    if i in standard_dict:
+        i = standard_dict[i]
+    return i
+
+
+def velocity_to_db(vol):
+    if vol == 0:
+        return -100
+    return math.log(vol / 127, 10) * 20
+
+
+def percentage_to_db(vol):
+    if vol == 0:
+        return -100
+    return math.log(abs(vol / 100), 10) * 20
+
+
+def bar_to_real_time(bar, bpm, mode=0):
+    # return time in ms
+    return int(
+        (60000 / bpm) * (bar * 4)) if mode == 0 else (60000 / bpm) * (bar * 4)
+
+
+def real_time_to_bar(time, bpm):
+    return (time / (60000 / bpm)) / 4
+
+
+def check_pan_or_volume(sound):
+    return type(sound) == piece and (any(i for i in sound.pan)
+                                     or any(i for i in sound.volume))
+
+
+def has_audio(sound):
+    types = type(sound)
+    if types == chord:
+        return any(type(i) == AudioSegment for i in sound.notes)
+    elif types == piece:
+        return any(has_audio(i) for i in sound.tracks)
+
+
+def check_special(sound):
+    return check_effect_all(sound) or check_pan_or_volume(sound) or has_audio(
+        sound)
+
+
+def check_effect(sound):
+    return hasattr(sound, 'effects') and type(
+        sound.effects) == list and sound.effects
+
+
+def check_effect_all(sound):
+    types = type(sound)
+    if types == chord:
+        return check_effect(sound) or any(check_effect(i) for i in sound)
+    elif types == piece:
+        return check_effect(sound) or any(
+            check_effect_all(i) for i in sound.tracks)
+    else:
+        return check_effect(sound)
+
+
+def process_effect(sound, effects, **kwargs):
+    current_args = kwargs
+    for each in effects:
+        each.process_unknown_args(**current_args)
+        sound = each.process(sound)
+    return sound
+
+
+def set_effect(sound, *effects):
+    if len(effects) == 1:
+        current_effect = effects[0]
+        types = type(current_effect)
+        if types != effect:
+            if types == effect_chain:
+                effects = current_effect.effects
+            else:
+                effects = list(current_effect)
+        else:
+            effects = list(effects)
+    else:
+        effects = list(effects)
+    sound.effects = effects
+    return sound
+
+
+def adsr_func(sound, attack, decay, sustain, release):
+    change_db = percentage_to_db(sustain)
+    result_db = sound.dBFS + change_db
+    if attack > 0:
+        sound = sound.fade_in(attack)
+    if decay > 0:
+        sound = sound.fade(to_gain=result_db, start=attack, duration=decay)
+    else:
+        sound = sound[:attack].append(sound[attack:] + change_db)
+    if release > 0:
+        sound = sound.fade_out(release)
+    return sound
+
+
+def sine(freq=440, duration=1000, volume=0):
+    if type(freq) in [str, note]:
+        freq = get_freq(freq)
+    return Sine(freq).to_audio_segment(duration, volume)
+
+
+def triangle(freq=440, duration=1000, volume=0):
+    if type(freq) in [str, note]:
+        freq = get_freq(freq)
+    return Triangle(freq).to_audio_segment(duration, volume)
+
+
+def sawtooth(freq=440, duration=1000, volume=0):
+    if type(freq) in [str, note]:
+        freq = get_freq(freq)
+    return Sawtooth(freq).to_audio_segment(duration, volume)
+
+
+def square(freq=440, duration=1000, volume=0):
+    if type(freq) in [str, note]:
+        freq = get_freq(freq)
+    return Square(freq).to_audio_segment(duration, volume)
+
+
+def white_noise(duration=1000, volume=0):
+    return WhiteNoise().to_audio_segment(duration, volume)
+
+
+def pulse(freq=440, duty_cycle=0.5, duration=1000, volume=0):
+    return Pulse(freq, duty_cycle).to_audio_segment(duration, volume)
+
+
+def get_wave(sound, mode='sine', bpm=120, volume=None):
+    # volume: percentage, from 0% to 100%
+    temp = copy(sound)
+    if volume is None:
+        volume = [velocity_to_db(i) for i in temp.get_volume()]
+    else:
+        volume = [volume for i in range(len(temp))
+                  ] if type(volume) != list else volume
+        volume = [percentage_to_db(i) for i in volume]
+    for i in range(1, len(temp) + 1):
+        current_note = temp[i]
+        if type(current_note) == note:
+            if mode == 'sine':
+                temp[i] = sine(
+                    get_freq(current_note),
+                    root.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i - 1])
+            elif mode == 'triangle':
+                temp[i] = triangle(
+                    get_freq(current_note),
+                    root.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i - 1])
+            elif mode == 'sawtooth':
+                temp[i] = sawtooth(
+                    get_freq(current_note),
+                    root.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i - 1])
+            elif mode == 'square':
+                temp[i] = square(
+                    get_freq(current_note),
+                    root.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i - 1])
+            else:
+                temp[i] = mode(
+                    get_freq(current_note),
+                    root.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i - 1])
+    return temp
+
+
+def audio(obj, channel_num=1):
+    if channel_num > 0:
+        channel_num -= 1
+    if type(obj) == note:
+        obj = chord([obj])
+    elif type(obj) == track:
+        obj = build(obj, bpm=obj.bpm, name=obj.name)
+    result = root.export_audio_file(obj, action='get', channel_num=channel_num)
+    return result
+
+
+def audio_chord(audio_list, interval=0, duration=1 / 4, volume=127):
+    result = chord([])
+    result.notes = audio_list
+    result.interval = interval if type(interval) == list else [
+        interval for i in range(len(audio_list))
+    ]
+    durations = duration if type(duration) == list else [
+        duration for i in range(len(audio_list))
+    ]
+    volumes = volume if type(volume) == list else [
+        volume for i in range(len(audio_list))
+    ]
+    for i in range(len(result.notes)):
+        result.notes[i].duration = durations[i]
+        result.notes[i].volume = volumes[i]
+    return result
 
 
 def play(current_chord,
@@ -3398,6 +3381,19 @@ def output(*obj):
         root.debug_window.output_text.insert(END, result)
         root.debug_window.focus_set()
 
+
+global_play = False
+play_midi = play
+reverse = effect(lambda s: s.reverse(), 'reverse')
+offset = effect(lambda s, bar, bpm: s[bar_to_real_time(bar, bpm, 1):],
+                'offset',
+                unknown_args={'bpm': None})
+fade_in = effect(lambda s, duration: s.fade_in(duration), 'fade in')
+fade_out = effect(lambda s, duration: s.fade_out(duration), 'fade out')
+fade = effect(
+    lambda s, duration1, duration2=0: s.fade_in(duration1).fade_out(duration2),
+    'fade')
+adsr = effect(adsr_func, 'adsr')
 
 current_start_window = start_window()
 current_start_window.mainloop()
