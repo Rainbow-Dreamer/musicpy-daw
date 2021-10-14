@@ -3316,6 +3316,9 @@ def audio_chord(audio_list, interval=0, duration=1 / 4, volume=127):
     return result
 
 
+play_midi = play
+
+
 def play(current_chord,
          bpm=None,
          channel=1,
@@ -3383,7 +3386,6 @@ def output(*obj):
 
 
 global_play = False
-play_midi = play
 reverse = effect(lambda s: s.reverse(), 'reverse')
 offset = effect(lambda s, bar, bpm: s[bar_to_real_time(bar, bpm, 1):],
                 'offset',
