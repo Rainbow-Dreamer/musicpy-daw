@@ -1,3 +1,4 @@
+keyboard
 pygame
 mido
 midiutil
