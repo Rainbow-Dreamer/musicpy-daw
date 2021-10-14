@@ -1,7 +1,9 @@
-keyboard
 pygame
 mido
 midiutil
+simpleaudio
 pydub
 librosa
 soundfile
+numpy==1.20.3
+py
