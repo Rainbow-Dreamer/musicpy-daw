@@ -1931,7 +1931,6 @@ class Root(Tk):
                 [-i for i in current_chord.start_times],
                 msg=True,
                 pan_volume=True)
-            current_chord.reset_channel(0)
             current_name = current_chord.name
             current_bpm = current_chord.bpm
             current_start_times = current_chord.start_times
