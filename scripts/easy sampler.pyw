@@ -84,7 +84,6 @@ class pitch:
             try:
                 self.sounds = AudioSegment.from_file(path,
                                                      format=current_format)
-
             except:
                 with open(path, 'rb') as f:
                     current_data = f.read()
@@ -105,7 +104,15 @@ class pitch:
         self.channels = self.sounds.channels
         self.sample_width = self.sounds.sample_width
         if not audio_load:
-            self.audio = librosa.load(path, sr=self.sample_rate)[0]
+            if type(path) != AudioSegment:
+                self.audio = librosa.load(path, sr=self.sample_rate)[0]
+            else:
+                os.chdir(abs_path)
+                path.export('scripts/temp.wav', format='wav')
+                self.audio = librosa.load('scripts/temp.wav',
+                                          sr=path.frame_rate)[0]
+                os.remove('scripts/temp.wav')
+            audio_load = True
 
     def pitch_shift(self, semitones=1, mode='librosa'):
         if mode == 'librosa':
