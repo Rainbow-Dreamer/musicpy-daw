@@ -3065,6 +3065,7 @@ def play_audio(audio):
         pygame.mixer.init(frequency=audio.sounds.frame_rate,
                           channels=audio.sounds.channels,
                           size=-audio.sounds.sample_width * 8)
+        pygame.mixer.set_num_channels(maxinum_channels)
         current_sound_object = pygame.mixer.Sound(buffer=audio.sounds.raw_data)
         current_sound_object.play()
     else:
@@ -3072,6 +3073,7 @@ def play_audio(audio):
         pygame.mixer.init(frequency=audio.frame_rate,
                           channels=audio.channels,
                           size=-audio.sample_width * 8)
+        pygame.mixer.set_num_channels(maxinum_channels)
         current_sound_object = pygame.mixer.Sound(buffer=audio.raw_data)
         current_sound_object.play()
 
