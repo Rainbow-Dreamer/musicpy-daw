@@ -214,7 +214,7 @@ class pitch:
         play_audio(self)
 
     def stop(self):
-        simpleaudio.stop_all()
+        pygame.mixer.stop()
 
 
 class sound:
@@ -1080,8 +1080,10 @@ class Root(Tk):
                 self.change_current_bpm(1)
         if current_chord is not None:
             self.stop_playing()
-            self.play_musicpy_sounds(current_chord, current_bpm,
-                                     current_channel_num)
+            self.play_musicpy_sounds(current_chord,
+                                     current_bpm,
+                                     current_channel_num,
+                                     inner=False)
 
     def play_selected_audio(self):
         if not self.default_load:
@@ -1099,7 +1101,7 @@ class Root(Tk):
             pass
         try:
             current_audio = eval(current_notes, globals(), globals())
-            simpleaudio.stop_all()
+            pygame.mixer.stop()
             play_audio(current_audio)
         except Exception as e:
             print(str(e))
@@ -1860,10 +1862,9 @@ class Root(Tk):
             return
         if action == 'export':
             self.show_msg(f'{self.language_dict["msg"][21]}{filename}')
-        self.msg.update()
+            self.msg.update()
         types = result[0]
         current_chord = result[1]
-        self.stop_playing()
 
         if types == 'chord':
             current_channel_num = result[2]
@@ -2241,7 +2242,6 @@ class Root(Tk):
             if result is None:
                 return
             current_chord = result[1]
-        self.stop_playing()
         self.show_msg(f'{self.language_dict["msg"][21]}{filename}')
         self.msg.update()
         write(current_chord, self.current_bpm, name=filename, **write_args)
@@ -2781,14 +2781,6 @@ class Root(Tk):
             for each in self.piece_playing:
                 self.after_cancel(each)
             self.piece_playing.clear()
-        try:
-            simpleaudio.stop_all()
-        except:
-            pass
-        try:
-            pygame.mixer.music.stop()
-        except:
-            pass
 
     def play_current_musicpy_code(self):
         if not self.default_load:
@@ -3050,6 +3042,7 @@ class start_window(Tk):
 
         self.title_label = ttk.Label(self, text='Easy Sampler')
         self.title_label.place(x=120, y=80)
+        pygame.mixer.quit()
         pygame.mixer.init(frequency, sound_size, channel, buffer)
         pygame.mixer.set_num_channels(maxinum_channels)
         self.after(500, open_main_window)
@@ -3068,9 +3061,19 @@ def open_main_window():
 
 def play_audio(audio):
     if type(audio) in [pitch, sound]:
-        play_sound(audio.sounds)
+        pygame.mixer.quit()
+        pygame.mixer.init(frequency=audio.sounds.frame_rate,
+                          channels=audio.sounds.channels,
+                          size=-audio.sounds.sample_width * 8)
+        current_sound_object = pygame.mixer.Sound(buffer=audio.sounds.raw_data)
+        current_sound_object.play()
     else:
-        play_sound(audio)
+        pygame.mixer.quit()
+        pygame.mixer.init(frequency=audio.frame_rate,
+                          channels=audio.channels,
+                          size=-audio.sample_width * 8)
+        current_sound_object = pygame.mixer.Sound(buffer=audio.raw_data)
+        current_sound_object.play()
 
 
 def load(dic, path, volume):

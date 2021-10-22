@@ -16,9 +16,7 @@ from ast import literal_eval
 from io import BytesIO
 import math
 import array
-import simpleaudio
 from pydub import AudioSegment
-from pydub.playback import _play_with_simpleaudio as play_sound
 from pydub.generators import Sine, Triangle, Sawtooth, Square, WhiteNoise, Pulse
 import librosa
 import soundfile
