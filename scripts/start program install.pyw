@@ -15,7 +15,6 @@ import midiutil
 from ast import literal_eval
 from io import BytesIO
 import math
-import array
 from pydub import AudioSegment
 from pydub.generators import Sine, Triangle, Sawtooth, Square, WhiteNoise, Pulse
 import librosa
