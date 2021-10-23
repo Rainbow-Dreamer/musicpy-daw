@@ -881,7 +881,7 @@ class Root(Tk):
         if self.pitch_shifter_window.has_load:
             if self.pitch_shifter_playing:
                 self.pitch_shifter_stop()
-            play_audio(self.current_pitch, mode=1)
+            play_audio(self.current_pitch)
             self.pitch_shifter_playing = True
 
     def pitch_shifter_stop(self):
@@ -893,7 +893,7 @@ class Root(Tk):
         if self.pitch_shifter_window.has_load:
             if self.pitch_shifter_shifted_playing:
                 self.pitch_shifter_stop_shifted()
-            play_audio(self.new_pitch, mode=1)
+            play_audio(self.new_pitch)
             self.pitch_shifter_shifted_playing = True
 
     def pitch_shifter_stop_shifted(self):
@@ -3054,7 +3054,7 @@ def open_main_window():
     root.mainloop()
 
 
-def play_audio(audio, mode=0):
+def play_audio(audio, mode=1):
     if type(audio) in [pitch, sound]:
         current_audio = audio.sounds
     else:
