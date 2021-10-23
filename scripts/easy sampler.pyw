@@ -2849,9 +2849,6 @@ class Root(Tk):
                             extra_length=None,
                             track_lengths=None,
                             track_extra_lengths=None):
-        pygame.mixer.quit()
-        pygame.mixer.init(frequency, sound_size, channel, buffer)
-        pygame.mixer.set_num_channels(maxinum_channels)
         if type(current_chord) == note:
             current_chord = chord([current_chord])
         elif type(current_chord) == list and all(
@@ -3065,19 +3062,22 @@ def play_audio(audio, mode=1):
         current_audio = audio.sounds
     else:
         current_audio = audio
-    pygame.mixer.quit()
-    pygame.mixer.init(frequency=current_audio.frame_rate,
-                      channels=current_audio.channels,
-                      size=-current_audio.sample_width * 8)
-    pygame.mixer.set_num_channels(maxinum_channels)
     if mode == 0:
         current_sound_object = pygame.mixer.Sound(
             buffer=current_audio.raw_data)
         current_sound_object.play()
     elif mode == 1:
-        current_file = BytesIO()
-        current_audio.export(current_file, format='wav')
-        current_sound_object = pygame.mixer.Sound(file=current_file)
+        try:
+            current_file = BytesIO()
+            current_audio.export(current_file, format='wav')
+            current_sound_object = pygame.mixer.Sound(file=current_file)
+        except:
+            current_path = os.getcwd()
+            os.chdir(abs_path)
+            current_audio.export('scripts/temp.wav', format='wav')
+            current_sound_object = pygame.mixer.Sound(file='scripts/temp.wav')
+            os.remove('scripts/temp.wav')
+            os.chdir(current_path)
         current_sound_object.play()
 
 
