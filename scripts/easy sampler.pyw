@@ -1333,6 +1333,7 @@ class Root(Tk):
                 return
         else:
             return
+        self.default_load = False
         self.clear_all_channels(1)
         self.channel_num = self.project_dict['channel_num']
         self.init_channels(self.channel_num)
@@ -1375,6 +1376,7 @@ class Root(Tk):
                 current_sf2.current_preset, current_sf2.current_preset_ind = [], []
             current_sf2.program_select(*current_sf2_info)
         self.show_msg(self.language_dict["msg"][14])
+        self.default_load = True
 
     def save_as_project_file(self, new=False):
         if not self.default_load:
@@ -2781,6 +2783,7 @@ class Root(Tk):
         if not self.default_load:
             return
         self.show_msg('')
+        self.msg.update()
         if not self.channel_sound_modules:
             self.show_msg(self.language_dict["msg"][18])
             return
@@ -2846,6 +2849,9 @@ class Root(Tk):
                             extra_length=None,
                             track_lengths=None,
                             track_extra_lengths=None):
+        pygame.mixer.quit()
+        pygame.mixer.init(frequency, sound_size, channel, buffer)
+        pygame.mixer.set_num_channels(maxinum_channels)
         if type(current_chord) == note:
             current_chord = chord([current_chord])
         elif type(current_chord) == list and all(
