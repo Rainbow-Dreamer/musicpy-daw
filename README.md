@@ -8,7 +8,7 @@ This is a music sampler and tracker to make music with musicpy.
 
 ## Installation
 
-Please download `easy.sampler.rar` from the [release](https://github.com/Rainbow-Dreamer/easy-sampler/releases/latest) page and open the `exe` files of easy sampler to use.
+Please download `easy.sampler.rar` from the [release](https://github.com/Rainbow-Dreamer/easy-sampler/releases/latest) page, extract the `easy sampler` folder and open the exe files of easy sampler inside the folder to use.
 
 
 
@@ -88,7 +88,7 @@ Update (2021/10/12): Now there is a debug window, you can open the debug window 
 
 ## 安装
 
-请从[release](https://github.com/Rainbow-Dreamer/easy-sampler/releases/latest) 页面下载`easy.sampler.rar` ，打开easy sampler的 `exe` 文件使用。
+请从[release](https://github.com/Rainbow-Dreamer/easy-sampler/releases/latest) 页面下载`easy.sampler.rar`，解压`easy sampler`文件夹，打开文件夹里的easy sampler的exe文件使用。
 
 
 
