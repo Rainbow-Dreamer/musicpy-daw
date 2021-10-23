@@ -1,8 +1,6 @@
-keyboard
 pygame
 mido
 midiutil
-simpleaudio
 pydub
 librosa
 soundfile

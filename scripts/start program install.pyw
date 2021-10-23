@@ -4,7 +4,6 @@ from tkinter import filedialog
 from tkinter import messagebox
 import time
 import random
-import keyboard
 import pickle
 from copy import deepcopy as copy
 import os
