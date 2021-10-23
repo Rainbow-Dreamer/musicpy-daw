@@ -6,6 +6,14 @@ This is a music sampler and tracker to make music with musicpy.
 
 ![image](https://github.com/Rainbow-Dreamer/easy-sampler/blob/main/previews/1.jpg?raw=True)
 
+## Installation
+
+Please download `easy.sampler.rar` from the [release](https://github.com/Rainbow-Dreamer/easy-sampler/releases/latest) page and open the `exe` files of easy sampler to use.
+
+
+
+## Usage
+
 You can write any musicpy codes inside the input text area at the bottom.
 
 To play or export a musicpy data structure, like note, chord, track and piece, there are 3 ways to write in the input text area.
@@ -77,6 +85,14 @@ Update (2021/10/12): Now there is a debug window, you can open the debug window 
 这是一个音乐取样机和tracker，可以用musicpy制作音乐。
 
 ![image](https://github.com/Rainbow-Dreamer/easy-sampler/blob/main/previews/2.jpg?raw=True)
+
+## 安装
+
+请从[release](https://github.com/Rainbow-Dreamer/easy-sampler/releases/latest) 页面下载`easy.sampler.rar` ，打开easy sampler的 `exe` 文件使用。
+
+
+
+## 使用
 
 你可以在底部的输入文本区写任何musicpy代码。
 
