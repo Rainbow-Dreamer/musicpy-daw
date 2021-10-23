@@ -133,12 +133,6 @@ class pitch:
             result = result.set_frame_rate(44100)
         return result
 
-    def np_array_to_audio(self, np, sample_rate):
-        current_sound = BytesIO()
-        soundfile.write(current_sound, np, sample_rate, format='wav')
-        result = AudioSegment.from_wav(current_sound)
-        return result
-
     def __add__(self, semitones):
         return self.pitch_shift(semitones)
 
@@ -244,6 +238,9 @@ class sound:
 
     def play(self):
         play_audio(self)
+
+    def stop(self):
+        pygame.mixer.stop()
 
 
 class Root(Tk):
@@ -884,26 +881,30 @@ class Root(Tk):
         if self.pitch_shifter_window.has_load:
             if self.pitch_shifter_playing:
                 self.pitch_shifter_stop()
-            self.current_pitch_shifter_play = play_sound(
-                self.current_pitch.sounds)
+            current_file = BytesIO()
+            self.current_pitch.sounds.export(current_file, format='wav')
+            current_sound_object = pygame.mixer.Sound(file=current_file)
+            current_sound_object.play()
             self.pitch_shifter_playing = True
 
     def pitch_shifter_stop(self):
         if self.pitch_shifter_playing:
-            self.current_pitch_shifter_play.stop()
+            pygame.mixer.stop()
             self.pitch_shifter_playing = False
 
     def pitch_shifter_play_shifted(self):
         if self.pitch_shifter_window.has_load:
             if self.pitch_shifter_shifted_playing:
                 self.pitch_shifter_stop_shifted()
-            self.current_pitch_shifter_shifted_play = play_sound(
-                self.new_pitch)
+            current_file = BytesIO()
+            self.new_pitch.export(current_file, format='wav')
+            current_sound_object = pygame.mixer.Sound(file=current_file)
+            current_sound_object.play()
             self.pitch_shifter_shifted_playing = True
 
     def pitch_shifter_stop_shifted(self):
         if self.pitch_shifter_shifted_playing:
-            self.current_pitch_shifter_shifted_play.stop()
+            pygame.mixer.stop()
             self.pitch_shifter_shifted_playing = False
 
     def pitch_shifter_export_shifted(self):
