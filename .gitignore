@@ -6,6 +6,4 @@ browse memory.txt
 **/ffmpeg
 extra-hooks
 start program.pyw
-ffmpeg.exe
-ffplay.exe
-ffprobe.exe
+*.exe
