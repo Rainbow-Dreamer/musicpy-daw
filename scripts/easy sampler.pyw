@@ -2770,6 +2770,7 @@ class Root(Tk):
 
     def stop_playing(self):
         pygame.mixer.stop()
+        pygame.mixer.music.stop()
         if self.current_playing:
             for each in self.current_playing:
                 self.after_cancel(each)
