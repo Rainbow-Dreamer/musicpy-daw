@@ -3,7 +3,6 @@
 plans.txt
 browse memory.txt
 .vscode
-**/ffmpeg
 extra-hooks
 start program.pyw
 *.exe
