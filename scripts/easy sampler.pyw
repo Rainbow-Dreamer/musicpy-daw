@@ -1880,7 +1880,7 @@ class Root(Tk):
                 if action == 'export':
                     current_msg = self.language_dict["msg"][27].split('|')
                     self.show_msg(
-                        f'{current_msg[0]} {self.language_dict["channel"]} {current_channel_num + 1} (soundfont){current_msg[2]} 1'
+                        f'{current_msg[0]}{self.language_dict["track"]} 1/1 {self.language_dict["channel"]} {current_channel_num + 1} (soundfont) '
                     )
                     self.msg.update()
                 silent_audio = current_sound_modules.export_chord(
