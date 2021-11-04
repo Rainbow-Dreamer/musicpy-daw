@@ -1366,15 +1366,16 @@ class Root(Tk):
         current_soundfonts = self.project_dict['soundfont']
         for each in current_soundfonts:
             current_sf2 = self.channel_sound_modules[each]
-            current_sf2_info = current_soundfonts[each]
-            current_bank_num = current_sf2_info[2]
-            current_sf2.change_bank(current_bank_num)
-            try:
-                current_sf2.current_preset, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
-                    get_ind=True, mode=1, return_mode=1)
-            except:
-                current_sf2.current_preset, current_sf2.current_preset_ind = [], []
-            current_sf2.program_select(*current_sf2_info)
+            if current_sf2:
+                current_sf2_info = current_soundfonts[each]
+                current_bank_num = current_sf2_info[2]
+                current_sf2.change_bank(current_bank_num)
+                try:
+                    current_sf2.current_preset, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
+                        get_ind=True, mode=1, return_mode=1)
+                except:
+                    current_sf2.current_preset, current_sf2.current_preset_ind = [], []
+                current_sf2.program_select(*current_sf2_info)
         self.show_msg(self.language_dict["msg"][14])
         self.default_load = True
 
