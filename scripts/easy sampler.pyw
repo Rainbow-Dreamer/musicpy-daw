@@ -582,6 +582,8 @@ class Root(Tk):
                               activeforeground=active_foreground_color,
                               disabledforeground=disabled_foreground_color,
                               font=(font_type, font_size))
+        self.file_menu.add_command(label=self.language_dict['file'][7],
+                                   command=self.open_new_project_file)
         self.file_menu.add_command(label=self.language_dict['file'][0],
                                    command=self.open_project_file)
         self.file_menu.add_command(label=self.language_dict['file'][1],
@@ -667,6 +669,19 @@ class Root(Tk):
         self.channel_dict = [notedict]
         self.show_msg(self.language_dict['msg'][1])
         self.default_load = True
+
+    def open_new_project_file(self):
+        self.current_project_name.configure(text='new.esp')
+        self.project_name = 'new.esp'
+        self.opening_project_name = None
+        self.clear_all_channels(1)
+        self.set_musicpy_code_text.delete('1.0', END)
+        self.choose_channels.insert(END, self.language_dict['init'][0])
+        self.channel_names = [self.language_dict['init'][0]]
+        self.channel_sound_modules_name = [sound_path]
+        self.channel_num = 1
+        self.channel_list_focus = True
+        self.initialize()
 
     def show_msg(self, text=''):
         self.msg.configure(text=text)
@@ -1418,7 +1433,8 @@ class Root(Tk):
             return
         filename = filedialog.asksaveasfilename(
             initialdir=self.last_place,
-            title=self.language_dict['title'][13],
+            title=self.language_dict['title'][13]
+            if new else self.language_dict['title'][20],
             filetypes=(("Easy Sampler Project",
                         "*.esp"), (self.language_dict['title'][11], "*.txt"),
                        (self.language_dict['title'][1], "*.*")),

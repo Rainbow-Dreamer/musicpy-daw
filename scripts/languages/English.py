@@ -40,9 +40,8 @@
         'Export', 'Play Selected Code', 'Play Selected Audio'
     ],
     'file': [
-        'Open project file', 'Save as project file', 'Import MIDI file',
-        'Save current musicpy code', 'Import musicpy code', 'Export',
-        'Save as new project file'
+        'Open', 'Save', 'Import MIDI file', 'Save musicpy code',
+        'Import musicpy code', 'Export', 'Save as', 'New'
     ],
     'option': ['Change settings', 'Change channel dict', 'Change Language'],
     'tool': [
@@ -110,9 +109,9 @@
         "Choose ESI file", "Choose ESS file",
         "Choose the folder you want to unzip ESI files to",
         "Choose musicpy code file", "Text", "Choose project file",
-        "Save As Project File", "Save Current Musicpy Code",
-        "Choose Channel Settings", "Export Audio File", "Export MIDI File",
-        "Choose MIDI File", "Choose Sound Path"
+        "Save As Project File", "Save Musicpy Code", "Choose Channel Settings",
+        "Export Audio File", "Export MIDI File", "Choose MIDI File",
+        "Choose Sound Path", "Save Project File"
     ],
     'pitch shifter': [
         'Pitch Shifter',
