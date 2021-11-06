@@ -449,9 +449,9 @@ class Root(Tk):
                                         command=self.open_export_menu)
         self.export_button.place(x=0, y=260)
 
-        self.current_project_name = ttk.Label(self, text='new.esp')
+        self.current_project_name = ttk.Label(self, text='untitled.esp')
         self.current_project_name.place(x=0, y=30)
-        self.project_name = 'new.esp'
+        self.project_name = 'untitled.esp'
         self.opening_project_name = None
 
         self.load_musicpy_code_button = ttk.Button(
@@ -671,8 +671,8 @@ class Root(Tk):
         self.default_load = True
 
     def open_new_project_file(self):
-        self.current_project_name.configure(text='new.esp')
-        self.project_name = 'new.esp'
+        self.current_project_name.configure(text='untitled.esp')
+        self.project_name = 'untitled.esp'
         self.opening_project_name = None
         self.clear_all_channels(1)
         self.set_musicpy_code_text.delete('1.0', END)
