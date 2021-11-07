@@ -1,3 +1,5 @@
+import traceback
+
 with open('scripts/settings.py', encoding='utf-8-sig') as f:
     exec(f.read())
 
@@ -295,6 +297,17 @@ class Root(Tk):
                                              xscrollcommand=inputs_h.set)
         inputs_v.place(x=960, y=250, height=335)
         inputs_h.place(x=150, y=585, width=810)
+
+        self.current_line_number = 1
+        self.current_column_number = 1
+        self.line_column = ttk.Label(
+            self,
+            text=
+            f'Line {self.current_line_number} Col {self.current_column_number}'
+        )
+        self.line_column.place(x=780, y=630)
+        self.get_current_line_column()
+
         self.bind('<Control-r>', lambda e: self.play_current_musicpy_code())
         self.bind('<Control-e>', lambda e: self.stop_playing())
         self.bind('<Control-w>', lambda e: self.open_project_file())
@@ -670,6 +683,17 @@ class Root(Tk):
         self.show_msg(self.language_dict['msg'][1])
         self.default_load = True
 
+    def get_current_line_column(self):
+        ind = self.set_musicpy_code_text.index(INSERT)
+        line, column = ind.split('.')
+        self.current_line_number = int(line)
+        self.current_column_number = int(column)
+        self.line_column.config(
+            text=
+            f'Line {self.current_line_number} Col {self.current_column_number}'
+        )
+        self.after(10, self.get_current_line_column)
+
     def open_new_project_file(self):
         self.current_project_name.configure(text='untitled.esp')
         self.project_name = 'untitled.esp'
@@ -701,8 +725,8 @@ class Root(Tk):
             if mode == 1:
                 self.reload_language()
         except Exception as e:
-            print(str(e))
-            output(str(e))
+            print(traceback.format_exc())
+            output(traceback.format_exc())
             current_msg = self.language_dict['msg'][2].split('|')
             self.show_msg(f'{current_msg[0]}{language}.py{current_msg[1]}')
 
@@ -1017,8 +1041,8 @@ class Root(Tk):
                 new_pitch.degree - self.current_pitch.note.degree)
             self.pitch_msg(f'{self.language_dict["msg"][45]}{new_pitch}')
         except Exception as e:
-            print(str(e))
-            output(str(e))
+            print(traceback.format_exc())
+            output(traceback.format_exc())
             self.pitch_msg(self.language_dict["msg"][40])
 
     def close_pitch_shifter_window(self):
@@ -1067,10 +1091,10 @@ class Root(Tk):
         try:
             exec(current_notes, current_globals, current_globals)
         except Exception as e:
-            print(str(e))
+            print(traceback.format_exc())
             if not global_play:
                 self.show_msg(self.language_dict["msg"][4])
-                output(str(e))
+                output(traceback.format_exc())
             return
         if 'current_chord' in current_globals:
             current_chord = current_globals['current_chord']
@@ -1114,8 +1138,8 @@ class Root(Tk):
             pygame.mixer.stop()
             play_audio(current_audio)
         except Exception as e:
-            print(str(e))
-            output(str(e))
+            print(traceback.format_exc())
+            output(traceback.format_exc())
             self.show_msg(self.language_dict['msg'][5])
 
     def make_esi_file(self):
@@ -1581,8 +1605,8 @@ class Root(Tk):
                         self.choose_channels.selection_anchor(current_ind)
                         self.choose_channels.selection_set(current_ind)
                     except Exception as e:
-                        print(str(e))
-                        output(str(e))
+                        print(traceback.format_exc())
+                        output(traceback.format_exc())
                         self.show_msg(self.language_dict["msg"][30])
         else:
             self.show_msg(self.language_dict['msg'][8])
@@ -2285,8 +2309,8 @@ class Root(Tk):
         try:
             exec(current_notes, current_globals, current_globals)
         except Exception as e:
-            print(str(e))
-            output(str(e))
+            print(traceback.format_exc())
+            output(traceback.format_exc())
             return
         if 'current_chord' in current_globals:
             current_chord = current_globals['current_chord']
@@ -2615,8 +2639,8 @@ class Root(Tk):
                     self.choose_channels.selection_anchor(current_ind)
                     self.choose_channels.selection_set(current_ind)
             except Exception as e:
-                print(str(e))
-                output(str(e))
+                print(traceback.format_exc())
+                output(traceback.format_exc())
                 self.show_msg(self.language_dict["msg"][30])
 
     def show_current_dict_configs(self):
@@ -2741,8 +2765,8 @@ class Root(Tk):
                     self.choose_channels.selection_anchor(current_ind)
                     self.choose_channels.selection_set(current_ind)
                 except Exception as e:
-                    print(str(e))
-                    output(str(e))
+                    print(traceback.format_exc())
+                    output(traceback.format_exc())
                     self.show_msg(self.language_dict["msg"][30])
 
     def bar_to_real_time(self, bar, bpm, mode=0):
@@ -2833,10 +2857,10 @@ class Root(Tk):
         try:
             exec(current_notes, current_globals, current_globals)
         except Exception as e:
-            print(str(e))
+            print(traceback.format_exc())
             if not global_play:
                 self.show_msg(self.language_dict["msg"][4])
-                output(str(e))
+                output(traceback.format_exc())
             return
         if 'current_chord' in current_globals:
             current_chord = current_globals['current_chord']
