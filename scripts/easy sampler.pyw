@@ -5,9 +5,10 @@ with open('scripts/settings.py', encoding='utf-8-sig') as f:
 
 
 class esi:
-    def __init__(self, samples, settings=None):
+    def __init__(self, samples, settings=None, name_mappings=None):
         self.samples = samples
         self.settings = settings
+        self.name_mappings = name_mappings
 
 
 class effect:
