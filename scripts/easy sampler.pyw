@@ -1191,7 +1191,7 @@ class Root(Tk):
         os.chdir(abs_path)
         return
 
-    def load_esi_file(self, current_ind=None, file_path=None):
+    def load_esi_file(self, mode=0, current_ind=None, file_path=None):
         self.show_msg('')
         if current_ind is None:
             current_ind = self.choose_channels.index(ANCHOR)
@@ -1201,18 +1201,22 @@ class Root(Tk):
 
         abs_path = os.getcwd()
         if file_path is None:
-            file_path = filedialog.askopenfilename(
-                initialdir=self.last_place,
-                title=self.language_dict['title'][7],
-                filetypes=(("Easy Sampler Instrument", "*.esi"),
-                           (self.language_dict['title'][1], "*.*")))
-            if file_path:
-                memory = file_path[:file_path.rindex('/') + 1]
-                with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
-                    f.write(memory)
-                self.last_place = memory
+            if mode == 0:
+                file_path = filedialog.askopenfilename(
+                    initialdir=self.last_place,
+                    title=self.language_dict['title'][7],
+                    filetypes=(("Easy Sampler Instrument", "*.esi"),
+                               (self.language_dict['title'][1], "*.*")))
+                if file_path:
+                    memory = file_path[:file_path.rindex('/') + 1]
+                    with open('browse memory.txt', 'w',
+                              encoding='utf-8-sig') as f:
+                        f.write(memory)
+                    self.last_place = memory
+                else:
+                    return
             else:
-                return
+                file_path = self.current_channel_sound_modules_entry.get()
 
         self.show_msg(
             f'{self.language_dict["msg"][9]}{os.path.basename(file_path)} ...')
@@ -2731,7 +2735,10 @@ class Root(Tk):
         if os.path.isdir(current_path):
             self.change_current_sound_path(1)
         elif os.path.isfile(current_path):
-            self.load_sf2_file(1)
+            if os.path.splitext(current_path)[1][1:].lower() == 'esi':
+                self.load_esi_file(1)
+            else:
+                self.load_sf2_file(1)
 
     def change_current_sound_path(self, mode=0):
         current_ind = self.choose_channels.index(ANCHOR)
