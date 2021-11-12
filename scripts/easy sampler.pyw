@@ -1191,26 +1191,28 @@ class Root(Tk):
         os.chdir(abs_path)
         return
 
-    def load_esi_file(self):
+    def load_esi_file(self, current_ind=None, file_path=None):
         self.show_msg('')
-        current_ind = self.choose_channels.index(ANCHOR)
+        if current_ind is None:
+            current_ind = self.choose_channels.index(ANCHOR)
         if current_ind >= self.channel_num or not self.channel_list_focus:
             self.show_msg(self.language_dict['msg'][8])
             return
 
         abs_path = os.getcwd()
-        file_path = filedialog.askopenfilename(
-            initialdir=self.last_place,
-            title=self.language_dict['title'][7],
-            filetypes=(("Easy Sampler Instrument", "*.esi"),
-                       (self.language_dict['title'][1], "*.*")))
-        if file_path:
-            memory = file_path[:file_path.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
-                f.write(memory)
-            self.last_place = memory
-        else:
-            return
+        if file_path is None:
+            file_path = filedialog.askopenfilename(
+                initialdir=self.last_place,
+                title=self.language_dict['title'][7],
+                filetypes=(("Easy Sampler Instrument", "*.esi"),
+                           (self.language_dict['title'][1], "*.*")))
+            if file_path:
+                memory = file_path[:file_path.rindex('/') + 1]
+                with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+                    f.write(memory)
+                self.last_place = memory
+            else:
+                return
 
         self.show_msg(
             f'{self.language_dict["msg"][9]}{os.path.basename(file_path)} ...')
@@ -1253,13 +1255,15 @@ class Root(Tk):
             for i in current_dict
         }
         self.channel_sound_modules[current_ind] = note_sounds
-
         self.channel_sound_audiosegments[current_ind] = {
             i: (result_audio[current_dict[i]]
                 if current_dict[i] in result_audio else None)
             for i in current_dict
         }
         self.channel_note_sounds_path[current_ind] = load_sounds(note_sounds)
+        self.channel_sound_modules_name[current_ind] = file_path
+        self.current_channel_sound_modules_entry.delete(0, END)
+        self.current_channel_sound_modules_entry.insert(END, file_path)
         self.show_msg(
             f'{self.language_dict["msg"][10]}{os.path.basename(file_path)}')
 
@@ -2614,7 +2618,12 @@ class Root(Tk):
         current_ind = self.current_channel_dict_num if not current_mode else current_ind
         sound_path = self.channel_sound_modules_name[current_ind]
         if os.path.isfile(sound_path):
-            self.load_sf2_file(current_ind=current_ind, sound_path=sound_path)
+            if os.path.splitext(sound_path)[1][1:].lower() == 'esi':
+                self.load_esi_file(current_ind=current_ind,
+                                   file_path=sound_path)
+            else:
+                self.load_sf2_file(current_ind=current_ind,
+                                   sound_path=sound_path)
         else:
             try:
                 self.show_msg(
