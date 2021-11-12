@@ -9,6 +9,16 @@ class esi:
         self.samples = samples
         self.settings = settings
         self.name_mappings = name_mappings
+        self.file_names = {os.path.splitext(i)[0]: i for i in self.samples}
+
+    def __getitem__(self, ind):
+        if self.name_mappings:
+            if ind in self.name_mappings:
+                return self.samples[self.name_mappings[ind]]
+        if ind in self.samples:
+            return self.samples[ind]
+        if ind in self.file_names:
+            return self.samples[self.file_names[ind]]
 
 
 class effect:
