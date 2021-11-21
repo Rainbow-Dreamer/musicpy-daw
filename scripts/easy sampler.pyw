@@ -1330,18 +1330,22 @@ class Root(Tk):
     def rightKey(self, event):
         self.menubar.tk_popup(event.x_root, event.y_root)
 
-    def open_project_file(self):
+    def open_project_file(self, filename=None):
         if not self.default_load:
             return
         self.show_msg('')
-        filename = filedialog.askopenfilename(
-            initialdir=self.last_place,
-            title=self.language_dict['title'][12],
-            filetypes=(("Easy Sampler Project",
-                        "*.esp"), (self.language_dict['title'][11], "*.txt"),
-                       (self.language_dict['title'][1], "*.*")))
+        if not filename:
+            filename = filedialog.askopenfilename(
+                initialdir=self.last_place,
+                title=self.language_dict['title'][12],
+                filetypes=(("Easy Sampler Project", "*.esp"),
+                           (self.language_dict['title'][11],
+                            "*.txt"), (self.language_dict['title'][1], "*.*")))
         if filename:
-            memory = filename[:filename.rindex('/') + 1]
+            if '/' in filename:
+                memory = filename[:filename.rindex('/') + 1]
+            else:
+                memory = filename[:filename.rindex('\\') + 1]
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
                 f.write(memory)
             self.last_place = memory
@@ -3064,6 +3068,10 @@ def open_main_window():
     root.attributes("-topmost", True)
     root.focus_force()
     root.attributes('-topmost', 0)
+    argv = sys.argv
+    if len(argv) > 1:
+        current_file = argv[1]
+        root.after(100, lambda: root.open_project_file(current_file))
     root.mainloop()
 
 
