@@ -1062,8 +1062,8 @@ class Root(Tk):
         current_channel_num = 0
         current_bpm = self.current_bpm
         current_globals = globals()
-        if 'current_chord' in current_globals:
-            del current_globals['current_chord']
+        if 'easy_sampler_current_chord' in current_globals:
+            del current_globals['easy_sampler_current_chord']
         current_codes = self.set_musicpy_code_text.get('1.0', 'end-1c')
         try:
             exec(current_codes, current_globals, current_globals)
@@ -1075,12 +1075,12 @@ class Root(Tk):
             each = lines[k]
             if each.startswith('play '):
                 find_command = True
-                lines[k] = 'current_chord = ' + each[5:]
+                lines[k] = 'easy_sampler_current_chord = ' + each[5:]
             elif each.startswith('play(') or each.startswith(
                     'export(') or each.startswith('play_midi('):
                 find_command = True
         if not find_command:
-            current_notes = f'current_chord = {current_notes}'
+            current_notes = f'easy_sampler_current_chord = {current_notes}'
         else:
             current_notes = '\n'.join(lines)
         try:
@@ -1091,8 +1091,8 @@ class Root(Tk):
                 self.show_msg(self.language_dict["msg"][4])
                 output(traceback.format_exc())
             return
-        if 'current_chord' in current_globals:
-            current_chord = current_globals['current_chord']
+        if 'easy_sampler_current_chord' in current_globals:
+            current_chord = current_globals['easy_sampler_current_chord']
         else:
             return
         if type(current_chord) == tuple:
@@ -1916,7 +1916,8 @@ class Root(Tk):
                     effects=current_chord.effects
                     if check_effect(current_chord) else None,
                     length=length,
-                    extra_length=extra_length)
+                    extra_length=extra_length,
+                    **soundfont_args)
             else:
                 apply_fadeout_obj = self.apply_fadeout(current_chord,
                                                        current_bpm)
@@ -2045,7 +2046,8 @@ class Root(Tk):
                             length=None
                             if not track_lengths else track_lengths[i],
                             extra_length=None if not track_extra_lengths else
-                            track_extra_lengths[i]),
+                            track_extra_lengths[i],
+                            **soundfont_args),
                         position=self.bar_to_real_time(current_start_times[i],
                                                        current_bpm, 1))
 
@@ -2274,20 +2276,20 @@ class Root(Tk):
         current_channel_num = 0
         current_bpm = self.current_bpm
         current_globals = globals()
-        if 'current_chord' in current_globals:
-            del current_globals['current_chord']
+        if 'easy_sampler_current_chord' in current_globals:
+            del current_globals['easy_sampler_current_chord']
         lines = current_notes.split('\n')
         find_command = False
         for k in range(len(lines)):
             each = lines[k]
             if each.startswith('play '):
                 find_command = True
-                lines[k] = 'current_chord = ' + each[5:]
+                lines[k] = 'easy_sampler_current_chord = ' + each[5:]
             elif each.startswith('play(') or each.startswith(
                     'export(') or each.startswith('play_midi('):
                 find_command = True
         if not find_command:
-            current_notes = f'current_chord = {current_notes}'
+            current_notes = f'easy_sampler_current_chord = {current_notes}'
         else:
             current_notes = '\n'.join(lines)
         try:
@@ -2296,8 +2298,8 @@ class Root(Tk):
             print(traceback.format_exc())
             output(traceback.format_exc())
             return
-        if 'current_chord' in current_globals:
-            current_chord = current_globals['current_chord']
+        if 'easy_sampler_current_chord' in current_globals:
+            current_chord = current_globals['easy_sampler_current_chord']
         else:
             return
         if type(current_chord) == tuple:
@@ -2809,21 +2811,21 @@ class Root(Tk):
         current_channel_num = 0
         current_bpm = self.current_bpm
         current_globals = globals()
-        if 'current_chord' in current_globals:
-            del current_globals['current_chord']
+        if 'easy_sampler_current_chord' in current_globals:
+            del current_globals['easy_sampler_current_chord']
         lines = current_notes.split('\n')
         find_command = False
         for k in range(len(lines)):
             each = lines[k].lstrip(' ')
             if each.startswith('play '):
                 find_command = True
-                lines[k] = 'current_chord = ' + each[5:]
+                lines[k] = 'easy_sampler_current_chord = ' + each[5:]
             elif each.startswith('play(') or each.startswith(
                     'export(') or each.startswith(
                         'play_midi(') or each.startswith('output('):
                 find_command = True
         if not find_command:
-            current_notes = f'current_chord = {current_notes}'
+            current_notes = f'easy_sampler_current_chord = {current_notes}'
         else:
             current_notes = '\n'.join(lines)
         try:
@@ -2834,8 +2836,8 @@ class Root(Tk):
                 self.show_msg(self.language_dict["msg"][4])
                 output(traceback.format_exc())
             return
-        if 'current_chord' in current_globals:
-            current_chord = current_globals['current_chord']
+        if 'easy_sampler_current_chord' in current_globals:
+            current_chord = current_globals['easy_sampler_current_chord']
         else:
             return
         if type(current_chord) == tuple:
