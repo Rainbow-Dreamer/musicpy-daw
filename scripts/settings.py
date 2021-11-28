@@ -112,7 +112,7 @@ export_fadeout_use_ratio = True
 play_audio_fadeout_time_ratio = 2
 play_audio_fadeout_time = 800
 play_fadeout_use_ratio = True
-soundfont_args = {'decay': 0, 'fixed_decay': True}
+default_soundfont_args = {'decay': 0.5, 'fixed_decay': True}
 
 background_color = 'white'
 foreground_color = 'black'

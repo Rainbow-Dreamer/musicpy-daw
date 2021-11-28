@@ -1842,7 +1842,8 @@ class Root(Tk):
                           extra_length=None,
                           track_lengths=None,
                           track_extra_lengths=None,
-                          export_args={}):
+                          export_args={},
+                          soundfont_args=None):
         if mode == 'other':
             self.ask_other_format()
             return
@@ -1882,6 +1883,8 @@ class Root(Tk):
         if action == 'export':
             self.show_msg(f'{self.language_dict["msg"][21]}{filename}')
             self.msg.update()
+        if soundfont_args is None:
+            soundfont_args = default_soundfont_args
         types = result[0]
         current_chord = result[1]
 
@@ -2017,6 +2020,13 @@ class Root(Tk):
                         current_instrument = [current_instrument[0] - 1
                                               ] + current_instrument[1:]
 
+                    whole_current_channel = copy(
+                        current_sound_modules.current_channel)
+                    current_track_channel = current_chord.channels[
+                        i] if current_chord.channels else i
+                    current_sound_modules.change_channel(
+                        current_instrument[2] if len(current_instrument) > 2
+                        else current_track_channel)
                     current_channel = copy(
                         current_sound_modules.current_channel)
                     current_sfid = copy(current_sound_modules.current_sfid)
@@ -2024,17 +2034,17 @@ class Root(Tk):
                     current_preset = copy(current_sound_modules.current_preset)
 
                     current_sound_modules.program_select(
-                        channel=(current_instrument[2]
-                                 if len(current_instrument) > 2 else None),
                         sfid=(current_instrument[3]
                               if len(current_instrument) > 3 else None),
                         bank=current_instrument[1],
                         preset=current_instrument[0])
+
                     silent_audio = silent_audio.overlay(
                         current_sound_modules.export_chord(
                             current_track,
                             bpm=current_bpm,
                             get_audio=True,
+                            channel=current_channel,
                             effects=current_track.effects
                             if check_effect(current_track) else None,
                             pan=current_pan[i],
@@ -2050,6 +2060,7 @@ class Root(Tk):
                     current_sound_modules.program_select(
                         current_channel, current_sfid, current_bank,
                         current_preset)
+                    current_sound_modules.change_channel(whole_current_channel)
                 else:
                     silent_audio = self.channel_to_audio(
                         current_tracks[i],
@@ -2247,7 +2258,7 @@ class Root(Tk):
                                             position=current_start_time)
         return silent_audio
 
-    def export_midi_file(self, current_chord=None, **write_args):
+    def export_midi_file(self, current_chord=None, write_args={}):
         self.show_msg('')
         filename = filedialog.asksaveasfilename(
             initialdir=self.last_place,
@@ -2860,7 +2871,8 @@ class Root(Tk):
                             length=None,
                             extra_length=None,
                             track_lengths=None,
-                            track_extra_lengths=None):
+                            track_extra_lengths=None,
+                            soundfont_args=None):
         if type(current_chord) == note:
             current_chord = chord([current_chord])
         elif type(current_chord) == list and all(
@@ -2877,7 +2889,8 @@ class Root(Tk):
                                        length=length,
                                        extra_length=extra_length,
                                        track_lengths=track_lengths,
-                                       track_extra_lengths=track_extra_lengths)
+                                       track_extra_lengths=track_extra_lengths,
+                                       soundfont_args=soundfont_args)
             else:
                 if current_chord.start_time == 0:
                     self.play_channel(current_chord, current_channel_num)
@@ -2910,7 +2923,8 @@ class Root(Tk):
                                        length=length,
                                        extra_length=extra_length,
                                        track_lengths=track_lengths,
-                                       track_extra_lengths=track_extra_lengths)
+                                       track_extra_lengths=track_extra_lengths,
+                                       soundfont_args=soundfont_args)
                 self.show_msg(self.language_dict["msg"][22])
                 return
             current_tracks = current_chord.tracks
@@ -3345,7 +3359,8 @@ def play(current_chord,
          length=None,
          extra_length=None,
          track_lengths=None,
-         track_extra_lengths=None):
+         track_extra_lengths=None,
+         soundfont_args=None):
     global global_play
     global_play = True
     if channel > 0:
@@ -3361,7 +3376,8 @@ def play(current_chord,
                              length=length,
                              extra_length=extra_length,
                              track_lengths=track_lengths,
-                             track_extra_lengths=track_extra_lengths)
+                             track_extra_lengths=track_extra_lengths,
+                             soundfont_args=soundfont_args)
 
 
 def export(current_chord,
@@ -3374,7 +3390,8 @@ def export(current_chord,
            track_lengths=None,
            track_extra_lengths=None,
            export_args={},
-           **write_args):
+           soundfont_args=None,
+           write_args={}):
     global global_play
     global_play = True
     if channel > 0:
@@ -3395,7 +3412,8 @@ def export(current_chord,
                                extra_length=extra_length,
                                track_lengths=track_lengths,
                                track_extra_lengths=track_extra_lengths,
-                               export_args=export_args)
+                               export_args=export_args,
+                               soundfont_args=soundfont_args)
 
 
 def output(*obj):

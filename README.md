@@ -26,7 +26,7 @@ To play or export a musicpy data structure, like note, chord, track and piece, t
 
 2. To write more complicated musicpy codes to get the resulted musicpy data structure you want to play or export, you can just write musicpy codes as usual, but you must write
    ```python
-   play [musicpy data structure], bpm, channel number
+   play [musicpy data structure], bpm, channel_number
    ```
    to set the current music object to be play or export. When you run the code, it will play the musicpy data structure, when you click the export button to export, it will export  the musicpy data structure.  
    The BPM and channel number could be omitted, if the BPM is omitted, the sampler will use default BPM, if the channel number is omitted, the sampler will use channel number 1.
@@ -44,22 +44,26 @@ To play or export a musicpy data structure, like note, chord, track and piece, t
    For the usage of `play` and `export` function, you can refer to the documentation of musicpy sampler module, I will give the link below.
    ```python
    play(current_chord,
-         bpm=None,
-         channel=1,
-         length=None,
-         extra_length=None,
-         track_lengths=None,
-         track_extra_lengths=None)
+        bpm=None,
+        channel=1,
+        length=None,
+        extra_length=None,
+        track_lengths=None,
+        track_extra_lengths=None,
+        soundfont_args=None)
    
    export(current_chord,
-           mode='wav',
-           action='export',
-           channel=1,
-           bpm=None,
-           length=None,
-           extra_length=None,
-           track_lengths=None,
-           track_extra_lengths=None)
+          mode='wav',
+          action='export',
+          channel=1,
+          bpm=None,
+          length=None,
+          extra_length=None,
+          track_lengths=None,
+          track_extra_lengths=None,
+          export_args={},
+          soundfont_args=None,
+          write_args={})
    ```
 
 The input text area can accept any python codes, so you can combine musicpy codes with any of the python codes (musicpy itself is a python package).
@@ -123,22 +127,26 @@ Update (2021/10/12): Now there is a debug window, you can open the debug window 
    如何使用`play`和`export`函数，你可以参考musicpy取样机模块的使用文档，我在下面会给链接。
    ```python
    play(current_chord,
-         bpm=None,
-         channel=1,
-         length=None,
-         extra_length=None,
-         track_lengths=None,
-         track_extra_lengths=None)
+        bpm=None,
+        channel=1,
+        length=None,
+        extra_length=None,
+        track_lengths=None,
+        track_extra_lengths=None,
+        soundfont_args=None)
    
    export(current_chord,
-           mode='wav',
-           action='export',
-           channel=1,
-           bpm=None,
-           length=None,
-           extra_length=None,
-           track_lengths=None,
-           track_extra_lengths=None)
+          mode='wav',
+          action='export',
+          channel=1,
+          bpm=None,
+          length=None,
+          extra_length=None,
+          track_lengths=None,
+          track_extra_lengths=None,
+          export_args={},
+          soundfont_args=None,
+          write_args={})
    ```
 
 输入文本区可以接受任何python代码，因此你可以将musicpy代码与任何python代码结合起来（musicpy本身就是一个python包）。
