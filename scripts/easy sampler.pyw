@@ -1401,7 +1401,7 @@ class Root(Tk):
                         get_ind=True, mode=1, return_mode=1)
                 except:
                     current_sf2.current_preset_name, current_sf2.current_preset_ind = [], []
-                current_sf2.program_select(*current_sf2_info)
+                current_sf2.change(*current_sf2_info)
         self.show_msg(self.language_dict["msg"][14])
         self.default_load = True
 
@@ -1526,12 +1526,17 @@ class Root(Tk):
             )
 
     def load_sf2_file(self, mode=0, current_ind=None, sound_path=None):
+        print(123, flush=True)
         if current_ind is None:
             current_ind = self.choose_channels.index(ANCHOR)
         if current_ind < self.channel_num and (self.channel_list_focus or
                                                (current_ind is not None)):
             self.show_msg('')
             if sound_path is not None:
+                self.show_msg(
+                    f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
+                )
+                self.msg.update()
                 current_sf2 = rs.sf2_loader(sound_path)
                 current_sf2.all_instruments_dict = current_sf2.all_instruments(
                 )
@@ -1544,6 +1549,10 @@ class Root(Tk):
                     current_sf2.current_preset_name, current_sf2.current_preset_ind = [], []
                 self.channel_sound_modules[current_ind] = current_sf2
                 self.channel_sound_modules_name[current_ind] = sound_path
+                current_msg = self.language_dict["msg"][29].split('|')
+                self.show_msg(
+                    f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
+                )
             else:
                 if mode == 0:
                     filename = filedialog.askopenfilename(
@@ -1731,7 +1740,7 @@ class Root(Tk):
         current_sf2 = self.channel_sound_modules[current_ind]
         if current_bank == current_sf2.current_bank:
             return
-        current_sf2.program_select(bank=current_bank, preset=0, correct=False)
+        current_sf2.change(bank=current_bank, preset=0, correct=False)
         try:
             current_sf2.current_preset_name, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
                 get_ind=True, mode=1, return_mode=1)
@@ -1759,7 +1768,7 @@ class Root(Tk):
         current_sf2 = self.channel_sound_modules[current_ind]
         if current_preset.isdigit():
             current_preset = int(current_preset)
-            current_sf2.program_select(preset=current_preset - 1)
+            current_sf2.change(preset=current_preset - 1)
             if current_preset - 1 in current_sf2.current_preset_ind:
                 self.preset_configs.selection_clear(0, END)
                 current_preset_ind = current_sf2.current_preset_ind.index(
@@ -2024,16 +2033,16 @@ class Root(Tk):
                         current_sound_modules.current_channel)
                     current_track_channel = current_chord.channels[
                         i] if current_chord.channels else i
-                    current_sound_modules.change_channel(
-                        current_instrument[2] if len(current_instrument) > 2
-                        else current_track_channel)
+                    current_channel = current_instrument[2] if len(
+                        current_instrument) > 2 else current_track_channel
+                    current_sound_modules.change_channel(current_channel)
                     current_channel = copy(
                         current_sound_modules.current_channel)
                     current_sfid = copy(current_sound_modules.current_sfid)
                     current_bank = copy(current_sound_modules.current_bank)
                     current_preset = copy(current_sound_modules.current_preset)
 
-                    current_sound_modules.program_select(
+                    current_sound_modules.change(
                         sfid=(current_instrument[3]
                               if len(current_instrument) > 3 else None),
                         bank=current_instrument[1],
@@ -2057,9 +2066,8 @@ class Root(Tk):
                         position=self.bar_to_real_time(current_start_times[i],
                                                        current_bpm, 1))
 
-                    current_sound_modules.program_select(
-                        current_channel, current_sfid, current_bank,
-                        current_preset)
+                    current_sound_modules.change(current_channel, current_sfid,
+                                                 current_bank, current_preset)
                     current_sound_modules.change_channel(whole_current_channel)
                 else:
                     silent_audio = self.channel_to_audio(
