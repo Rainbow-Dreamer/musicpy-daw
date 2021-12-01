@@ -1526,7 +1526,6 @@ class Root(Tk):
             )
 
     def load_sf2_file(self, mode=0, current_ind=None, sound_path=None):
-        print(123, flush=True)
         if current_ind is None:
             current_ind = self.choose_channels.index(ANCHOR)
         if current_ind < self.channel_num and (self.channel_list_focus or
@@ -1704,6 +1703,11 @@ class Root(Tk):
                     self.preset_configs.selection_clear(0, END)
                     self.preset_configs.selection_set(current_preset_ind)
                     self.preset_configs.see(current_preset_ind)
+                    self.bank_configs.selection_clear(0, END)
+                    self.bank_configs.selection_set(
+                        current_sf2.all_available_banks.index(
+                            current_sf2.current_bank))
+                    self.bank_configs.see(current_preset_ind)
                 self.change_current_bank_button = ttk.Button(
                     self.configure_sf2_file_window,
                     text=self.language_dict['configure_sf2'][3],
