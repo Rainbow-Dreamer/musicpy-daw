@@ -700,6 +700,10 @@ class Root(Tk):
         self.channel_sound_modules_name = [sound_path]
         self.channel_num = 1
         self.channel_list_focus = True
+        self.change_current_bpm_entry.delete(0, END)
+        self.change_current_bpm_entry.insert(END, '120')
+        self.change_current_bpm_entry.place(x=100, y=210)
+        self.current_bpm = 120
         self.initialize()
 
     def show_msg(self, text=''):

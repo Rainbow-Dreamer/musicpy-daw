@@ -106,12 +106,12 @@ channel = 2
 buffer = 1024
 maxinum_channels = 1000
 fadeout_time = 100
-export_audio_fadeout_time_ratio = 2
+export_audio_fadeout_time_ratio = 0.5
 export_audio_fadeout_time = 500
-export_fadeout_use_ratio = True
-play_audio_fadeout_time_ratio = 2
-play_audio_fadeout_time = 800
-play_fadeout_use_ratio = True
+export_fadeout_use_ratio = False
+play_audio_fadeout_time_ratio = 0.5
+play_audio_fadeout_time = 500
+play_fadeout_use_ratio = False
 default_soundfont_args = {'decay': 0.5, 'fixed_decay': True}
 
 background_color = 'white'
