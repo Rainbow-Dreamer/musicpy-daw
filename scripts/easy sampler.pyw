@@ -2027,7 +2027,7 @@ class Root(Tk):
                         self.msg.update()
                     current_instrument = current_chord.instruments_numbers[i]
                     current_channel = current_chord.channels[
-                        i] if current_chord.channels else 0
+                        i] if current_chord.channels else current_sound_modules.current_channel
                     current_sfid, current_bank, current_preset = current_sound_modules.channel_info(
                         current_channel)
                     if current_sfid == 0:
