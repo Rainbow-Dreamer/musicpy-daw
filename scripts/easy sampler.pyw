@@ -1106,8 +1106,6 @@ class Root(Tk):
                     current_chord, current_bpm = current_chord
                 elif length == 3:
                     current_chord, current_bpm, current_channel_num = current_chord
-                    if current_channel_num > 0:
-                        current_channel_num -= 1
                 self.change_current_bpm_entry.delete(0, END)
                 self.change_current_bpm_entry.insert(END, current_bpm)
                 self.change_current_bpm(1)
@@ -2327,8 +2325,6 @@ class Root(Tk):
                     current_chord, current_bpm = current_chord
                 elif length == 3:
                     current_chord, current_bpm, current_channel_num = current_chord
-                    if current_channel_num > 0:
-                        current_channel_num -= 1
                 self.change_current_bpm_entry.delete(0, END)
                 self.change_current_bpm_entry.insert(END, current_bpm)
                 self.change_current_bpm(1)
@@ -2865,8 +2861,6 @@ class Root(Tk):
                     current_chord, current_bpm = current_chord
                 elif length == 3:
                     current_chord, current_bpm, current_channel_num = current_chord
-                    if current_channel_num > 0:
-                        current_channel_num -= 1
                 self.change_current_bpm_entry.delete(0, END)
                 self.change_current_bpm_entry.insert(END, current_bpm)
                 self.change_current_bpm(1)
@@ -2992,13 +2986,9 @@ class Root(Tk):
             exec(f.read(), globals(), globals())
 
     def modules(self, ind):
-        if ind > 0:
-            ind -= 1
         return self.channel_sound_modules[ind]
 
     def module_names(self, ind):
-        if ind > 0:
-            ind -= 1
         return self.channel_sound_modules_name[ind]
 
     def open_debug_window(self):
@@ -3332,9 +3322,7 @@ def get_wave(sound, mode='sine', bpm=120, volume=None):
     return temp
 
 
-def audio(obj, channel_num=1):
-    if channel_num > 0:
-        channel_num -= 1
+def audio(obj, channel_num=0):
     if type(obj) == note:
         obj = chord([obj])
     elif type(obj) == track:
@@ -3366,7 +3354,7 @@ play_midi = play
 
 def play(current_chord,
          bpm=None,
-         channel=1,
+         channel=0,
          length=None,
          extra_length=None,
          track_lengths=None,
@@ -3374,8 +3362,6 @@ def play(current_chord,
          soundfont_args=None):
     global global_play
     global_play = True
-    if channel > 0:
-        channel -= 1
     if bpm is not None:
         root.change_current_bpm_entry.delete(0, END)
         root.change_current_bpm_entry.insert(END, bpm)
@@ -3394,7 +3380,7 @@ def play(current_chord,
 def export(current_chord,
            mode='wav',
            action='export',
-           channel=1,
+           channel=0,
            bpm=None,
            length=None,
            extra_length=None,
@@ -3405,8 +3391,6 @@ def export(current_chord,
            write_args={}):
     global global_play
     global_play = True
-    if channel > 0:
-        channel -= 1
     if bpm is not None:
         root.change_current_bpm_entry.delete(0, END)
         root.change_current_bpm_entry.insert(END, bpm)
