@@ -2222,7 +2222,7 @@ class Root(Tk):
                 current_position += interval
         if current_pan:
             pan_ranges = [
-                self.bar_to_real_time(i.start_time - 1, current_bpm, 1)
+                self.bar_to_real_time(i.start_time, current_bpm, 1)
                 for i in current_pan
             ]
             pan_values = [i.get_pan_value() for i in current_pan]
@@ -2241,7 +2241,7 @@ class Root(Tk):
 
         if current_volume:
             volume_ranges = [
-                self.bar_to_real_time(i.start_time - 1, current_bpm, 1)
+                self.bar_to_real_time(i.start_time, current_bpm, 1)
                 for i in current_volume
             ]
             volume_values = [
@@ -3288,34 +3288,34 @@ def get_wave(sound, mode='sine', bpm=120, volume=None):
         volume = [volume for i in range(len(temp))
                   ] if not isinstance(volume, list) else volume
         volume = [percentage_to_db(i) for i in volume]
-    for i in range(1, len(temp) + 1):
+    for i in range(len(temp)):
         current_note = temp[i]
         if isinstance(current_note, note):
             if mode == 'sine':
                 temp[i] = sine(
                     get_freq(current_note),
                     root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i - 1])
+                    volume[i])
             elif mode == 'triangle':
                 temp[i] = triangle(
                     get_freq(current_note),
                     root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i - 1])
+                    volume[i])
             elif mode == 'sawtooth':
                 temp[i] = sawtooth(
                     get_freq(current_note),
                     root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i - 1])
+                    volume[i])
             elif mode == 'square':
                 temp[i] = square(
                     get_freq(current_note),
                     root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i - 1])
+                    volume[i])
             else:
                 temp[i] = mode(
                     get_freq(current_note),
                     root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i - 1])
+                    volume[i])
     return temp
 
 
