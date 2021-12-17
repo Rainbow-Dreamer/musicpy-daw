@@ -81,9 +81,9 @@ class effect_chain:
 
 class pitch:
     def __init__(self, path, note='C5'):
-        self.note = N(note) if type(note) == str else note
+        self.note = N(note) if isinstance(note, str) else note
         audio_load = False
-        if type(path) != AudioSegment:
+        if not isinstance(path, AudioSegment):
             self.file_path = path
             current_format = path[path.rfind('.') + 1:]
             try:
@@ -109,7 +109,7 @@ class pitch:
         self.channels = self.sounds.channels
         self.sample_width = self.sounds.sample_width
         if not audio_load:
-            if type(path) != AudioSegment:
+            if not isinstance(path, AudioSegment):
                 self.audio = librosa.load(path, sr=self.sample_rate)[0]
             else:
                 os.chdir(abs_path)
@@ -145,13 +145,13 @@ class pitch:
         return self.pitch_shift(-semitones)
 
     def get(self, pitch):
-        if type(pitch) != note:
+        if not isinstance(pitch, note):
             pitch = N(pitch)
         semitones = pitch.degree - self.note.degree
         return self + semitones
 
     def set_note(self, pitch):
-        if type(pitch) != note:
+        if not isinstance(pitch, note):
             pitch = N(pitch)
         self.note = pitch
 
@@ -160,9 +160,9 @@ class pitch:
                       end='C8',
                       mode='librosa',
                       pitch_shifter=False):
-        if type(start) != note:
+        if not isinstance(start, note):
             start = N(start)
-        if type(end) != note:
+        if not isinstance(end, note):
             end = N(end)
         degree = self.note.degree
         result = {}
@@ -218,7 +218,7 @@ class pitch:
 
 class sound:
     def __init__(self, path):
-        if type(path) != AudioSegment:
+        if not isinstance(path, AudioSegment):
             current_format = path[path.rfind('.') + 1:]
             try:
                 self.sounds = AudioSegment.from_file(path,
@@ -1099,7 +1099,7 @@ class Root(Tk):
             current_chord = current_globals['easy_sampler_current_chord']
         else:
             return
-        if type(current_chord) == tuple:
+        if isinstance(current_chord, tuple):
             length = len(current_chord)
             if length > 1:
                 if length == 2:
@@ -1430,7 +1430,7 @@ class Root(Tk):
         self.project_dict['soundfont'] = {}
         for i in range(len(self.channel_sound_modules)):
             current_sound_modules = self.channel_sound_modules[i]
-            if type(current_sound_modules) == rs.sf2_loader:
+            if isinstance(current_sound_modules, rs.sf2_loader):
                 current_info = [
                     current_sound_modules.current_channel,
                     current_sound_modules.current_sfid,
@@ -1613,7 +1613,7 @@ class Root(Tk):
             current_ind = self.choose_channels.index(ANCHOR)
             if current_ind < self.channel_num and self.channel_list_focus:
                 current_sf2 = self.channel_sound_modules[current_ind]
-                if type(current_sf2) != rs.sf2_loader:
+                if not isinstance(current_sf2, rs.sf2_loader):
                     return
                 self.open_configure_sf2_file = True
                 self.configure_sf2_file_window = Toplevel(self)
@@ -1884,9 +1884,9 @@ class Root(Tk):
                 return
         if action == 'get' or (not inner):
             result = obj
-            if type(result) == chord:
+            if isinstance(result, chord):
                 result = ['chord', result, channel_num]
-            elif type(result) == piece:
+            elif isinstance(result, piece):
                 result = ['piece', result]
             else:
                 self.show_msg(self.language_dict["msg"][20])
@@ -1909,14 +1909,14 @@ class Root(Tk):
             current_chord = copy(current_chord)
             current_chord.normalize_tempo(bpm=current_bpm)
             for each in current_chord:
-                if type(each) == AudioSegment:
+                if isinstance(each, AudioSegment):
                     each.duration = self.real_time_to_bar(
                         len(each), current_bpm)
                     each.volume = 127
 
             current_sound_modules = self.channel_sound_modules[
                 current_channel_num]
-            if type(current_sound_modules) == rs.sf2_loader:
+            if isinstance(current_sound_modules, rs.sf2_loader):
                 if action == 'export':
                     current_msg = self.language_dict["msg"][27].split('|')
                     self.show_msg(
@@ -1989,7 +1989,7 @@ class Root(Tk):
             for i in range(len(current_chord.tracks)):
                 each_channel = current_chord.tracks[i]
                 for each in each_channel:
-                    if type(each) == AudioSegment:
+                    if isinstance(each, AudioSegment):
                         each.duration = self.real_time_to_bar(
                             len(each), current_bpm)
                         each.volume = 127
@@ -2016,7 +2016,7 @@ class Root(Tk):
                 current_sound_modules = self.channel_sound_modules[
                     current_channel_number]
                 current_track = current_tracks[i]
-                if type(current_sound_modules) == rs.sf2_loader:
+                if isinstance(current_sound_modules, rs.sf2_loader):
                     if action == 'export':
                         current_msg = self.language_dict["msg"][27].split('|')
                         self.show_msg(
@@ -2034,7 +2034,7 @@ class Root(Tk):
                             current_channel)
                         current_sfid, current_bank, current_preset = current_sound_modules.channel_info(
                             current_channel)
-                    if type(current_instrument) == int:
+                    if isinstance(current_instrument, int):
                         current_instrument = [
                             current_instrument - 1, current_bank
                         ]
@@ -2108,9 +2108,9 @@ class Root(Tk):
 
     def apply_fadeout(self, obj, bpm):
         temp = copy(obj)
-        if type(temp) == chord:
+        if isinstance(temp, chord):
             for each in temp.notes:
-                if type(each) != AudioSegment:
+                if not isinstance(each, AudioSegment):
                     if export_fadeout_use_ratio:
                         current_fadeout_time = each.duration * export_audio_fadeout_time_ratio
                     else:
@@ -2118,7 +2118,7 @@ class Root(Tk):
                             export_audio_fadeout_time, bpm)
                     each.duration += current_fadeout_time
             return temp
-        elif type(temp) == piece:
+        elif isinstance(temp, piece):
             temp.tracks = [
                 self.apply_fadeout(each, bpm) for each in temp.tracks
             ]
@@ -2178,19 +2178,18 @@ class Root(Tk):
                 self.msg.update()
                 counter += 1
             each = current_chord.notes[i]
-            current_type = type(each)
-            if current_type == note or current_type == AudioSegment:
+            if isinstance(each, (note, AudioSegment)):
                 interval = self.bar_to_real_time(current_intervals[i],
                                                  current_bpm, 1)
                 duration = self.bar_to_real_time(
                     current_durations[i], current_bpm,
-                    1) if type(each) != AudioSegment else len(each)
+                    1) if not isinstance(each, AudioSegment) else len(each)
                 volume = velocity_to_db(current_volumes[i])
                 current_fadeout_time = int(
                     duration * export_audio_fadeout_time_ratio
                 ) if export_fadeout_use_ratio else int(
                     export_audio_fadeout_time)
-                if type(each) == AudioSegment:
+                if isinstance(each, AudioSegment):
                     current_sound = each[:duration]
                 else:
                     each_name = str(each)
@@ -2213,7 +2212,8 @@ class Root(Tk):
                                                    each.effects,
                                                    bpm=current_bpm)
 
-                if current_fadeout_time != 0 and type(each) != AudioSegment:
+                if current_fadeout_time != 0 and not isinstance(
+                        each, AudioSegment):
                     current_sound = current_sound.fade_out(
                         duration=current_max_fadeout_time)
                 current_sound += volume
@@ -2318,7 +2318,7 @@ class Root(Tk):
             current_chord = current_globals['easy_sampler_current_chord']
         else:
             return
-        if type(current_chord) == tuple:
+        if isinstance(current_chord, tuple):
             length = len(current_chord)
             if length > 1:
                 if length == 2:
@@ -2330,14 +2330,14 @@ class Root(Tk):
                 self.change_current_bpm(1)
         elif current_chord is None:
             return
-        if type(current_chord) == note:
+        if isinstance(current_chord, note):
             current_chord = chord([current_chord])
-        elif type(current_chord) == list and all(
-                type(i) == chord for i in current_chord):
+        elif isinstance(current_chord, list) and all(
+                isinstance(i, chord) for i in current_chord):
             current_chord = concat(current_chord, mode='|')
-        if type(current_chord) == chord:
+        if isinstance(current_chord, chord):
             return 'chord', current_chord, current_channel_num
-        if type(current_chord) == track:
+        if isinstance(current_chord, track):
             has_effect = False
             if check_effect(current_chord):
                 has_effect = True
@@ -2347,7 +2347,7 @@ class Root(Tk):
                                   is not None else current_bpm)
             if has_effect:
                 current_chord.effects = current_effects
-        if type(current_chord) == piece:
+        if isinstance(current_chord, piece):
             current_bpm = current_chord.bpm
             current_start_times = current_chord.start_times
             self.change_current_bpm_entry.delete(0, END)
@@ -2854,7 +2854,7 @@ class Root(Tk):
             current_chord = current_globals['easy_sampler_current_chord']
         else:
             return
-        if type(current_chord) == tuple:
+        if isinstance(current_chord, tuple):
             length = len(current_chord)
             if length > 1:
                 if length == 2:
@@ -2878,15 +2878,15 @@ class Root(Tk):
                             track_lengths=None,
                             track_extra_lengths=None,
                             soundfont_args=None):
-        if type(current_chord) == note:
+        if isinstance(current_chord, note):
             current_chord = chord([current_chord])
-        elif type(current_chord) == list and all(
-                type(i) == chord for i in current_chord):
+        elif isinstance(current_chord, list) and all(
+                isinstance(i, chord) for i in current_chord):
             current_chord = concat(current_chord, mode='|')
-        if type(current_chord) == chord:
-            if check_special(current_chord) or type(
-                    self.channel_sound_modules[current_channel_num]
-            ) == rs.sf2_loader:
+        if isinstance(current_chord, chord):
+            if check_special(current_chord) or isinstance(
+                    self.channel_sound_modules[current_channel_num],
+                    rs.sf2_loader):
                 self.export_audio_file(action='play',
                                        channel_num=current_channel_num,
                                        obj=None if inner else current_chord,
@@ -2905,7 +2905,7 @@ class Root(Tk):
                                       start_time=bar_to_real_time(
                                           current_chord.start_time,
                                           current_bpm, 1))
-        elif type(current_chord) == track:
+        elif isinstance(current_chord, track):
             has_effect = False
             if check_effect(current_chord):
                 has_effect = True
@@ -2915,12 +2915,12 @@ class Root(Tk):
                                   if current_chord.bpm is not None else bpm)
             if has_effect:
                 current_chord.effects = current_effects
-        if type(current_chord) == piece:
+        if isinstance(current_chord, piece):
             current_channel_nums = current_chord.sampler_channels if current_chord.sampler_channels else [
                 i for i in range(len(current_chord))
             ]
             if check_special(current_chord) or any(
-                    type(self.channel_sound_modules[i]) == rs.sf2_loader
+                    isinstance(self.channel_sound_modules[i], rs.sf2_loader)
                     for i in current_channel_nums):
                 self.export_audio_file(action='play',
                                        obj=None if inner else current_chord,
@@ -2963,7 +2963,7 @@ class Root(Tk):
         current_time = start_time
         for i in range(len(current_chord)):
             each = current_chord.notes[i]
-            if type(each) == note:
+            if isinstance(each, note):
                 duration = current_durations[i]
                 volume = current_volumes[i]
                 current_id = self.after(
@@ -3089,7 +3089,7 @@ def open_main_window():
 
 
 def play_audio(audio, mode=0):
-    if type(audio) in [pitch, sound]:
+    if isinstance(audio, (pitch, sound)):
         current_audio = audio.sounds
     else:
         current_audio = audio
@@ -3178,15 +3178,14 @@ def real_time_to_bar(time, bpm):
 
 
 def check_pan_or_volume(sound):
-    return type(sound) == piece and (any(i for i in sound.pan)
-                                     or any(i for i in sound.volume))
+    return isinstance(sound, piece) and (any(i for i in sound.pan)
+                                         or any(i for i in sound.volume))
 
 
 def has_audio(sound):
-    types = type(sound)
-    if types == chord:
-        return any(type(i) == AudioSegment for i in sound.notes)
-    elif types == piece:
+    if isinstance(sound, chord):
+        return any(isinstance(i, AudioSegment) for i in sound.notes)
+    elif isinstance(sound, piece):
         return any(has_audio(i) for i in sound.tracks)
 
 
@@ -3196,15 +3195,14 @@ def check_special(sound):
 
 
 def check_effect(sound):
-    return hasattr(sound, 'effects') and type(
-        sound.effects) == list and sound.effects
+    return hasattr(sound, 'effects') and isinstance(sound.effects,
+                                                    list) and sound.effects
 
 
 def check_effect_all(sound):
-    types = type(sound)
-    if types == chord:
+    if isinstance(sound, chord):
         return check_effect(sound) or any(check_effect(i) for i in sound)
-    elif types == piece:
+    elif isinstance(sound, piece):
         return check_effect(sound) or any(
             check_effect_all(i) for i in sound.tracks)
     else:
@@ -3222,9 +3220,8 @@ def process_effect(sound, effects, **kwargs):
 def set_effect(sound, *effects):
     if len(effects) == 1:
         current_effect = effects[0]
-        types = type(current_effect)
-        if types != effect:
-            if types == effect_chain:
+        if not isinstance(current_effect, effect):
+            if isinstance(current_effect, effect_chain):
                 effects = current_effect.effects
             else:
                 effects = list(current_effect)
@@ -3251,25 +3248,25 @@ def adsr_func(sound, attack, decay, sustain, release):
 
 
 def sine(freq=440, duration=1000, volume=0):
-    if type(freq) in [str, note]:
+    if isinstance(freq, (str, note)):
         freq = get_freq(freq)
     return Sine(freq).to_audio_segment(duration, volume)
 
 
 def triangle(freq=440, duration=1000, volume=0):
-    if type(freq) in [str, note]:
+    if isinstance(freq, (str, note)):
         freq = get_freq(freq)
     return Triangle(freq).to_audio_segment(duration, volume)
 
 
 def sawtooth(freq=440, duration=1000, volume=0):
-    if type(freq) in [str, note]:
+    if isinstance(freq, (str, note)):
         freq = get_freq(freq)
     return Sawtooth(freq).to_audio_segment(duration, volume)
 
 
 def square(freq=440, duration=1000, volume=0):
-    if type(freq) in [str, note]:
+    if isinstance(freq, (str, note)):
         freq = get_freq(freq)
     return Square(freq).to_audio_segment(duration, volume)
 
@@ -3289,11 +3286,11 @@ def get_wave(sound, mode='sine', bpm=120, volume=None):
         volume = [velocity_to_db(i) for i in temp.get_volume()]
     else:
         volume = [volume for i in range(len(temp))
-                  ] if type(volume) != list else volume
+                  ] if not isinstance(volume, list) else volume
         volume = [percentage_to_db(i) for i in volume]
     for i in range(1, len(temp) + 1):
         current_note = temp[i]
-        if type(current_note) == note:
+        if isinstance(current_note, note):
             if mode == 'sine':
                 temp[i] = sine(
                     get_freq(current_note),
@@ -3323,9 +3320,9 @@ def get_wave(sound, mode='sine', bpm=120, volume=None):
 
 
 def audio(obj, channel_num=0):
-    if type(obj) == note:
+    if isinstance(obj, note):
         obj = chord([obj])
-    elif type(obj) == track:
+    elif isinstance(obj, track):
         obj = build(obj, bpm=obj.bpm, name=obj.name)
     result = root.export_audio_file(obj, action='get', channel_num=channel_num)
     return result
@@ -3334,15 +3331,12 @@ def audio(obj, channel_num=0):
 def audio_chord(audio_list, interval=0, duration=1 / 4, volume=127):
     result = chord([])
     result.notes = audio_list
-    result.interval = interval if type(interval) == list else [
-        interval for i in range(len(audio_list))
-    ]
-    durations = duration if type(duration) == list else [
-        duration for i in range(len(audio_list))
-    ]
-    volumes = volume if type(volume) == list else [
-        volume for i in range(len(audio_list))
-    ]
+    result.interval = interval if isinstance(
+        interval, list) else [interval for i in range(len(audio_list))]
+    durations = duration if isinstance(
+        duration, list) else [duration for i in range(len(audio_list))]
+    volumes = volume if isinstance(
+        volume, list) else [volume for i in range(len(audio_list))]
     for i in range(len(result.notes)):
         result.notes[i].duration = durations[i]
         result.notes[i].volume = volumes[i]
