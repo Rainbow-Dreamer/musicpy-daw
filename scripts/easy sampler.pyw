@@ -1359,6 +1359,12 @@ class Root(Tk):
                 self.set_musicpy_code_text.delete('1.0', END)
                 self.show_msg(self.language_dict["msg"][13])
                 return
+            os.chdir(os.path.dirname(filename))
+            try:
+                with open('browse memory.txt', encoding='utf-8-sig') as f:
+                    self.last_place = f.read()
+            except:
+                pass
         else:
             return
         self.default_load = False
