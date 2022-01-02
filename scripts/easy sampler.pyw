@@ -2705,9 +2705,7 @@ class Root(Tk):
             self.change_current_bpm_entry.insert(END, current_midi_file[0])
             self.change_current_bpm(1)
             self.set_musicpy_code_text.insert(
-                END,
-                f'new_midi_file = read("{filename}", mode="all", to_piece=True)\n'
-            )
+                END, f'new_midi_file = read("{filename}")\n')
             self.set_musicpy_code_text.focus_set()
             self.show_msg(self.language_dict["msg"][32])
 
