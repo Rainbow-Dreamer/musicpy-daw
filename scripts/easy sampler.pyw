@@ -1,6 +1,6 @@
 import traceback
 
-with open('scripts/settings.py', encoding='utf-8-sig') as f:
+with open('scripts/settings.py', encoding='utf-8') as f:
     exec(f.read())
 
 
@@ -475,7 +475,7 @@ class Root(Tk):
         self.load_musicpy_code_button.place(x=0, y=410)
 
         try:
-            with open('browse memory.txt', encoding='utf-8-sig') as f:
+            with open('browse memory.txt', encoding='utf-8') as f:
                 self.last_place = f.read()
         except:
             self.last_place = "."
@@ -716,7 +716,7 @@ class Root(Tk):
         os.chdir(abs_path)
         try:
             with open(f'scripts/languages/{language}.py',
-                      encoding='utf-8-sig') as f:
+                      encoding='utf-8') as f:
                 data = f.read()
             current_language_dict, self.language_dict = eval(data)
             for each in current_language_dict:
@@ -740,7 +740,7 @@ class Root(Tk):
             filetypes=((self.language_dict['title'][1], "*.*"), ))
         if file_path:
             memory = file_path[:file_path.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+            with open('browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
             current_text = self.set_musicpy_code_text.get('1.0', 'end-1c')
@@ -1001,7 +1001,7 @@ class Root(Tk):
             self.pitch_msg(self.language_dict["msg"][42])
             self.pitch_shifter_window.msg.update()
             memory = file_path[:file_path.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+            with open('browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
             self.pitch_shifter_window.load_current_pitch_label.configure(
@@ -1147,7 +1147,7 @@ class Root(Tk):
         )
         if file_path:
             memory = file_path
-            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+            with open('browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
         else:
@@ -1171,7 +1171,7 @@ class Root(Tk):
         current_settings = None
         for t in filenames:
             if os.path.splitext(t)[1] == '.txt':
-                with open(t, encoding='utf-8-sig') as f:
+                with open(t, encoding='utf-8') as f:
                     current_settings = f.read()
             else:
                 with open(t, 'rb') as f:
@@ -1202,8 +1202,7 @@ class Root(Tk):
                                (self.language_dict['title'][1], "*.*")))
                 if file_path:
                     memory = file_path[:file_path.rindex('/') + 1]
-                    with open('browse memory.txt', 'w',
-                              encoding='utf-8-sig') as f:
+                    with open('browse memory.txt', 'w', encoding='utf-8') as f:
                         f.write(memory)
                     self.last_place = memory
                 else:
@@ -1255,7 +1254,7 @@ class Root(Tk):
                        (self.language_dict['title'][1], "*.*")))
         if file_path:
             memory = file_path[:file_path.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+            with open('browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
         else:
@@ -1290,12 +1289,11 @@ class Root(Tk):
                        (self.language_dict['title'][1], "*.*")))
         if filename:
             memory = filename[:filename.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+            with open('browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
             try:
-                with open(filename, encoding='utf-8-sig',
-                          errors='ignore') as f:
+                with open(filename, encoding='utf-8', errors='ignore') as f:
                     self.set_musicpy_code_text.delete('1.0', END)
                     self.set_musicpy_code_text.insert(END, f.read())
                     self.set_musicpy_code_text.see(INSERT)
@@ -1348,12 +1346,11 @@ class Root(Tk):
                 memory = filename[:filename.rindex('/') + 1]
             else:
                 memory = filename[:filename.rindex('\\') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+            with open('browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
             try:
-                with open(filename, encoding='utf-8-sig',
-                          errors='ignore') as f:
+                with open(filename, encoding='utf-8', errors='ignore') as f:
                     self.project_dict = literal_eval(f.read())
             except:
                 self.set_musicpy_code_text.delete('1.0', END)
@@ -1361,7 +1358,7 @@ class Root(Tk):
                 return
             os.chdir(os.path.dirname(filename))
             try:
-                with open('browse memory.txt', encoding='utf-8-sig') as f:
+                with open('browse memory.txt', encoding='utf-8') as f:
                     self.last_place = f.read()
             except:
                 pass
@@ -1445,8 +1442,7 @@ class Root(Tk):
                 ]
                 self.project_dict['soundfont'][i] = current_info
         if not new and self.opening_project_name:
-            with open(self.opening_project_name, 'w',
-                      encoding='utf-8-sig') as f:
+            with open(self.opening_project_name, 'w', encoding='utf-8') as f:
                 f.write(str(self.project_dict))
             self.show_msg(self.language_dict["msg"][15])
             return
@@ -1461,10 +1457,10 @@ class Root(Tk):
             initialfile=self.language_dict['untitled'])
         if filename:
             memory = filename[:filename.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+            with open('browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
-            with open(filename, 'w', encoding='utf-8-sig') as f:
+            with open(filename, 'w', encoding='utf-8') as f:
                 f.write(str(self.project_dict))
             self.show_msg(self.language_dict["msg"][15])
             current_project_name = os.path.basename(filename)
@@ -1481,10 +1477,10 @@ class Root(Tk):
             initialfile=self.language_dict['untitled'])
         if filename:
             memory = filename[:filename.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+            with open('browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
-            with open(filename, 'w', encoding='utf-8-sig') as f:
+            with open(filename, 'w', encoding='utf-8') as f:
                 f.write(self.set_musicpy_code_text.get('1.0', 'end-1c'))
 
     def file_top_make_menu(self, mode='file'):
@@ -1510,10 +1506,10 @@ class Root(Tk):
                            (self.language_dict['title'][1], "*.*")))
             if filename:
                 memory = filename[:filename.rindex('/') + 1]
-                with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+                with open('browse memory.txt', 'w', encoding='utf-8') as f:
                     f.write(memory)
                 self.last_place = memory
-                with open(filename, encoding='utf-8-sig') as f:
+                with open(filename, encoding='utf-8') as f:
                     data = f.read()
             else:
                 return
@@ -1571,8 +1567,7 @@ class Root(Tk):
                     filename = self.current_channel_sound_modules_entry.get()
                 if filename:
                     memory = filename[:filename.rindex('/') + 1]
-                    with open('browse memory.txt', 'w',
-                              encoding='utf-8-sig') as f:
+                    with open('browse memory.txt', 'w', encoding='utf-8') as f:
                         f.write(memory)
                     self.last_place = memory
                     try:
@@ -2689,21 +2684,13 @@ class Root(Tk):
         else:
             filename = self.load_midi_file_entry.get()
         if filename:
-            try:
-                memory = filename[:filename.rindex('/') + 1]
-                current_midi_file = read(filename)
-            except:
-                self.show_msg(self.language_dict["msg"][31])
-                return
-            with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+            memory = filename[:filename.rindex('/') + 1]
+            with open('browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
             self.load_midi_file_entry.delete(0, END)
             self.load_midi_file_entry.insert(END, filename)
             self.set_musicpy_code_text.delete('1.0', END)
-            self.change_current_bpm_entry.delete(0, END)
-            self.change_current_bpm_entry.insert(END, current_midi_file[0])
-            self.change_current_bpm(1)
             self.set_musicpy_code_text.insert(
                 END, f'new_midi_file = read("{filename}")\n')
             self.set_musicpy_code_text.focus_set()
@@ -2732,7 +2719,7 @@ class Root(Tk):
                 directory = self.current_channel_sound_modules_entry.get()
             if directory:
                 memory = directory
-                with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
+                with open('browse memory.txt', 'w', encoding='utf-8') as f:
                     f.write(memory)
                 self.last_place = memory
                 try:
@@ -2986,7 +2973,7 @@ class Root(Tk):
             root2.focus_force()
             return
         os.chdir('scripts')
-        with open('change_settings.pyw', encoding='utf-8-sig') as f:
+        with open('change_settings.pyw', encoding='utf-8') as f:
             exec(f.read(), globals(), globals())
 
     def modules(self, ind):
