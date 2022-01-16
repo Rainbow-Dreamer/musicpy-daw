@@ -5,6 +5,7 @@ with open('scripts/settings.py', encoding='utf-8') as f:
 
 
 class esi:
+
     def __init__(self, samples, settings=None, name_mappings=None):
         self.samples = samples
         self.settings = settings
@@ -22,6 +23,7 @@ class esi:
 
 
 class effect:
+
     def __init__(self, func, name=None, *args, unknown_args=None, **kwargs):
         self.func = func
         if name is None:
@@ -67,6 +69,7 @@ class effect:
 
 
 class effect_chain:
+
     def __init__(self, *effects):
         self.effects = list(effects)
 
@@ -80,6 +83,7 @@ class effect_chain:
 
 
 class pitch:
+
     def __init__(self, path, note='C5'):
         self.note = N(note) if isinstance(note, str) else note
         audio_load = False
@@ -107,6 +111,8 @@ class pitch:
             self.file_path = None
         self.sample_rate = self.sounds.frame_rate
         self.channels = self.sounds.channels
+        if self.sounds.sample_width != 2:
+            self.sounds = self.sounds.set_sample_width(2)
         self.sample_width = self.sounds.sample_width
         if not audio_load:
             if not isinstance(path, AudioSegment):
@@ -217,6 +223,7 @@ class pitch:
 
 
 class sound:
+
     def __init__(self, path):
         if not isinstance(path, AudioSegment):
             current_format = path[path.rfind('.') + 1:]
@@ -236,6 +243,8 @@ class sound:
             self.file_path = None
         self.sample_rate = self.sounds.frame_rate
         self.channels = self.sounds.channels
+        if self.sounds.sample_width != 2:
+            self.sounds = self.sounds.set_sample_width(2)
         self.sample_width = self.sounds.sample_width
 
     def __len__(self):
@@ -249,6 +258,7 @@ class sound:
 
 
 class Root(Tk):
+
     def __init__(self):
         super(Root, self).__init__()
         self.title("Easy Sampler")
@@ -1219,9 +1229,9 @@ class Root(Tk):
         current_samples = current_esi.samples
         filenames = list(current_samples.keys())
         sound_files_audio = [
-            AudioSegment.from_file(BytesIO(current_samples[i]),
-                                   format=os.path.splitext(i)[1]
-                                   [1:]).set_frame_rate(44100).set_channels(2)
+            AudioSegment.from_file(
+                BytesIO(current_samples[i]), format=os.path.splitext(i)[1]
+                [1:]).set_frame_rate(44100).set_channels(2).set_sample_width(2)
             for i in filenames
         ]
         self.channel_dict[current_ind] = copy(notedict)
@@ -3033,6 +3043,7 @@ class Root(Tk):
 
 
 class start_window(Tk):
+
     def __init__(self):
         super(start_window, self).__init__()
         self.configure(bg='ivory2')
@@ -3122,14 +3133,14 @@ def load_audiosegments(current_dict, current_sound_path):
                 current_sounds[i] = AudioSegment.from_file(
                     current_sound_obj_path,
                     format=current_sound_format).set_frame_rate(
-                        44100).set_channels(2)
+                        44100).set_channels(2).set_sample_width(2)
             except:
                 with open(current_sound_obj_path, 'rb') as f:
                     current_data = f.read()
                 current_sounds[i] = AudioSegment.from_file(
                     BytesIO(current_data),
                     format=current_sound_format).set_frame_rate(
-                        44100).set_channels(2)
+                        44100).set_channels(2).set_sample_width(2)
         else:
             current_sounds[i] = None
     return current_sounds
