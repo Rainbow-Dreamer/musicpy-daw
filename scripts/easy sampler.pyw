@@ -2982,6 +2982,7 @@ class Root(Tk):
         else:
             root2.focus_force()
             return
+        os.chdir(abs_path)
         os.chdir('scripts')
         with open('change_settings.pyw', encoding='utf-8') as f:
             exec(f.read(), globals(), globals())
