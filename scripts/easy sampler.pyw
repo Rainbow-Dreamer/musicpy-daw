@@ -266,6 +266,8 @@ class Root(Tk):
         self.configure(bg=background_color)
         self.icon_image = PhotoImage(file='resources/images/easy_sampler.png')
         self.iconphoto(False, self.icon_image)
+        self.font_type = text_area_font_type
+        self.font_size = text_area_font_size
 
         self.default_load = False
 
@@ -291,15 +293,19 @@ class Root(Tk):
             text='Play Musicpy Code',
             command=self.play_current_musicpy_code)
         self.set_musicpy_code_button.place(x=0, y=310)
-        self.set_musicpy_code_text = Text(self,
-                                          width=115,
-                                          height=10,
-                                          wrap='none',
-                                          undo=True,
-                                          autoseparators=True,
-                                          maxundo=-1,
-                                          font=(font_type, font_size))
-        self.set_musicpy_code_text.place(x=150, y=250, height=335)
+        self.set_musicpy_code_text = Text(
+            self,
+            wrap='none',
+            undo=True,
+            autoseparators=True,
+            maxundo=-1,
+            font=(text_area_font_type, text_area_font_size),
+            bg=text_area_background_color,
+            fg=text_area_foreground_color,
+            insertbackground=text_area_cursor_color)
+        self.set_musicpy_code_text.bind('<Control-MouseWheel>',
+                                        lambda e: self.change_font_size(e))
+        self.set_musicpy_code_text.place(x=150, y=250, height=335, width=810)
         inputs_v = ttk.Scrollbar(self,
                                  orient="vertical",
                                  command=self.set_musicpy_code_text.yview)
@@ -698,6 +704,14 @@ class Root(Tk):
             f'Line {self.current_line_number} Col {self.current_column_number}'
         )
         self.after(10, self.get_current_line_column)
+
+    def change_font_size(self, e):
+        num = e.delta // 120
+        self.font_size += num
+        if self.font_size < 1:
+            self.font_size = 1
+        self.set_musicpy_code_text.configure(font=(self.font_type,
+                                                   self.font_size))
 
     def open_new_project_file(self):
         self.current_project_name.configure(text='untitled.esp')
@@ -3013,15 +3027,20 @@ class Root(Tk):
             self.debug_window.title(self.language_dict['debug window'])
             self.debug_window.minsize(700, 400)
             self.debug_window.focus_set()
-            self.debug_window.output_text = Text(self.debug_window,
-                                                 width=87,
-                                                 height=20,
-                                                 wrap='none',
-                                                 undo=True,
-                                                 autoseparators=True,
-                                                 maxundo=-1,
-                                                 font=(font_type, font_size))
-            self.debug_window.output_text.place(x=20, y=20)
+            self.debug_window.output_text = Text(
+                self.debug_window,
+                wrap='none',
+                undo=True,
+                autoseparators=True,
+                maxundo=-1,
+                font=(text_area_font_type, text_area_font_size),
+                bg=text_area_background_color,
+                fg=text_area_foreground_color,
+                insertbackground=text_area_cursor_color)
+            self.debug_window.output_text.place(x=20,
+                                                y=20,
+                                                width=612,
+                                                height=285)
             self.debug_window.clear_text_button = ttk.Button(
                 self.debug_window,
                 text=self.language_dict['debug clear'],
