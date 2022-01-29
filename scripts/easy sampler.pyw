@@ -324,7 +324,7 @@ class Root(Tk):
             text=
             f'Line {self.current_line_number} Col {self.current_column_number}'
         )
-        self.line_column.place(x=780, y=630)
+        self.line_column.place(x=780, y=610)
         self.get_current_line_column()
 
         self.bind('<Control-r>', lambda e: self.play_current_musicpy_code())
@@ -656,7 +656,7 @@ class Root(Tk):
 
         os.chdir(abs_path)
         current_languages = [
-            i[:i.rfind('.')] for i in os.listdir('scripts/languages')
+            os.path.splitext(i)[0] for i in os.listdir('scripts/languages')
         ]
         for each in current_languages:
             self.change_languages_menu.add_command(
@@ -665,6 +665,25 @@ class Root(Tk):
 
         self.options_menu.add_cascade(label=self.language_dict['option'][2],
                                       menu=self.change_languages_menu)
+
+        self.change_skin_menu = Menu(
+            self,
+            tearoff=False,
+            bg=background_color,
+            activebackground=active_background_color,
+            activeforeground=active_foreground_color,
+            disabledforeground=disabled_foreground_color,
+            font=(font_type, font_size))
+
+        current_skins = [
+            os.path.splitext(i)[0] for i in os.listdir('scripts/skins')
+        ]
+        for each in current_skins:
+            self.change_skin_menu.add_command(
+                label=each, command=lambda each=each: self.change_skin(each))
+
+        self.options_menu.add_cascade(label=self.language_dict['option'][3],
+                                      menu=self.change_skin_menu)
 
         self.file_top_options.place(x=82, y=0)
 
@@ -3060,6 +3079,36 @@ class Root(Tk):
                 xscrollcommand=debug_inputs_h.set)
             debug_inputs_v.place(x=632, y=20, height=285)
             debug_inputs_h.place(x=20, y=305, width=612)
+
+    def change_skin(self, skin):
+        os.chdir(abs_path)
+        with open(f'scripts/skins/{skin}.skin') as f:
+            data = f.read()
+        exec(data, globals(), globals())
+
+        self.configure(bg=background_color)
+        style = ttk.Style()
+        style.theme_use('alt')
+        style.configure('TButton',
+                        font=(font_type, font_size),
+                        background=button_background_color,
+                        foreground=foreground_color,
+                        borderwidth=0,
+                        focusthickness=3,
+                        focuscolor='none')
+        style.configure('TLabel',
+                        background=background_color,
+                        foreground=foreground_color,
+                        font=(font_type, font_size))
+        style.map('TButton',
+                  background=[('active', active_background_color)],
+                  foreground=[('active', active_foreground_color)])
+        self.set_musicpy_code_text.configure(
+            bg=text_area_background_color,
+            fg=text_area_foreground_color,
+            insertbackground=text_area_cursor_color)
+
+        self.initialize_menu()
 
 
 class start_window(Tk):

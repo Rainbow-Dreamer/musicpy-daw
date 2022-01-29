@@ -43,7 +43,10 @@
         'Open', 'Save', 'Import MIDI file', 'Save musicpy code',
         'Import musicpy code', 'Export', 'Save as', 'New'
     ],
-    'option': ['Change settings', 'Change channel dict', 'Change Language'],
+    'option': [
+        'Change settings', 'Change channel dict', 'Change Language',
+        'Change Skin'
+    ],
     'tool': [
         'Make ESI file', 'Import ESI file', 'Unzip ESI file',
         'Load sound as pitch', 'Pitch shifter'
