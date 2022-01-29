@@ -387,7 +387,7 @@ class Root(Tk):
         self.is_open_debug_window = False
 
         self.choose_channels_bar = Scrollbar(self)
-        self.choose_channels_bar.place(x=227, y=125, height=125, anchor=CENTER)
+        self.choose_channels_bar.place(x=227, y=124, height=125, anchor=CENTER)
         self.choose_channels = Listbox(
             self,
             yscrollcommand=self.choose_channels_bar.set,
@@ -533,28 +533,28 @@ class Root(Tk):
                             font=(font_type, font_size))
         self.menubar.add_command(label=self.language_dict['right key'][0],
                                  command=self.cut,
-                                 foreground=foreground_color)
+                                 foreground=label_foreground_color)
         self.menubar.add_command(label=self.language_dict['right key'][1],
                                  command=self.copy,
-                                 foreground=foreground_color)
+                                 foreground=label_foreground_color)
         self.menubar.add_command(label=self.language_dict['right key'][2],
                                  command=self.paste,
-                                 foreground=foreground_color)
+                                 foreground=label_foreground_color)
         self.menubar.add_command(label=self.language_dict['right key'][3],
                                  command=self.choose_all,
-                                 foreground=foreground_color)
+                                 foreground=label_foreground_color)
         self.menubar.add_command(label=self.language_dict['right key'][4],
                                  command=self.inputs_undo,
-                                 foreground=foreground_color)
+                                 foreground=label_foreground_color)
         self.menubar.add_command(label=self.language_dict['right key'][5],
                                  command=self.inputs_redo,
-                                 foreground=foreground_color)
+                                 foreground=label_foreground_color)
         self.menubar.add_command(label=self.language_dict['right key'][6],
                                  command=self.save_current_musicpy_code,
-                                 foreground=foreground_color)
+                                 foreground=label_foreground_color)
         self.menubar.add_command(label=self.language_dict['right key'][7],
                                  command=self.load_musicpy_code,
-                                 foreground=foreground_color)
+                                 foreground=label_foreground_color)
 
         self.export_menubar = Menu(
             self,
@@ -576,36 +576,42 @@ class Root(Tk):
 
         self.menubar.add_cascade(label=self.language_dict['right key'][8],
                                  menu=self.export_menubar,
-                                 foreground=foreground_color)
+                                 foreground=label_foreground_color)
 
         self.menubar.add_command(
             label=self.language_dict['right key'][9],
             command=lambda: self.play_selected_musicpy_code(),
-            foreground=foreground_color)
+            foreground=label_foreground_color)
 
         self.menubar.add_command(label=self.language_dict['right key'][10],
                                  command=lambda: self.play_selected_audio(),
-                                 foreground=foreground_color)
+                                 foreground=label_foreground_color)
 
         self.export_audio_file_menubar.add_command(
             label=self.language_dict['export audio formats'][0],
-            command=lambda: self.export_audio_file(mode='wav'))
+            command=lambda: self.export_audio_file(mode='wav'),
+            foreground=label_foreground_color)
         self.export_audio_file_menubar.add_command(
             label=self.language_dict['export audio formats'][1],
-            command=lambda: self.export_audio_file(mode='mp3'))
+            command=lambda: self.export_audio_file(mode='mp3'),
+            foreground=label_foreground_color)
         self.export_audio_file_menubar.add_command(
             label=self.language_dict['export audio formats'][2],
-            command=lambda: self.export_audio_file(mode='ogg'))
+            command=lambda: self.export_audio_file(mode='ogg'),
+            foreground=label_foreground_color)
         self.export_audio_file_menubar.add_command(
             label=self.language_dict['export audio formats'][3],
-            command=lambda: self.export_audio_file(mode='other'))
+            command=lambda: self.export_audio_file(mode='other'),
+            foreground=label_foreground_color)
 
         self.export_menubar.add_cascade(
             label=self.language_dict['export audio formats'][4],
-            menu=self.export_audio_file_menubar)
+            menu=self.export_audio_file_menubar,
+            foreground=label_foreground_color)
         self.export_menubar.add_command(
             label=self.language_dict['export audio formats'][5],
-            command=self.export_midi_file)
+            command=self.export_midi_file,
+            foreground=label_foreground_color)
 
         self.file_menu = Menu(self,
                               tearoff=False,
@@ -615,22 +621,30 @@ class Root(Tk):
                               disabledforeground=disabled_foreground_color,
                               font=(font_type, font_size))
         self.file_menu.add_command(label=self.language_dict['file'][7],
-                                   command=self.open_new_project_file)
+                                   command=self.open_new_project_file,
+                                   foreground=label_foreground_color)
         self.file_menu.add_command(label=self.language_dict['file'][0],
-                                   command=self.open_project_file)
+                                   command=self.open_project_file,
+                                   foreground=label_foreground_color)
         self.file_menu.add_command(label=self.language_dict['file'][1],
-                                   command=self.save_as_project_file)
+                                   command=self.save_as_project_file,
+                                   foreground=label_foreground_color)
         self.file_menu.add_command(
             label=self.language_dict['file'][6],
-            command=lambda: self.save_as_project_file(new=True))
+            command=lambda: self.save_as_project_file(new=True),
+            foreground=label_foreground_color)
         self.file_menu.add_command(label=self.language_dict['file'][2],
-                                   command=self.load_midi_file_func)
+                                   command=self.load_midi_file_func,
+                                   foreground=label_foreground_color)
         self.file_menu.add_command(label=self.language_dict['file'][3],
-                                   command=self.save_current_musicpy_code)
+                                   command=self.save_current_musicpy_code,
+                                   foreground=label_foreground_color)
         self.file_menu.add_command(label=self.language_dict['file'][4],
-                                   command=self.load_musicpy_code)
+                                   command=self.load_musicpy_code,
+                                   foreground=label_foreground_color)
         self.file_menu.add_cascade(label=self.language_dict['file'][5],
-                                   menu=self.export_menubar)
+                                   menu=self.export_menubar,
+                                   foreground=label_foreground_color)
         self.file_top.place(x=0, y=0)
 
         self.options_menu = Menu(self,
@@ -641,9 +655,11 @@ class Root(Tk):
                                  disabledforeground=disabled_foreground_color,
                                  font=(font_type, font_size))
         self.options_menu.add_command(label=self.language_dict['option'][0],
-                                      command=self.open_change_settings)
+                                      command=self.open_change_settings,
+                                      foreground=label_foreground_color)
         self.options_menu.add_command(label=self.language_dict['option'][1],
-                                      command=self.change_channel_dict)
+                                      command=self.change_channel_dict,
+                                      foreground=label_foreground_color)
 
         self.change_languages_menu = Menu(
             self,
@@ -661,10 +677,12 @@ class Root(Tk):
         for each in current_languages:
             self.change_languages_menu.add_command(
                 label=each,
-                command=lambda each=each: self.change_language(each, 1))
+                command=lambda each=each: self.change_language(each, 1),
+                foreground=label_foreground_color)
 
         self.options_menu.add_cascade(label=self.language_dict['option'][2],
-                                      menu=self.change_languages_menu)
+                                      menu=self.change_languages_menu,
+                                      foreground=label_foreground_color)
 
         self.change_skin_menu = Menu(
             self,
@@ -680,10 +698,13 @@ class Root(Tk):
         ]
         for each in current_skins:
             self.change_skin_menu.add_command(
-                label=each, command=lambda each=each: self.change_skin(each))
+                label=each,
+                command=lambda each=each: self.change_skin(each),
+                foreground=label_foreground_color)
 
         self.options_menu.add_cascade(label=self.language_dict['option'][3],
-                                      menu=self.change_skin_menu)
+                                      menu=self.change_skin_menu,
+                                      foreground=label_foreground_color)
 
         self.file_top_options.place(x=82, y=0)
 
@@ -695,15 +716,20 @@ class Root(Tk):
                                disabledforeground=active_foreground_color,
                                font=(font_type, font_size))
         self.tools_menu.add_command(label=self.language_dict['tool'][0],
-                                    command=self.make_esi_file)
+                                    command=self.make_esi_file,
+                                    foreground=label_foreground_color)
         self.tools_menu.add_command(label=self.language_dict['tool'][1],
-                                    command=self.load_esi_file)
+                                    command=self.load_esi_file,
+                                    foreground=label_foreground_color)
         self.tools_menu.add_command(label=self.language_dict['tool'][2],
-                                    command=self.unzip_esi_file)
+                                    command=self.unzip_esi_file,
+                                    foreground=label_foreground_color)
         self.tools_menu.add_command(label=self.language_dict['tool'][3],
-                                    command=self.load_sound_as_pitch)
+                                    command=self.load_sound_as_pitch,
+                                    foreground=label_foreground_color)
         self.tools_menu.add_command(label=self.language_dict['tool'][4],
-                                    command=self.open_pitch_shifter)
+                                    command=self.open_pitch_shifter,
+                                    foreground=label_foreground_color)
         self.file_top_tools.place(x=164, y=0)
 
     def initialize(self):
@@ -3098,7 +3124,7 @@ class Root(Tk):
                         focuscolor='none')
         style.configure('TLabel',
                         background=background_color,
-                        foreground=foreground_color,
+                        foreground=label_foreground_color,
                         font=(font_type, font_size))
         style.map('TButton',
                   background=[('active', active_background_color)],
