@@ -263,6 +263,15 @@ class Root(Tk):
         super(Root, self).__init__()
         self.title("Easy Sampler")
         self.minsize(1100, 670)
+
+        try:
+            with open('current_skin.txt', encoding='utf-8') as f:
+                current_skin = f.read()
+            self.init_skin(current_skin)
+        except:
+            current_skin = 'default'
+            self.init_skin(current_skin)
+
         self.configure(bg=background_color)
         self.icon_image = PhotoImage(file='resources/images/easy_sampler.png')
         self.iconphoto(False, self.icon_image)
@@ -3106,6 +3115,12 @@ class Root(Tk):
             debug_inputs_v.place(x=632, y=20, height=285)
             debug_inputs_h.place(x=20, y=305, width=612)
 
+    def init_skin(self, skin):
+        os.chdir(abs_path)
+        with open(f'scripts/skins/{skin}.skin') as f:
+            data = f.read()
+        exec(data, globals(), globals())
+
     def change_skin(self, skin):
         os.chdir(abs_path)
         with open(f'scripts/skins/{skin}.skin') as f:
@@ -3135,6 +3150,9 @@ class Root(Tk):
             insertbackground=text_area_cursor_color)
 
         self.initialize_menu()
+
+        with open('current_skin.txt', 'w', encoding='utf-8') as f:
+            f.write(skin)
 
 
 class start_window(Tk):
