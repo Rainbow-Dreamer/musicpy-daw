@@ -265,7 +265,7 @@ class Root(Tk):
         self.minsize(1100, 670)
 
         try:
-            with open('current_skin.txt', encoding='utf-8') as f:
+            with open('config/current_skin.txt', encoding='utf-8') as f:
                 current_skin = f.read()
             self.init_skin(current_skin)
         except:
@@ -500,7 +500,7 @@ class Root(Tk):
         self.load_musicpy_code_button.place(x=0, y=410)
 
         try:
-            with open('browse memory.txt', encoding='utf-8') as f:
+            with open('config/browse memory.txt', encoding='utf-8') as f:
                 self.last_place = f.read()
         except:
             self.last_place = "."
@@ -818,7 +818,7 @@ class Root(Tk):
             filetypes=((self.language_dict['title'][1], "*.*"), ))
         if file_path:
             memory = file_path[:file_path.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
+            with open('config/browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
             current_text = self.set_musicpy_code_text.get('1.0', 'end-1c')
@@ -1079,7 +1079,7 @@ class Root(Tk):
             self.pitch_msg(self.language_dict["msg"][42])
             self.pitch_shifter_window.msg.update()
             memory = file_path[:file_path.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
+            with open('config/browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
             self.pitch_shifter_window.load_current_pitch_label.configure(
@@ -1225,7 +1225,7 @@ class Root(Tk):
         )
         if file_path:
             memory = file_path
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
+            with open('config/browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
         else:
@@ -1280,7 +1280,9 @@ class Root(Tk):
                                (self.language_dict['title'][1], "*.*")))
                 if file_path:
                     memory = file_path[:file_path.rindex('/') + 1]
-                    with open('browse memory.txt', 'w', encoding='utf-8') as f:
+                    with open('config/browse memory.txt',
+                              'w',
+                              encoding='utf-8') as f:
                         f.write(memory)
                     self.last_place = memory
                 else:
@@ -1332,7 +1334,7 @@ class Root(Tk):
                        (self.language_dict['title'][1], "*.*")))
         if file_path:
             memory = file_path[:file_path.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
+            with open('config/browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
         else:
@@ -1367,7 +1369,7 @@ class Root(Tk):
                        (self.language_dict['title'][1], "*.*")))
         if filename:
             memory = filename[:filename.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
+            with open('config/browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
             try:
@@ -1424,7 +1426,7 @@ class Root(Tk):
                 memory = filename[:filename.rindex('/') + 1]
             else:
                 memory = filename[:filename.rindex('\\') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
+            with open('config/browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
             try:
@@ -1436,7 +1438,7 @@ class Root(Tk):
                 return
             os.chdir(os.path.dirname(filename))
             try:
-                with open('browse memory.txt', encoding='utf-8') as f:
+                with open('config/browse memory.txt', encoding='utf-8') as f:
                     self.last_place = f.read()
             except:
                 pass
@@ -1535,7 +1537,7 @@ class Root(Tk):
             initialfile=self.language_dict['untitled'])
         if filename:
             memory = filename[:filename.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
+            with open('config/browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
             with open(filename, 'w', encoding='utf-8') as f:
@@ -1555,7 +1557,7 @@ class Root(Tk):
             initialfile=self.language_dict['untitled'])
         if filename:
             memory = filename[:filename.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
+            with open('config/browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
             with open(filename, 'w', encoding='utf-8') as f:
@@ -1584,7 +1586,8 @@ class Root(Tk):
                            (self.language_dict['title'][1], "*.*")))
             if filename:
                 memory = filename[:filename.rindex('/') + 1]
-                with open('browse memory.txt', 'w', encoding='utf-8') as f:
+                with open('config/browse memory.txt', 'w',
+                          encoding='utf-8') as f:
                     f.write(memory)
                 self.last_place = memory
                 with open(filename, encoding='utf-8') as f:
@@ -1645,7 +1648,9 @@ class Root(Tk):
                     filename = self.current_channel_sound_modules_entry.get()
                 if filename:
                     memory = filename[:filename.rindex('/') + 1]
-                    with open('browse memory.txt', 'w', encoding='utf-8') as f:
+                    with open('config/browse memory.txt',
+                              'w',
+                              encoding='utf-8') as f:
                         f.write(memory)
                     self.last_place = memory
                     try:
@@ -2763,7 +2768,7 @@ class Root(Tk):
             filename = self.load_midi_file_entry.get()
         if filename:
             memory = filename[:filename.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
+            with open('config/browse memory.txt', 'w', encoding='utf-8') as f:
                 f.write(memory)
             self.last_place = memory
             self.load_midi_file_entry.delete(0, END)
@@ -2797,7 +2802,8 @@ class Root(Tk):
                 directory = self.current_channel_sound_modules_entry.get()
             if directory:
                 memory = directory
-                with open('browse memory.txt', 'w', encoding='utf-8') as f:
+                with open('config/browse memory.txt', 'w',
+                          encoding='utf-8') as f:
                     f.write(memory)
                 self.last_place = memory
                 try:
@@ -3151,7 +3157,7 @@ class Root(Tk):
 
         self.initialize_menu()
 
-        with open('current_skin.txt', 'w', encoding='utf-8') as f:
+        with open('config/current_skin.txt', 'w', encoding='utf-8') as f:
             f.write(skin)
 
 
