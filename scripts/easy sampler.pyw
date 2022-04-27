@@ -499,12 +499,6 @@ class Root(Tk):
             self, text='Import musicpy code', command=self.load_musicpy_code)
         self.load_musicpy_code_button.place(x=0, y=410)
 
-        try:
-            with open('browse memory.txt', encoding='utf-8') as f:
-                self.last_place = f.read()
-        except:
-            self.last_place = "."
-
         self.file_top = ttk.Button(
             self,
             text='File',
@@ -813,14 +807,9 @@ class Root(Tk):
 
     def load_sound_as_pitch(self):
         file_path = filedialog.askopenfilename(
-            initialdir=self.last_place,
             title=self.language_dict['title'][0],
             filetypes=((self.language_dict['title'][1], "*.*"), ))
         if file_path:
-            memory = file_path[:file_path.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
-                f.write(memory)
-            self.last_place = memory
             current_text = self.set_musicpy_code_text.get('1.0', 'end-1c')
             if current_text[current_text.rfind('\n') + 1:]:
                 self.set_musicpy_code_text.insert(
@@ -981,7 +970,6 @@ class Root(Tk):
             return
         file_path = file_path = filedialog.askdirectory(
             parent=self.pitch_shifter_window,
-            initialdir=self.last_place,
             title=self.language_dict['title'][2],
         )
         if not file_path:
@@ -1051,7 +1039,6 @@ class Root(Tk):
             return
         filename = filedialog.asksaveasfilename(
             parent=self.pitch_shifter_window,
-            initialdir=self.last_place,
             title=self.language_dict['title'][3],
             filetypes=((self.language_dict['title'][1], "*.*"), ),
             defaultextension=f".{mode}",
@@ -1071,17 +1058,12 @@ class Root(Tk):
 
     def pitch_shifter_load_pitch(self):
         file_path = filedialog.askopenfilename(
-            initialdir=self.last_place,
             parent=self.pitch_shifter_window,
             title=self.language_dict['title'][0],
             filetypes=((self.language_dict['title'][1], "*.*"), ))
         if file_path:
             self.pitch_msg(self.language_dict["msg"][42])
             self.pitch_shifter_window.msg.update()
-            memory = file_path[:file_path.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
-                f.write(memory)
-            self.last_place = memory
             self.pitch_shifter_window.load_current_pitch_label.configure(
                 text=f'{self.language_dict["pitch shifter"][1]}{file_path}')
 
@@ -1220,20 +1202,11 @@ class Root(Tk):
     def make_esi_file(self):
         self.show_msg('')
         file_path = filedialog.askdirectory(
-            initialdir=self.last_place,
-            title=self.language_dict['title'][5],
-        )
-        if file_path:
-            memory = file_path
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
-                f.write(memory)
-            self.last_place = memory
-        else:
+            title=self.language_dict['title'][5], )
+        if not file_path:
             return
         export_path = filedialog.askdirectory(
-            initialdir=self.last_place,
-            title=self.language_dict['title'][6],
-        )
+            title=self.language_dict['title'][6], )
         if not export_path:
             return
         abs_path = os.getcwd()
@@ -1274,16 +1247,10 @@ class Root(Tk):
         if file_path is None:
             if mode == 0:
                 file_path = filedialog.askopenfilename(
-                    initialdir=self.last_place,
                     title=self.language_dict['title'][7],
                     filetypes=(("Easy Sampler Instrument", "*.esi"),
                                (self.language_dict['title'][1], "*.*")))
-                if file_path:
-                    memory = file_path[:file_path.rindex('/') + 1]
-                    with open('browse memory.txt', 'w', encoding='utf-8') as f:
-                        f.write(memory)
-                    self.last_place = memory
-                else:
+                if not file_path:
                     return
             else:
                 file_path = self.current_channel_sound_modules_entry.get()
@@ -1326,22 +1293,14 @@ class Root(Tk):
         self.show_msg('')
         abs_path = os.getcwd()
         file_path = filedialog.askopenfilename(
-            initialdir=self.last_place,
             title=self.language_dict['title'][7],
             filetypes=(("Easy Sampler Instrument", "*.esi"),
                        (self.language_dict['title'][1], "*.*")))
-        if file_path:
-            memory = file_path[:file_path.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
-                f.write(memory)
-            self.last_place = memory
-        else:
+        if not file_path:
             return
 
         export_path = filedialog.askdirectory(
-            initialdir=self.last_place,
-            title=self.language_dict['title'][9],
-        )
+            title=self.language_dict['title'][9], )
         if export_path:
             os.chdir(export_path)
         folder_name = os.path.basename(file_path)
@@ -1361,15 +1320,10 @@ class Root(Tk):
 
     def load_musicpy_code(self):
         filename = filedialog.askopenfilename(
-            initialdir=self.last_place,
             title=self.language_dict['title'][10],
             filetypes=((self.language_dict['title'][11], "*.txt"),
                        (self.language_dict['title'][1], "*.*")))
         if filename:
-            memory = filename[:filename.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
-                f.write(memory)
-            self.last_place = memory
             try:
                 with open(filename, encoding='utf-8', errors='ignore') as f:
                     self.set_musicpy_code_text.delete('1.0', END)
@@ -1414,19 +1368,11 @@ class Root(Tk):
         self.show_msg('')
         if not filename:
             filename = filedialog.askopenfilename(
-                initialdir=self.last_place,
                 title=self.language_dict['title'][12],
                 filetypes=(("Easy Sampler Project", "*.esp"),
                            (self.language_dict['title'][11],
                             "*.txt"), (self.language_dict['title'][1], "*.*")))
         if filename:
-            if '/' in filename:
-                memory = filename[:filename.rindex('/') + 1]
-            else:
-                memory = filename[:filename.rindex('\\') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
-                f.write(memory)
-            self.last_place = memory
             try:
                 with open(filename, encoding='utf-8', errors='ignore') as f:
                     self.project_dict = literal_eval(f.read())
@@ -1435,11 +1381,6 @@ class Root(Tk):
                 self.show_msg(self.language_dict["msg"][13])
                 return
             os.chdir(os.path.dirname(filename))
-            try:
-                with open('browse memory.txt', encoding='utf-8') as f:
-                    self.last_place = f.read()
-            except:
-                pass
         else:
             return
         self.default_load = False
@@ -1525,7 +1466,6 @@ class Root(Tk):
             self.show_msg(self.language_dict["msg"][15])
             return
         filename = filedialog.asksaveasfilename(
-            initialdir=self.last_place,
             title=self.language_dict['title'][13]
             if new else self.language_dict['title'][20],
             filetypes=(("Easy Sampler Project",
@@ -1534,10 +1474,6 @@ class Root(Tk):
             defaultextension=f".esp",
             initialfile=self.language_dict['untitled'])
         if filename:
-            memory = filename[:filename.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
-                f.write(memory)
-            self.last_place = memory
             with open(filename, 'w', encoding='utf-8') as f:
                 f.write(str(self.project_dict))
             self.show_msg(self.language_dict["msg"][15])
@@ -1548,16 +1484,11 @@ class Root(Tk):
 
     def save_current_musicpy_code(self):
         filename = filedialog.asksaveasfilename(
-            initialdir=self.last_place,
             title=self.language_dict['title'][14],
             filetypes=((self.language_dict['title'][1], "*.*"), ),
             defaultextension=f".txt",
             initialfile=self.language_dict['untitled'])
         if filename:
-            memory = filename[:filename.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
-                f.write(memory)
-            self.last_place = memory
             with open(filename, 'w', encoding='utf-8') as f:
                 f.write(self.set_musicpy_code_text.get('1.0', 'end-1c'))
 
@@ -1578,15 +1509,10 @@ class Root(Tk):
             return
         if text is None:
             filename = filedialog.askopenfilename(
-                initialdir=self.last_place,
                 title=self.language_dict['title'][15],
                 filetypes=((self.language_dict['title'][11], "*.txt"),
                            (self.language_dict['title'][1], "*.*")))
             if filename:
-                memory = filename[:filename.rindex('/') + 1]
-                with open('browse memory.txt', 'w', encoding='utf-8') as f:
-                    f.write(memory)
-                self.last_place = memory
                 with open(filename, encoding='utf-8') as f:
                     data = f.read()
             else:
@@ -1637,17 +1563,12 @@ class Root(Tk):
             else:
                 if mode == 0:
                     filename = filedialog.askopenfilename(
-                        initialdir=self.last_place,
                         title=self.language_dict['title'][19],
                         filetypes=(("Soundfont", ["*.sf2", "*.sf3", "*.dls"]),
                                    (self.language_dict['title'][1], "*.*")))
                 else:
                     filename = self.current_channel_sound_modules_entry.get()
                 if filename:
-                    memory = filename[:filename.rindex('/') + 1]
-                    with open('browse memory.txt', 'w', encoding='utf-8') as f:
-                        f.write(memory)
-                    self.last_place = memory
                     try:
                         self.show_msg(
                             f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
@@ -1954,7 +1875,6 @@ class Root(Tk):
                 return
         if action == 'export':
             filename = filedialog.asksaveasfilename(
-                initialdir=self.last_place,
                 title=self.language_dict['title'][3],
                 filetypes=((self.language_dict['title'][1], "*.*"), ),
                 defaultextension=f".{mode}",
@@ -2349,7 +2269,6 @@ class Root(Tk):
     def export_midi_file(self, current_chord=None, write_args={}):
         self.show_msg('')
         filename = filedialog.asksaveasfilename(
-            initialdir=self.last_place,
             title=self.language_dict['title'][17],
             filetypes=((self.language_dict['title'][1], "*.*"), ),
             defaultextension=f".mid",
@@ -2755,17 +2674,12 @@ class Root(Tk):
         self.show_msg('')
         if mode == 0:
             filename = filedialog.askopenfilename(
-                initialdir=self.last_place,
                 title=self.language_dict['title'][18],
                 filetypes=(("MIDI", "*.mid"), (self.language_dict['title'][1],
                                                "*.*")))
         else:
             filename = self.load_midi_file_entry.get()
         if filename:
-            memory = filename[:filename.rindex('/') + 1]
-            with open('browse memory.txt', 'w', encoding='utf-8') as f:
-                f.write(memory)
-            self.last_place = memory
             self.load_midi_file_entry.delete(0, END)
             self.load_midi_file_entry.insert(END, filename)
             self.set_musicpy_code_text.delete('1.0', END)
@@ -2790,16 +2704,10 @@ class Root(Tk):
             self.show_msg('')
             if mode == 0:
                 directory = filedialog.askdirectory(
-                    initialdir=self.last_place,
-                    title=self.language_dict['title'][19],
-                )
+                    title=self.language_dict['title'][19], )
             else:
                 directory = self.current_channel_sound_modules_entry.get()
             if directory:
-                memory = directory
-                with open('browse memory.txt', 'w', encoding='utf-8') as f:
-                    f.write(memory)
-                self.last_place = memory
                 try:
                     self.show_msg(
                         f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
