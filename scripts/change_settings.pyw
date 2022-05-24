@@ -1,4 +1,4 @@
-with open('settings.py', encoding='utf-8-sig') as f:
+with open('settings.py', encoding='utf-8') as f:
     text = f.read()
     exec(text)
 

@@ -4,7 +4,7 @@ from tkinter import filedialog
 from ast import literal_eval
 import os
 
-with open('../scripts/settings.py', encoding='utf-8-sig') as f:
+with open('../scripts/settings.py', encoding='utf-8') as f:
     text = f.read()
     exec(text)
 
