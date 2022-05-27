@@ -808,7 +808,7 @@ class Root(Tk):
     def load_sound_as_pitch(self):
         file_path = filedialog.askopenfilename(
             title=self.language_dict['title'][0],
-            filetypes=((self.language_dict['title'][1], "*.*"), ))
+            filetypes=((self.language_dict['title'][1], "*"), ))
         if file_path:
             current_text = self.set_musicpy_code_text.get('1.0', 'end-1c')
             if current_text[current_text.rfind('\n') + 1:]:
@@ -1040,7 +1040,7 @@ class Root(Tk):
         filename = filedialog.asksaveasfilename(
             parent=self.pitch_shifter_window,
             title=self.language_dict['title'][3],
-            filetypes=((self.language_dict['title'][1], "*.*"), ),
+            filetypes=((self.language_dict['title'][1], "*"), ),
             defaultextension=f".{mode}",
             initialfile=self.language_dict['untitled'])
         if not filename:
@@ -1060,7 +1060,7 @@ class Root(Tk):
         file_path = filedialog.askopenfilename(
             parent=self.pitch_shifter_window,
             title=self.language_dict['title'][0],
-            filetypes=((self.language_dict['title'][1], "*.*"), ))
+            filetypes=((self.language_dict['title'][1], "*"), ))
         if file_path:
             self.pitch_msg(self.language_dict["msg"][42])
             self.pitch_shifter_window.msg.update()
@@ -1249,7 +1249,7 @@ class Root(Tk):
                 file_path = filedialog.askopenfilename(
                     title=self.language_dict['title'][7],
                     filetypes=(("Easy Sampler Instrument", "*.esi"),
-                               (self.language_dict['title'][1], "*.*")))
+                               (self.language_dict['title'][1], "*")))
                 if not file_path:
                     return
             else:
@@ -1295,7 +1295,7 @@ class Root(Tk):
         file_path = filedialog.askopenfilename(
             title=self.language_dict['title'][7],
             filetypes=(("Easy Sampler Instrument", "*.esi"),
-                       (self.language_dict['title'][1], "*.*")))
+                       (self.language_dict['title'][1], "*")))
         if not file_path:
             return
 
@@ -1322,7 +1322,7 @@ class Root(Tk):
         filename = filedialog.askopenfilename(
             title=self.language_dict['title'][10],
             filetypes=((self.language_dict['title'][11], "*.txt"),
-                       (self.language_dict['title'][1], "*.*")))
+                       (self.language_dict['title'][1], "*")))
         if filename:
             try:
                 with open(filename, encoding='utf-8', errors='ignore') as f:
@@ -1371,7 +1371,7 @@ class Root(Tk):
                 title=self.language_dict['title'][12],
                 filetypes=(("Easy Sampler Project", "*.esp"),
                            (self.language_dict['title'][11],
-                            "*.txt"), (self.language_dict['title'][1], "*.*")))
+                            "*.txt"), (self.language_dict['title'][1], "*")))
         if filename:
             try:
                 with open(filename, encoding='utf-8', errors='ignore') as f:
@@ -1470,7 +1470,7 @@ class Root(Tk):
             if new else self.language_dict['title'][20],
             filetypes=(("Easy Sampler Project",
                         "*.esp"), (self.language_dict['title'][11], "*.txt"),
-                       (self.language_dict['title'][1], "*.*")),
+                       (self.language_dict['title'][1], "*")),
             defaultextension=f".esp",
             initialfile=self.language_dict['untitled'])
         if filename:
@@ -1485,7 +1485,7 @@ class Root(Tk):
     def save_current_musicpy_code(self):
         filename = filedialog.asksaveasfilename(
             title=self.language_dict['title'][14],
-            filetypes=((self.language_dict['title'][1], "*.*"), ),
+            filetypes=((self.language_dict['title'][1], "*"), ),
             defaultextension=f".txt",
             initialfile=self.language_dict['untitled'])
         if filename:
@@ -1511,7 +1511,7 @@ class Root(Tk):
             filename = filedialog.askopenfilename(
                 title=self.language_dict['title'][15],
                 filetypes=((self.language_dict['title'][11], "*.txt"),
-                           (self.language_dict['title'][1], "*.*")))
+                           (self.language_dict['title'][1], "*")))
             if filename:
                 with open(filename, encoding='utf-8') as f:
                     data = f.read()
@@ -1564,8 +1564,8 @@ class Root(Tk):
                 if mode == 0:
                     filename = filedialog.askopenfilename(
                         title=self.language_dict['title'][19],
-                        filetypes=(("Soundfont", ["*.sf2", "*.sf3", "*.dls"]),
-                                   (self.language_dict['title'][1], "*.*")))
+                        filetypes=(("Soundfont", ".sf2 .sf3 .dls"),
+                                   (self.language_dict['title'][1], "*")))
                 else:
                     filename = self.current_channel_sound_modules_entry.get()
                 if filename:
@@ -1876,7 +1876,7 @@ class Root(Tk):
         if action == 'export':
             filename = filedialog.asksaveasfilename(
                 title=self.language_dict['title'][3],
-                filetypes=((self.language_dict['title'][1], "*.*"), ),
+                filetypes=((self.language_dict['title'][1], "*"), ),
                 defaultextension=f".{mode}",
                 initialfile=self.language_dict['untitled'])
             if not filename:
@@ -2270,7 +2270,7 @@ class Root(Tk):
         self.show_msg('')
         filename = filedialog.asksaveasfilename(
             title=self.language_dict['title'][17],
-            filetypes=((self.language_dict['title'][1], "*.*"), ),
+            filetypes=((self.language_dict['title'][1], "*"), ),
             defaultextension=f".mid",
             initialfile=self.language_dict['untitled'])
         if not filename:
@@ -2675,8 +2675,8 @@ class Root(Tk):
         if mode == 0:
             filename = filedialog.askopenfilename(
                 title=self.language_dict['title'][18],
-                filetypes=(("MIDI", "*.mid"), (self.language_dict['title'][1],
-                                               "*.*")))
+                filetypes=(("MIDI", ".mid"), (self.language_dict['title'][1],
+                                              "*")))
         else:
             filename = self.load_midi_file_entry.get()
         if filename:
