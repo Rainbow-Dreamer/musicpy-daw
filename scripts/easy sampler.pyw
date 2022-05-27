@@ -1248,7 +1248,7 @@ class Root(Tk):
             if mode == 0:
                 file_path = filedialog.askopenfilename(
                     title=self.language_dict['title'][7],
-                    filetypes=(("Easy Sampler Instrument", "*.esi"),
+                    filetypes=(("Easy Sampler Instrument", ".esi"),
                                (self.language_dict['title'][1], "*")))
                 if not file_path:
                     return
@@ -1294,7 +1294,7 @@ class Root(Tk):
         abs_path = os.getcwd()
         file_path = filedialog.askopenfilename(
             title=self.language_dict['title'][7],
-            filetypes=(("Easy Sampler Instrument", "*.esi"),
+            filetypes=(("Easy Sampler Instrument", ".esi"),
                        (self.language_dict['title'][1], "*")))
         if not file_path:
             return
@@ -1321,7 +1321,7 @@ class Root(Tk):
     def load_musicpy_code(self):
         filename = filedialog.askopenfilename(
             title=self.language_dict['title'][10],
-            filetypes=((self.language_dict['title'][11], "*.txt"),
+            filetypes=((self.language_dict['title'][11], ".txt"),
                        (self.language_dict['title'][1], "*")))
         if filename:
             try:
@@ -1369,9 +1369,9 @@ class Root(Tk):
         if not filename:
             filename = filedialog.askopenfilename(
                 title=self.language_dict['title'][12],
-                filetypes=(("Easy Sampler Project", "*.esp"),
-                           (self.language_dict['title'][11],
-                            "*.txt"), (self.language_dict['title'][1], "*")))
+                filetypes=(("Easy Sampler Project",
+                            ".esp"), (self.language_dict['title'][11], ".txt"),
+                           (self.language_dict['title'][1], "*")))
         if filename:
             try:
                 with open(filename, encoding='utf-8', errors='ignore') as f:
@@ -1469,7 +1469,7 @@ class Root(Tk):
             title=self.language_dict['title'][13]
             if new else self.language_dict['title'][20],
             filetypes=(("Easy Sampler Project",
-                        "*.esp"), (self.language_dict['title'][11], "*.txt"),
+                        ".esp"), (self.language_dict['title'][11], ".txt"),
                        (self.language_dict['title'][1], "*")),
             defaultextension=f".esp",
             initialfile=self.language_dict['untitled'])
@@ -1510,7 +1510,7 @@ class Root(Tk):
         if text is None:
             filename = filedialog.askopenfilename(
                 title=self.language_dict['title'][15],
-                filetypes=((self.language_dict['title'][11], "*.txt"),
+                filetypes=((self.language_dict['title'][11], ".txt"),
                            (self.language_dict['title'][1], "*")))
             if filename:
                 with open(filename, encoding='utf-8') as f:
