@@ -1,6 +1,6 @@
 # easy sampler
 
-[English] [[中文](#easy-sampler)]
+[English] [[中文](#easy-sampler-1)]
 
 This is a music sampler and tracker to make music with musicpy.
 
@@ -82,7 +82,7 @@ Update (2021/10/12): Now there is a debug window, you can open the debug window 
 
 # easy sampler
 
-[[English](#easy-sampler-1)] [中文]
+[[English](#easy-sampler)] [中文]
 
 这是一个音乐取样机和tracker，可以用musicpy制作音乐。
 
