@@ -8,7 +8,7 @@ This is a music sampler and tracker to make music with musicpy.
 
 ## Download
 
-You can download the latest version of Easy Sampler from [here](https://www.jianguoyun.com/p/DfRvuNUQhPG0CBiVkqYE)
+You can download the latest version of easy sampler from [here](https://www.jianguoyun.com/p/DfRvuNUQhPG0CBiVkqYE)
 
 ## Usage
 
@@ -90,7 +90,7 @@ Update (2021/10/12): Now there is a debug window, you can open the debug window 
 
 ## 安装
 
-你可以从[这里](https://www.jianguoyun.com/p/DfRvuNUQhPG0CBiVkqYE)下载Easy Sampler的最新版本
+你可以从[这里](https://www.jianguoyun.com/p/DfRvuNUQhPG0CBiVkqYE)下载easy sampler的最新版本
 
 ## 使用
 
