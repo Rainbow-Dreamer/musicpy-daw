@@ -8,9 +8,7 @@ This is a music sampler and tracker to make music with musicpy.
 
 ## Download
 
-You can download the latest version from [here](https://www.jianguoyun.com/p/DfRvuNUQhPG0CBiVkqYE).
-
-Note: If you download only source codes from this repository, you can still use Easy Sampler with most of the functionalities, but there will be some lack of supports for non-wav audio formats (mp3, ogg, etc.) because ffmpeg is missing. If you are not OK with that, you will need to install ffmpeg first,  and then copy all of the 3 exe files in ffmpeg/bin to the same path as `easy sampler.exe` (main folder), then you could use Easy Sampler with all of the functionalities.
+You can download the latest version of Easy Sampler from [here](https://www.jianguoyun.com/p/DfRvuNUQhPG0CBiVkqYE)
 
 ## Usage
 
@@ -92,9 +90,7 @@ Update (2021/10/12): Now there is a debug window, you can open the debug window 
 
 ## 安装
 
-请从[release](https://github.com/Rainbow-Dreamer/easy-sampler/releases/latest) 页面下载`easy.sampler.zip`，解压`easy sampler`文件夹，打开文件夹里的easy sampler的exe文件使用。
-
-
+你可以从[这里](https://www.jianguoyun.com/p/DfRvuNUQhPG0CBiVkqYE)下载Easy Sampler的最新版本
 
 ## 使用
 
