@@ -88,7 +88,7 @@ Update (2021/10/12): Now there is a debug window, you can open the debug window 
 
 ![image](https://github.com/Rainbow-Dreamer/easy-sampler/blob/main/previews/2.jpg?raw=True)
 
-## 安装
+## 下载
 
 你可以从[这里](https://www.jianguoyun.com/p/DfRvuNUQhPG0CBiVkqYE)下载easy sampler的最新版本
 
