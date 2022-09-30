@@ -1,6 +1,6 @@
 {
     "sound_path": "resources/sounds",
-    "sound_format": "wav",
+    "sound_format": "mp3",
     "global_volume": 0.7,
     "font_type": "Consolas",
     "font_size": 9,
