@@ -111,7 +111,6 @@ class settings_window(Tk):
     def close_settings_box(self):
         try:
             self.root.open_settings = False
-            os.chdir('..')
         except:
             pass
         self.destroy()
