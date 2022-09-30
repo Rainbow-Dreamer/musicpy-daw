@@ -1,7 +1,10 @@
 import traceback
+import json
 
-with open('scripts/settings.py', encoding='utf-8') as f:
-    exec(f.read())
+settings_path = 'scripts/settings.json'
+with open(settings_path, encoding='utf-8') as f:
+    current_settings = json.load(f)
+globals().update(current_settings)
 
 
 class esi:
@@ -2955,13 +2958,13 @@ class Root(Tk):
     def open_change_settings(self):
         if not self.open_settings:
             self.open_settings = True
+            os.chdir(abs_path)
+            from scripts.change_settings import settings_window
+            self.current_settings_window = settings_window(settings_path,
+                                                           root=self)
+            self.current_settings_window.mainloop()
         else:
-            root2.focus_force()
-            return
-        os.chdir(abs_path)
-        os.chdir('scripts')
-        with open('change_settings.pyw', encoding='utf-8') as f:
-            exec(f.read(), globals(), globals())
+            self.current_settings_window.focus_force()
 
     def modules(self, ind):
         return self.channel_sound_modules[ind]
