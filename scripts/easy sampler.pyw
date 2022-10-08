@@ -266,12 +266,12 @@ class Root(Tk):
         super(Root, self).__init__()
         self.title("Easy Sampler")
         self.minsize(1100, 670)
-
+        global current_skin
         try:
-            with open('config/current_skin.txt', encoding='utf-8') as f:
-                current_skin = f.read()
             self.init_skin(current_skin)
         except:
+            import traceback
+            print(traceback.format_exc())
             current_skin = 'default'
             self.init_skin(current_skin)
 
@@ -3028,15 +3028,15 @@ class Root(Tk):
 
     def init_skin(self, skin):
         os.chdir(abs_path)
-        with open(f'scripts/skins/{skin}.skin') as f:
-            data = f.read()
-        exec(data, globals(), globals())
+        with open(f'scripts/skins/{skin}.json') as f:
+            current_skin_dict = json.load(f)
+        globals().update(current_skin_dict)
 
     def change_skin(self, skin):
         os.chdir(abs_path)
-        with open(f'scripts/skins/{skin}.skin') as f:
-            data = f.read()
-        exec(data, globals(), globals())
+        with open(f'scripts/skins/{skin}.json') as f:
+            current_skin_dict = json.load(f)
+        globals().update(current_skin_dict)
 
         self.configure(bg=background_color)
         style = ttk.Style()
@@ -3062,8 +3062,9 @@ class Root(Tk):
 
         self.initialize_menu()
 
-        with open('config/current_skin.txt', 'w', encoding='utf-8') as f:
-            f.write(skin)
+        from scripts.change_settings import save_json
+        current_settings['current_skin'] = skin
+        save_json(current_settings, 'scripts/settings.json')
 
 
 class start_window(Tk):

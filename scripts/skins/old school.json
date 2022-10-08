@@ -1,0 +1,12 @@
+{
+    "background_color": "light grey",
+    "foreground_color": "alice blue",
+    "active_background_color": "light green",
+    "active_foreground_color": "black",
+    "disabled_foreground_color": "white",
+    "button_background_color": "grey",
+    "label_foreground_color": "black",
+    "text_area_background_color": "black",
+    "text_area_foreground_color": "white",
+    "text_area_cursor_color": "white"
+}

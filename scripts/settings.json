@@ -124,5 +124,6 @@
     "text_area_foreground_color": "black",
     "text_area_cursor_color": "black",
     "text_area_font_type": "Consolas",
-    "text_area_font_size": 12
+    "text_area_font_size": 12,
+    "current_skin": "default"
 }
