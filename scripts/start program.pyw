@@ -9,8 +9,7 @@ import random
 import pickle
 from copy import deepcopy as copy
 import pygame
-import mido
-import midiutil
+import mido_fix
 from ast import literal_eval
 from io import BytesIO
 import math
