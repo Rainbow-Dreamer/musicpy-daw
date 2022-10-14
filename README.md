@@ -40,6 +40,7 @@ To play or export a musicpy data structure, like note, chord, track and piece, t
 
 3. You can also use `play` and `export` function that takes essentially the same parameters as the `play` and `export` function of the sampler in musicpy sampler module, which supports more parameters for more customized play and export requirements.  
    For the usage of `play` and `export` function, you can refer to the documentation of musicpy sampler module, I will give the link below.
+   
    ```python
    play(current_chord,
         bpm=None,
@@ -147,7 +148,7 @@ Update (2021/10/12): Now there is a debug window, you can open the debug window 
 
 输入文本区可以接受任何python代码，因此你可以将musicpy代码与任何python代码结合起来（musicpy本身就是一个python包）。
 
-关于easy sampler的所有功能和特点，你可以参考musicpy取样机模块的使用文档(点击[这里](https://github.com/Rainbow-Dreamer/musicpy/wiki/musicpy-sampler-module-musicpy%E5%8F%96%E6%A0%B7%E6%9C%BA%E6%A8%A1%E5%9D%97))。
+关于easy sampler的所有功能和特点，你可以参考musicpy取样机模块的使用文档(点击[这里](https://github.com/Rainbow-Dreamer/musicpy/wiki/musicpy%E5%8F%96%E6%A0%B7%E6%9C%BA%E6%A8%A1%E5%9D%97))。
 
 如果easy sampler中的某些功能部分（按钮和列表框）有可视化的替换，那么你不需要看这些部分，因为它们是easy sampler的非GUI版本的功能，而且在easy sampler的输入文本区不支持它们。
 
