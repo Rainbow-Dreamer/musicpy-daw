@@ -523,11 +523,13 @@ class Root(Tk):
 
         self.choose_channels.insert(END, self.language_dict['init'][0])
         self.channel_names = [self.language_dict['init'][0]]
-        self.channel_sound_modules_name = [sound_path]
+        self.channel_sound_modules_name = [os.path.abspath(sound_path)]
         self.channel_num = 1
         self.channel_list_focus = True
 
         self.after(10, self.initialize)
+
+        self.protocol("WM_DELETE_WINDOW", self.close_window)
 
     def initialize_menu(self):
         self.menubar = Menu(self,
@@ -740,10 +742,21 @@ class Root(Tk):
 
     def initialize(self):
         self.show_msg(self.language_dict['msg'][0])
+        self.msg.update()
         self.channel_sound_modules = [load_audiosegments(notedict, sound_path)]
         self.channel_dict = [notedict]
         self.show_msg(self.language_dict['msg'][1])
         self.default_load = True
+        self.project_dict = self.get_project_dict()
+        self.check_if_edited()
+
+    def check_if_edited(self):
+        current_project_dict = self.get_project_dict()
+        if current_project_dict != self.project_dict:
+            self.title('Easy Sampler *')
+        else:
+            self.title('Easy Sampler')
+        self.after(100, self.check_if_edited)
 
     def get_current_line_column(self):
         ind = self.set_musicpy_code_text.index(INSERT)
@@ -772,7 +785,7 @@ class Root(Tk):
         self.set_musicpy_code_text.delete('1.0', END)
         self.choose_channels.insert(END, self.language_dict['init'][0])
         self.channel_names = [self.language_dict['init'][0]]
-        self.channel_sound_modules_name = [sound_path]
+        self.channel_sound_modules_name = [os.path.abspath(sound_path)]
         self.channel_num = 1
         self.channel_list_focus = True
         self.change_current_bpm_entry.delete(0, END)
@@ -790,12 +803,13 @@ class Root(Tk):
     def change_language(self, language, mode=0):
         os.chdir(abs_path)
         try:
-            with open(f'scripts/languages/{language}.py',
+            with open(f'scripts/languages/{language}.json',
                       encoding='utf-8') as f:
-                data = f.read()
-            current_language_dict, self.language_dict = eval(data)
-            for each in current_language_dict:
-                each.configure(text=current_language_dict[each])
+                data = json.load(f)
+            current_language_dict = data['main_window']
+            self.language_dict = data['other']
+            for each, value in current_language_dict.items():
+                vars(self)[each].configure(text=value)
             if mode == 1:
                 self.reload_language()
         except Exception as e:
@@ -1303,7 +1317,7 @@ class Root(Tk):
             return
 
         export_path = filedialog.askdirectory(
-            title=self.language_dict['title'][9], )
+            title=self.language_dict['title'][8], )
         if export_path:
             os.chdir(export_path)
         folder_name = os.path.basename(file_path)
@@ -1323,8 +1337,8 @@ class Root(Tk):
 
     def load_musicpy_code(self):
         filename = filedialog.askopenfilename(
-            title=self.language_dict['title'][10],
-            filetypes=((self.language_dict['title'][11], ".txt"),
+            title=self.language_dict['title'][9],
+            filetypes=((self.language_dict['title'][10], ".txt"),
                        (self.language_dict['title'][1], "*")))
         if filename:
             try:
@@ -1371,15 +1385,17 @@ class Root(Tk):
         self.show_msg('')
         if not filename:
             filename = filedialog.askopenfilename(
-                title=self.language_dict['title'][12],
-                filetypes=(("Easy Sampler Project",
-                            ".esp"), (self.language_dict['title'][11], ".txt"),
-                           (self.language_dict['title'][1], "*")))
+                title=self.language_dict['title'][11],
+                filetypes=(("Easy Sampler Project", ".esp"),
+                           (self.language_dict['title'][10],
+                            ".json"), (self.language_dict['title'][1], "*")))
         if filename:
             try:
                 with open(filename, encoding='utf-8', errors='ignore') as f:
-                    self.project_dict = literal_eval(f.read())
+                    self.project_dict = json.load(f)
             except:
+                import traceback
+                print(traceback.format_exc())
                 self.set_musicpy_code_text.delete('1.0', END)
                 self.show_msg(self.language_dict["msg"][13])
                 return
@@ -1431,28 +1447,24 @@ class Root(Tk):
                 current_sf2.change(*current_sf2_info)
         self.show_msg(self.language_dict["msg"][14])
         self.default_load = True
+        self.project_dict = self.get_project_dict()
 
-    def save_as_project_file(self, new=False):
-        if not self.default_load:
-            return
-        self.show_msg('')
-        self.project_dict = {}
-        self.project_dict['channel_num'] = self.channel_num
-        self.project_dict['channel_names'] = self.channel_names
-        self.project_dict[
+    def get_project_dict(self):
+        project_dict = {}
+        project_dict['channel_num'] = self.channel_num
+        project_dict['channel_names'] = self.channel_names
+        project_dict[
             'channel_sound_modules_name'] = self.channel_sound_modules_name
-        self.project_dict['channel_dict'] = self.channel_dict
-        self.project_dict['current_bpm'] = self.current_bpm
-        self.project_dict['current_midi_file'] = self.load_midi_file_entry.get(
-        )
-        self.project_dict[
-            'current_musicpy_code'] = self.set_musicpy_code_text.get(
-                '1.0', 'end-1c')
+        project_dict['channel_dict'] = self.channel_dict
+        project_dict['current_bpm'] = self.current_bpm
+        project_dict['current_midi_file'] = self.load_midi_file_entry.get()
+        project_dict['current_musicpy_code'] = self.set_musicpy_code_text.get(
+            '1.0', 'end-1c')
         current_soundfonts = {
             i: self.channel_sound_modules[i]
             for i in range(len(self.channel_sound_modules))
         }
-        self.project_dict['soundfont'] = {}
+        project_dict['soundfont'] = {}
         for i in range(len(self.channel_sound_modules)):
             current_sound_modules = self.channel_sound_modules[i]
             if isinstance(current_sound_modules, rs.sf2_loader):
@@ -1462,32 +1474,48 @@ class Root(Tk):
                     current_sound_modules.current_bank,
                     current_sound_modules.current_preset
                 ]
-                self.project_dict['soundfont'][i] = current_info
+                project_dict['soundfont'][i] = current_info
+        return project_dict
+
+    def save_as_project_file(self, new=False):
+        if not self.default_load:
+            return
+        self.show_msg('')
+        self.project_dict = self.get_project_dict()
         if not new and self.opening_project_name:
             with open(self.opening_project_name, 'w', encoding='utf-8') as f:
-                f.write(str(self.project_dict))
+                json.dump(self.project_dict,
+                          f,
+                          indent=4,
+                          separators=(',', ': '),
+                          ensure_ascii=False)
             self.show_msg(self.language_dict["msg"][15])
             return
-        filename = filedialog.asksaveasfilename(
-            title=self.language_dict['title'][13]
-            if new else self.language_dict['title'][20],
-            filetypes=(("Easy Sampler Project",
-                        ".esp"), (self.language_dict['title'][11], ".txt"),
-                       (self.language_dict['title'][1], "*")),
-            defaultextension=f".esp",
-            initialfile=self.language_dict['untitled'])
-        if filename:
-            with open(filename, 'w', encoding='utf-8') as f:
-                f.write(str(self.project_dict))
-            self.show_msg(self.language_dict["msg"][15])
-            current_project_name = os.path.basename(filename)
-            self.current_project_name.configure(text=current_project_name)
-            self.project_name = current_project_name
-            self.opening_project_name = filename
+        else:
+            filename = filedialog.asksaveasfilename(
+                title=self.language_dict['title'][12]
+                if new else self.language_dict['title'][18],
+                filetypes=(("Easy Sampler Project",
+                            ".esp"), (self.language_dict['title'][10], ".txt"),
+                           (self.language_dict['title'][1], "*")),
+                defaultextension=f".esp",
+                initialfile=self.language_dict['untitled'])
+            if filename:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    json.dump(self.project_dict,
+                              f,
+                              indent=4,
+                              separators=(',', ': '),
+                              ensure_ascii=False)
+                self.show_msg(self.language_dict["msg"][15])
+                current_project_name = os.path.basename(filename)
+                self.current_project_name.configure(text=current_project_name)
+                self.project_name = current_project_name
+                self.opening_project_name = filename
 
     def save_current_musicpy_code(self):
         filename = filedialog.asksaveasfilename(
-            title=self.language_dict['title'][14],
+            title=self.language_dict['title'][13],
             filetypes=((self.language_dict['title'][1], "*"), ),
             defaultextension=f".txt",
             initialfile=self.language_dict['untitled'])
@@ -1512,8 +1540,8 @@ class Root(Tk):
             return
         if text is None:
             filename = filedialog.askopenfilename(
-                title=self.language_dict['title'][15],
-                filetypes=((self.language_dict['title'][11], ".txt"),
+                title=self.language_dict['title'][14],
+                filetypes=((self.language_dict['title'][10], ".txt"),
                            (self.language_dict['title'][1], "*")))
             if filename:
                 with open(filename, encoding='utf-8') as f:
@@ -1566,7 +1594,7 @@ class Root(Tk):
             else:
                 if mode == 0:
                     filename = filedialog.askopenfilename(
-                        title=self.language_dict['title'][19],
+                        title=self.language_dict['title'][17],
                         filetypes=(("Soundfont", ".sf2 .sf3 .dls"),
                                    (self.language_dict['title'][1], "*")))
                 else:
@@ -2272,7 +2300,7 @@ class Root(Tk):
     def export_midi_file(self, current_chord=None, write_args={}):
         self.show_msg('')
         filename = filedialog.asksaveasfilename(
-            title=self.language_dict['title'][17],
+            title=self.language_dict['title'][15],
             filetypes=((self.language_dict['title'][1], "*"), ),
             defaultextension=f".mid",
             initialfile=self.language_dict['untitled'])
@@ -2540,6 +2568,51 @@ class Root(Tk):
         self.configure_sf2_file_window.destroy()
         self.open_configure_sf2_file = False
 
+    def close_window(self):
+        if self.is_changed():
+            self.ask_save_window = Toplevel(self, bg=background_color)
+            self.ask_save_window.wm_overrideredirect(True)
+            self.ask_save_window.minsize(400, 150)
+            ask_save_window_x = self.winfo_x()
+            ask_save_window_y = self.winfo_y()
+            self.ask_save_window.geometry(
+                f"+{ask_save_window_x + 300}+{ask_save_window_y + 200}")
+            self.ask_save_window.ask_save_label = ttk.Label(
+                self.ask_save_window,
+                text='The file has changed, do you want to save the changes?')
+            self.ask_save_window.ask_save_label.place(x=0, y=30)
+            self.ask_save_window.save_button = ttk.Button(
+                self.ask_save_window,
+                text='Save',
+                command=self.save_and_quit,
+                style='New.TButton')
+            self.ask_save_window.not_save_button = ttk.Button(
+                self.ask_save_window,
+                text='Discard',
+                command=self.destroy,
+                style='New.TButton')
+            self.ask_save_window.cancel_button = ttk.Button(
+                self.ask_save_window,
+                text='Cancel',
+                command=self.ask_save_window.destroy,
+                style='New.TButton')
+            self.ask_save_window.save_button.place(x=0, y=100)
+            self.ask_save_window.not_save_button.place(x=90, y=100)
+            self.ask_save_window.cancel_button.place(x=200, y=100)
+        else:
+            self.destroy()
+
+    def is_changed(self):
+        current_project_dict = self.get_project_dict()
+        if current_project_dict != self.project_dict:
+            return True
+        else:
+            return False
+
+    def save_and_quit(self):
+        self.save_as_project_file()
+        self.destroy()
+
     def change_current_note_name(self):
         current_note = self.dict_configs.get(ANCHOR)
         current_ind = self.dict_configs.index(ANCHOR)
@@ -2677,7 +2750,7 @@ class Root(Tk):
         self.show_msg('')
         if mode == 0:
             filename = filedialog.askopenfilename(
-                title=self.language_dict['title'][18],
+                title=self.language_dict['title'][16],
                 filetypes=(("MIDI", ".mid"), (self.language_dict['title'][1],
                                               "*")))
         else:
@@ -2707,7 +2780,7 @@ class Root(Tk):
             self.show_msg('')
             if mode == 0:
                 directory = filedialog.askdirectory(
-                    title=self.language_dict['title'][19], )
+                    title=self.language_dict['title'][17], )
             else:
                 directory = self.current_channel_sound_modules_entry.get()
             if directory:
