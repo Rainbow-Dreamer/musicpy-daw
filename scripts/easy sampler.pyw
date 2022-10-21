@@ -1434,7 +1434,7 @@ class Root(Tk):
         self.opening_project_name = filename
         current_soundfonts = self.project_dict['soundfont']
         for each in current_soundfonts:
-            current_sf2 = self.channel_sound_modules[each]
+            current_sf2 = self.channel_sound_modules[int(each)]
             if current_sf2:
                 current_sf2_info = current_soundfonts[each]
                 current_bank = current_sf2_info[2]
