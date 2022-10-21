@@ -1,5 +1,6 @@
 import traceback
 import json
+import multiprocessing
 
 settings_path = 'scripts/settings.json'
 with open(settings_path, encoding='utf-8') as f:
@@ -262,7 +263,7 @@ class sound:
 
 class Root(Tk):
 
-    def __init__(self):
+    def __init__(self, file=None):
         super(Root, self).__init__()
         self.title("Easy Sampler")
         self.minsize(1100, 670)
@@ -527,7 +528,10 @@ class Root(Tk):
         self.channel_num = 1
         self.channel_list_focus = True
 
-        self.after(10, self.initialize)
+        if file is not None:
+            self.after(10, lambda: self.initialize(mode=1, file=file))
+        else:
+            self.after(10, self.initialize)
 
         self.protocol("WM_DELETE_WINDOW", self.close_window)
 
@@ -740,15 +744,27 @@ class Root(Tk):
                                     foreground=label_foreground_color)
         self.file_top_tools.place(x=164, y=0)
 
-    def initialize(self):
-        self.show_msg(self.language_dict['msg'][0])
-        self.msg.update()
-        self.channel_sound_modules = [load_audiosegments(notedict, sound_path)]
-        self.channel_dict = [notedict]
-        self.show_msg(self.language_dict['msg'][1])
+    def initialize(self, mode=0, file=None):
+        if mode == 0:
+            if os.path.exists(sound_path):
+                self.show_msg(self.language_dict['msg'][0])
+                self.msg.update()
+                self.channel_sound_modules = [
+                    load_audiosegments(notedict, sound_path)
+                ]
+                self.channel_dict = [copy(notedict)]
+                self.show_msg(self.language_dict['msg'][1])
+            else:
+                self.channel_sound_modules = [None]
+                self.channel_dict = [copy(notedict)]
+        elif mode == 1:
+            self.channel_sound_modules = []
+            self.channel_dict = []
         self.default_load = True
         self.project_dict = self.get_project_dict()
         self.check_if_edited()
+        if mode == 1:
+            self.open_project_file(file)
 
     def check_if_edited(self):
         current_project_dict = self.get_project_dict()
@@ -1272,6 +1288,9 @@ class Root(Tk):
             else:
                 file_path = self.current_channel_sound_modules_entry.get()
 
+        if not os.path.exists(file_path):
+            return
+
         self.show_msg(
             f'{self.language_dict["msg"][9]}{os.path.basename(file_path)} ...')
         self.msg.update()
@@ -1599,7 +1618,7 @@ class Root(Tk):
                                    (self.language_dict['title'][1], "*")))
                 else:
                     filename = self.current_channel_sound_modules_entry.get()
-                if filename:
+                if filename and os.path.exists(filename):
                     try:
                         self.show_msg(
                             f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
@@ -2674,6 +2693,8 @@ class Root(Tk):
         self.show_msg('')
         current_ind = self.current_channel_dict_num if not current_mode else current_ind
         sound_path = self.channel_sound_modules_name[current_ind]
+        if not os.path.exists(sound_path):
+            return
         if os.path.isfile(sound_path):
             if os.path.splitext(sound_path)[1][1:].lower() == 'esi':
                 self.load_esi_file(current_ind=current_ind,
@@ -2783,7 +2804,7 @@ class Root(Tk):
                     title=self.language_dict['title'][17], )
             else:
                 directory = self.current_channel_sound_modules_entry.get()
-            if directory:
+            if directory and os.path.exists(directory):
                 try:
                     self.show_msg(
                         f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
@@ -3176,15 +3197,15 @@ class start_window(Tk):
 def open_main_window():
     current_start_window.destroy()
     global root
-    root = Root()
+    current_file = None
+    argv = sys.argv
+    if len(argv) > 1:
+        current_file = argv[1]
+    root = Root(file=current_file)
     root.lift()
     root.attributes("-topmost", True)
     root.focus_force()
     root.attributes('-topmost', 0)
-    argv = sys.argv
-    if len(argv) > 1:
-        current_file = argv[1]
-        root.after(100, lambda: root.open_project_file(current_file))
     root.mainloop()
 
 
@@ -3524,5 +3545,6 @@ fade = effect(
     'fade')
 adsr = effect(adsr_func, 'adsr')
 
-current_start_window = start_window()
-current_start_window.mainloop()
+if __name__ == '__main__':
+    current_start_window = start_window()
+    current_start_window.mainloop()
