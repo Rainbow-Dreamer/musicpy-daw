@@ -497,6 +497,7 @@ class Root(Tk):
                 self.msg.update()
                 self.channel_dict = [copy(notedict)]
                 self.channel_sound_modules = [None]
+                self.project_dict = self.get_project_dict()
                 current_queue = multiprocessing.Queue()
                 current_process = multiprocessing.Process(
                     target=load_audiosegments,
@@ -522,11 +523,12 @@ class Root(Tk):
     def wait_for_load_audiosegments(self,
                                     current_queue,
                                     current_ind=None,
-                                    current_mode=None):
+                                    current_mode=None,
+                                    sound_path=''):
         if current_queue.empty():
             self.after(
                 200, lambda: self.wait_for_load_audiosegments(
-                    current_queue, current_ind, current_mode))
+                    current_queue, current_ind, current_mode, sound_path))
         else:
             if current_ind is None:
                 self.channel_sound_modules = [current_queue.get()]
@@ -534,7 +536,6 @@ class Root(Tk):
                     self.channel_sound_modules[0])
                 self.show_msg(self.language_dict['msg'][1])
                 self.default_load = True
-                self.project_dict = self.get_project_dict()
                 self.check_if_edited()
                 self.current_loading_num -= 1
             else:
@@ -2607,20 +2608,15 @@ class Root(Tk):
                     self.msg.update()
                     sound_path = directory
                     notedict = self.channel_dict[current_ind]
-                    self.channel_sound_modules[
-                        current_ind] = load_audiosegments(
-                            notedict, sound_path)
-                    self.channel_sound_modules_name[current_ind] = sound_path
-                    self.current_channel_sound_modules_entry.delete(0, END)
-                    self.current_channel_sound_modules_entry.insert(
-                        END, sound_path)
-                    current_msg = self.language_dict["msg"][29].split('|')
-                    self.show_msg(
-                        f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
-                    )
-                    self.choose_channels.see(current_ind)
-                    self.choose_channels.selection_anchor(current_ind)
-                    self.choose_channels.selection_set(current_ind)
+                    current_queue = multiprocessing.Queue()
+                    current_process = multiprocessing.Process(
+                        target=load_audiosegments,
+                        args=(notedict, sound_path, current_queue))
+                    current_process.start()
+                    self.current_loading_num += 1
+                    self.wait_for_load_audiosegments(current_queue,
+                                                     current_ind, None,
+                                                     sound_path)
                 except Exception as e:
                     print(traceback.format_exc())
                     output(traceback.format_exc())
