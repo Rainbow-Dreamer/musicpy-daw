@@ -3591,5 +3591,6 @@ fade = effect(
 adsr = effect(adsr_func, 'adsr')
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     current_start_window = start_window()
     current_start_window.mainloop()
