@@ -8,263 +8,18 @@ with open(settings_path, encoding='utf-8') as f:
 globals().update(current_settings)
 
 
-class esi:
-
-    def __init__(self, samples, settings=None, name_mappings=None):
-        self.samples = samples
-        self.settings = settings
-        self.name_mappings = name_mappings
-        self.file_names = {os.path.splitext(i)[0]: i for i in self.samples}
-
-    def __getitem__(self, ind):
-        if self.name_mappings:
-            if ind in self.name_mappings:
-                return self.samples[self.name_mappings[ind]]
-        if ind in self.samples:
-            return self.samples[ind]
-        if ind in self.file_names:
-            return self.samples[self.file_names[ind]]
-
-
-class effect:
-
-    def __init__(self, func, name=None, *args, unknown_args=None, **kwargs):
-        self.func = func
-        if name is None:
-            name = 'effect'
-        self.name = name
-        self.parameters = [args, kwargs]
-        if unknown_args is None:
-            unknown_args = {}
-        self.unknown_args = unknown_args
-
-    def process(self, sound, *args, unknown_args=None, **kwargs):
-        if args or kwargs or unknown_args:
-            return self.func(*args, **kwargs, **unknown_args)
-        else:
-            return self.func(sound, *self.parameters[0], **self.parameters[1],
-                             **self.unknown_args)
-
-    def process_unknown_args(self, **kwargs):
-        for each in kwargs:
-            if each in self.unknown_args:
-                self.unknown_args[each] = kwargs[each]
-
-    def __call__(self, *args, unknown_args=None, **kwargs):
-        temp = copy(self)
-        temp.parameters[0] = args + temp.parameters[0][len(args):]
-        temp.parameters[1].update(kwargs)
-        if unknown_args is None:
-            unknown_args = {}
-        temp.unknown_args.update(unknown_args)
-        return temp
-
-    def new(self, *args, unknown_args=None, **kwargs):
-        temp = copy(self)
-        temp.parameters = [args, kwargs]
-        temp.parameters[1].update(kwargs)
-        if unknown_args is None:
-            unknown_args = {}
-        temp.unknown_args = unknown_args
-        return temp
-
-    def __repr__(self):
-        return f'[effect]\nname: {self.name}\nparameters: {self.parameters} unknown arguments: {self.unknown_args}'
-
-
-class effect_chain:
-
-    def __init__(self, *effects):
-        self.effects = list(effects)
-
-    def __call__(self, sound):
-        sound.effects = self.effects
-        return sound
-
-    def __repr__(self):
-        return f'[effect chain]\neffects:\n' + '\n\n'.join(
-            [str(i) for i in self.effects])
-
-
-class pitch:
-
-    def __init__(self, path, note='C5'):
-        self.note = N(note) if isinstance(note, str) else note
-        audio_load = False
-        if not isinstance(path, AudioSegment):
-            self.file_path = path
-            current_format = path[path.rfind('.') + 1:]
-            try:
-                self.sounds = AudioSegment.from_file(path,
-                                                     format=current_format)
-            except:
-                with open(path, 'rb') as f:
-                    current_data = f.read()
-                current_file = BytesIO(current_data)
-                self.sounds = AudioSegment.from_file(current_file,
-                                                     format=current_format)
-                os.chdir(abs_path)
-                self.sounds.export('scripts/temp.wav', format='wav')
-                self.audio = librosa.load('scripts/temp.wav',
-                                          sr=self.sounds.frame_rate)[0]
-                os.remove('scripts/temp.wav')
-                audio_load = True
-
-        else:
-            self.sounds = path
-            self.file_path = None
-        self.sample_rate = self.sounds.frame_rate
-        self.channels = self.sounds.channels
-        if self.sounds.sample_width != 2:
-            self.sounds = self.sounds.set_sample_width(2)
-        self.sample_width = self.sounds.sample_width
-        if not audio_load:
-            if not isinstance(path, AudioSegment):
-                self.audio = librosa.load(path, sr=self.sample_rate)[0]
-            else:
-                os.chdir(abs_path)
-                path.export('scripts/temp.wav', format='wav')
-                self.audio = librosa.load('scripts/temp.wav',
-                                          sr=path.frame_rate)[0]
-                os.remove('scripts/temp.wav')
-            audio_load = True
-
-    def pitch_shift(self, semitones=1, mode='librosa'):
-        if mode == 'librosa':
-            data_shifted = librosa.effects.pitch_shift(self.audio,
-                                                       self.sample_rate,
-                                                       n_steps=semitones)
-            current_sound = BytesIO()
-            soundfile.write(current_sound,
-                            data_shifted,
-                            self.sample_rate,
-                            format='wav')
-            result = AudioSegment.from_wav(current_sound)
-        elif mode == 'pydub':
-            new_sample_rate = int(self.sample_rate * (2**(semitones / 12)))
-            result = self.sounds._spawn(
-                self.sounds.raw_data,
-                overrides={'frame_rate': new_sample_rate})
-            result = result.set_frame_rate(44100)
-        return result
-
-    def __add__(self, semitones):
-        return self.pitch_shift(semitones)
-
-    def __sub__(self, semitones):
-        return self.pitch_shift(-semitones)
-
-    def get(self, pitch):
-        if not isinstance(pitch, note):
-            pitch = N(pitch)
-        semitones = pitch.degree - self.note.degree
-        return self + semitones
-
-    def set_note(self, pitch):
-        if not isinstance(pitch, note):
-            pitch = N(pitch)
-        self.note = pitch
-
-    def generate_dict(self,
-                      start='A0',
-                      end='C8',
-                      mode='librosa',
-                      pitch_shifter=False):
-        if not isinstance(start, note):
-            start = N(start)
-        if not isinstance(end, note):
-            end = N(end)
-        degree = self.note.degree
-        result = {}
-        for i in range(end.degree - start.degree + 1):
-            current_note_name = str(start + i)
-            converting_note = root.language_dict['Converting note']
-            if pitch_shifter:
-                root.pitch_msg(f'{converting_note} {current_note_name} ...')
-                root.pitch_shifter_window.msg.update()
-            else:
-                root.show_msg(f'{converting_note} {current_note_name} ...')
-                root.msg.update()
-            result[current_note_name] = self.pitch_shift(start.degree + i -
-                                                         degree,
-                                                         mode=mode)
-        return result
-
-    def export_sound_files(self,
-                           path='.',
-                           folder_name=None,
-                           start='A0',
-                           end='C8',
-                           format='wav',
-                           mode='librosa',
-                           pitch_shifter=False):
-        if folder_name is None:
-            folder_name = self.language_dict['Untitled']
-        os.chdir(path)
-        if folder_name not in os.listdir():
-            os.mkdir(folder_name)
-        os.chdir(folder_name)
-        current_dict = self.generate_dict(start,
-                                          end,
-                                          mode=mode,
-                                          pitch_shifter=pitch_shifter)
-        Exporting = root.language_dict['Exporting']
-        for each in current_dict:
-            if pitch_shifter:
-                root.pitch_msg(f'{Exporting} {each} ...')
-                root.pitch_shifter_window.msg.update()
-            current_dict[each].export(f'{each}.{format}', format=format)
-        os.chdir(abs_path)
-
-    def __len__(self):
-        return len(self.sounds)
-
-    def play(self):
-        play_audio(self)
-
-    def stop(self):
-        pygame.mixer.stop()
-
-
-class sound:
-
-    def __init__(self, path):
-        if not isinstance(path, AudioSegment):
-            current_format = path[path.rfind('.') + 1:]
-            try:
-                self.sounds = AudioSegment.from_file(path,
-                                                     format=current_format)
-
-            except:
-                with open(path, 'rb') as f:
-                    current_data = f.read()
-                current_file = BytesIO(current_data)
-                self.sounds = AudioSegment.from_file(current_file,
-                                                     format=current_format)
-            self.file_path = path
-        else:
-            self.sounds = path
-            self.file_path = None
-        self.sample_rate = self.sounds.frame_rate
-        self.channels = self.sounds.channels
-        if self.sounds.sample_width != 2:
-            self.sounds = self.sounds.set_sample_width(2)
-        self.sample_width = self.sounds.sample_width
-
-    def __len__(self):
-        return len(self.sounds)
-
-    def play(self):
-        play_audio(self)
-
-    def stop(self):
-        pygame.mixer.stop()
-
-
 class Root(Tk):
 
     def __init__(self, file=None):
         super(Root, self).__init__()
+        self.init_screen()
+        self.init_parameters()
+        if file is not None:
+            self.after(10, lambda: self.initialize(mode=1, file=file))
+        else:
+            self.after(10, self.initialize)
+
+    def init_screen(self):
         self.title("Easy Sampler")
         self.minsize(1100, 670)
         global current_skin
@@ -279,10 +34,6 @@ class Root(Tk):
         self.configure(bg=background_color)
         self.icon_image = PhotoImage(file='resources/images/easy_sampler.png')
         self.iconphoto(False, self.icon_image)
-        self.font_type = text_area_font_type
-        self.font_size = text_area_font_size
-
-        self.default_load = False
 
         style = ttk.Style()
         style.theme_use('alt')
@@ -332,6 +83,7 @@ class Root(Tk):
 
         self.current_line_number = 1
         self.current_column_number = 1
+
         self.line_column = ttk.Label(
             self,
             text=
@@ -366,8 +118,6 @@ class Root(Tk):
                                                   font=(font_type, font_size))
         self.change_current_bpm_entry.insert(END, '120')
         self.change_current_bpm_entry.place(x=100, y=210)
-        self.current_bpm = 120
-        self.current_playing = []
 
         self.msg = ttk.Label(self, text='')
         self.msg.place(x=130, y=630)
@@ -392,12 +142,10 @@ class Root(Tk):
         self.change_settings_button = ttk.Button(
             self, text='Change Settings', command=self.open_change_settings)
         self.change_settings_button.place(x=0, y=460)
-        self.open_settings = False
 
         self.open_debug_window_button = ttk.Button(
             self, text='Open Debug Window', command=self.open_debug_window)
         self.open_debug_window_button.place(x=0, y=510)
-        self.is_open_debug_window = False
 
         self.choose_channels_bar = Scrollbar(self)
         self.choose_channels_bar.place(x=227, y=124, height=125, anchor=CENTER)
@@ -482,27 +230,13 @@ class Root(Tk):
                                           text='Load Soundfonts',
                                           command=self.load_sf2_file)
         self.load_sf2_button.place(x=870, y=160)
-
-        self.piece_playing = []
-
-        self.open_change_channel_dict = False
-        self.open_pitch_shifter_window = False
-        self.open_configure_sf2_file = False
-
         self.export_button = ttk.Button(self,
                                         text='Export',
                                         command=self.open_export_menu)
         self.export_button.place(x=0, y=260)
-
-        self.current_project_name = ttk.Label(self, text='untitled.esp')
-        self.current_project_name.place(x=0, y=30)
-        self.project_name = 'untitled.esp'
-        self.opening_project_name = None
-
         self.load_musicpy_code_button = ttk.Button(
             self, text='Import musicpy code', command=self.load_musicpy_code)
         self.load_musicpy_code_button.place(x=0, y=410)
-
         self.file_top = ttk.Button(
             self,
             text='File',
@@ -517,25 +251,37 @@ class Root(Tk):
             self,
             text='Tools',
             command=lambda: self.file_top_make_menu(mode='tools'))
-
         self.change_language(default_language)
-
-        self.initialize_menu()
-
         self.choose_channels.insert(END, self.language_dict['init'][0])
+        self.init_menu()
+        self.protocol("WM_DELETE_WINDOW", self.close_window)
+
+    def init_parameters(self):
+        self.font_type = text_area_font_type
+        self.font_size = text_area_font_size
+        self.current_bpm = 120
+        self.current_playing = []
+        self.open_settings = False
+        self.is_open_debug_window = False
+        self.piece_playing = []
+        self.open_change_channel_dict = False
+        self.open_pitch_shifter_window = False
+        self.open_configure_sf2_file = False
+        self.default_load = False
+        self.current_project_name = ttk.Label(self, text='untitled.esp')
+        self.current_project_name.place(x=0, y=30)
+        self.project_name = 'untitled.esp'
+        self.opening_project_name = None
         self.channel_names = [self.language_dict['init'][0]]
         self.channel_sound_modules_name = [os.path.abspath(sound_path)]
         self.channel_num = 1
         self.channel_list_focus = True
+        self.project_dict = {}
+        self.current_loading_num = 0
+        self.default_sound_modules = None
+        self.current_project_file_path = ''
 
-        if file is not None:
-            self.after(10, lambda: self.initialize(mode=1, file=file))
-        else:
-            self.after(10, self.initialize)
-
-        self.protocol("WM_DELETE_WINDOW", self.close_window)
-
-    def initialize_menu(self):
+    def init_menu(self):
         self.menubar = Menu(self,
                             tearoff=False,
                             bg=background_color,
@@ -749,26 +495,66 @@ class Root(Tk):
             if os.path.exists(sound_path):
                 self.show_msg(self.language_dict['msg'][0])
                 self.msg.update()
-                self.channel_sound_modules = [
-                    load_audiosegments(notedict, sound_path)
-                ]
                 self.channel_dict = [copy(notedict)]
-                self.show_msg(self.language_dict['msg'][1])
-            else:
                 self.channel_sound_modules = [None]
+                current_queue = multiprocessing.Queue()
+                current_process = multiprocessing.Process(
+                    target=load_audiosegments,
+                    args=(notedict, sound_path, current_queue))
+                current_process.start()
+                self.current_loading_num += 1
+                self.wait_for_load_audiosegments(current_queue)
+            else:
                 self.channel_dict = [copy(notedict)]
+                self.channel_sound_modules = [None]
         elif mode == 1:
-            self.channel_sound_modules = []
             self.channel_dict = []
-        self.default_load = True
-        self.project_dict = self.get_project_dict()
-        self.check_if_edited()
-        if mode == 1:
+            self.channel_sound_modules = []
+            self.default_load = True
+            self.project_dict = self.get_project_dict()
+            self.check_if_edited()
             self.open_project_file(file)
+        elif mode == 2:
+            self.channel_dict = [copy(notedict)]
+            self.channel_sound_modules = [copy(self.default_sound_modules)]
+            self.project_dict = self.get_project_dict()
+
+    def wait_for_load_audiosegments(self,
+                                    current_queue,
+                                    current_ind=None,
+                                    current_mode=None):
+        if current_queue.empty():
+            self.after(
+                200, lambda: self.wait_for_load_audiosegments(
+                    current_queue, current_ind, current_mode))
+        else:
+            if current_ind is None:
+                self.channel_sound_modules = [current_queue.get()]
+                self.default_sound_modules = copy(
+                    self.channel_sound_modules[0])
+                self.show_msg(self.language_dict['msg'][1])
+                self.default_load = True
+                self.project_dict = self.get_project_dict()
+                self.check_if_edited()
+                self.current_loading_num -= 1
+            else:
+                self.channel_sound_modules[current_ind] = current_queue.get()
+                if not current_mode:
+                    self.current_channel_sound_modules_entry.delete(0, END)
+                    self.current_channel_sound_modules_entry.insert(
+                        END, sound_path)
+                current_msg = self.language_dict["msg"][29].split('|')
+                self.show_msg(
+                    f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
+                )
+                if not current_mode:
+                    self.choose_channels.see(current_ind)
+                    self.choose_channels.selection_anchor(current_ind)
+                    self.choose_channels.selection_set(current_ind)
+                self.current_loading_num -= 1
 
     def check_if_edited(self):
-        current_project_dict = self.get_project_dict()
-        if current_project_dict != self.project_dict:
+        if self.is_changed():
             self.title('Easy Sampler *')
         else:
             self.title('Easy Sampler')
@@ -808,7 +594,11 @@ class Root(Tk):
         self.change_current_bpm_entry.insert(END, '120')
         self.change_current_bpm_entry.place(x=100, y=210)
         self.current_bpm = 120
-        self.initialize()
+        if self.default_sound_modules is not None:
+            self.initialize(mode=2)
+        else:
+            self.initialize()
+        self.show_msg('')
 
     def show_msg(self, text=''):
         self.msg.configure(text=text)
@@ -835,7 +625,7 @@ class Root(Tk):
             self.show_msg(f'{current_msg[0]}{language}.py{current_msg[1]}')
 
     def reload_language(self):
-        self.initialize_menu()
+        self.init_menu()
         self.show_msg('')
 
     def load_sound_as_pitch(self):
@@ -1418,7 +1208,7 @@ class Root(Tk):
                 self.set_musicpy_code_text.delete('1.0', END)
                 self.show_msg(self.language_dict["msg"][13])
                 return
-            os.chdir(os.path.dirname(filename))
+            self.current_project_file_path = os.path.dirname(filename)
         else:
             return
         self.default_load = False
@@ -1445,28 +1235,35 @@ class Root(Tk):
                                         self.channel_names[current_ind])
         for i in range(self.channel_num):
             self.reload_channel_sounds(i)
-        self.current_channel_sound_modules_entry.delete(0, END)
-        self.choose_channels.selection_clear(0, END)
-        current_project_name = os.path.basename(filename)
-        self.current_project_name.configure(text=current_project_name)
-        self.project_name = current_project_name
-        self.opening_project_name = filename
-        current_soundfonts = self.project_dict['soundfont']
-        for each in current_soundfonts:
-            current_sf2 = self.channel_sound_modules[int(each)]
-            if current_sf2:
-                current_sf2_info = current_soundfonts[each]
-                current_bank = current_sf2_info[2]
-                current_sf2.change_bank(current_bank)
-                try:
-                    current_sf2.current_preset_name, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
-                        get_ind=True, mode=1, return_mode=1)
-                except:
-                    current_sf2.current_preset_name, current_sf2.current_preset_ind = [], []
-                current_sf2.change(*current_sf2_info)
-        self.show_msg(self.language_dict["msg"][14])
-        self.default_load = True
-        self.project_dict = self.get_project_dict()
+        self.waiting_for_open_project_file(filename)
+
+    def waiting_for_open_project_file(self, filename):
+        if self.current_loading_num != 0:
+            self.after(200,
+                       lambda: self.waiting_for_open_project_file(filename))
+        else:
+            self.current_channel_sound_modules_entry.delete(0, END)
+            self.choose_channels.selection_clear(0, END)
+            current_project_name = os.path.basename(filename)
+            self.current_project_name.configure(text=current_project_name)
+            self.project_name = current_project_name
+            self.opening_project_name = filename
+            current_soundfonts = self.project_dict['soundfont']
+            for each in current_soundfonts:
+                current_sf2 = self.channel_sound_modules[int(each)]
+                if current_sf2:
+                    current_sf2_info = current_soundfonts[each]
+                    current_bank = current_sf2_info[2]
+                    current_sf2.change_bank(current_bank)
+                    try:
+                        current_sf2.current_preset_name, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
+                            get_ind=True, mode=1, return_mode=1)
+                    except:
+                        current_sf2.current_preset_name, current_sf2.current_preset_ind = [], []
+                    current_sf2.change(*current_sf2_info)
+            self.show_msg(self.language_dict["msg"][14])
+            self.default_load = True
+            self.project_dict = self.get_project_dict()
 
     def get_project_dict(self):
         project_dict = {}
@@ -2622,6 +2419,8 @@ class Root(Tk):
             self.destroy()
 
     def is_changed(self):
+        if not self.default_load:
+            return False
         current_project_dict = self.get_project_dict()
         if current_project_dict != self.project_dict:
             return True
@@ -2694,7 +2493,9 @@ class Root(Tk):
         current_ind = self.current_channel_dict_num if not current_mode else current_ind
         sound_path = self.channel_sound_modules_name[current_ind]
         if not os.path.exists(sound_path):
-            return
+            sound_path = f'{self.current_project_file_path}/{sound_path}'
+            if not os.path.exists(sound_path):
+                return
         if os.path.isfile(sound_path):
             if os.path.splitext(sound_path)[1][1:].lower() == 'esi':
                 self.load_esi_file(current_ind=current_ind,
@@ -2710,20 +2511,14 @@ class Root(Tk):
                 self.msg.update()
 
                 notedict = self.channel_dict[current_ind]
-                self.channel_sound_modules[current_ind] = load_audiosegments(
-                    notedict, sound_path)
-                if not current_mode:
-                    self.current_channel_sound_modules_entry.delete(0, END)
-                    self.current_channel_sound_modules_entry.insert(
-                        END, sound_path)
-                current_msg = self.language_dict["msg"][29].split('|')
-                self.show_msg(
-                    f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
-                )
-                if not current_mode:
-                    self.choose_channels.see(current_ind)
-                    self.choose_channels.selection_anchor(current_ind)
-                    self.choose_channels.selection_set(current_ind)
+                current_queue = multiprocessing.Queue()
+                current_process = multiprocessing.Process(
+                    target=load_audiosegments,
+                    args=(notedict, sound_path, current_queue))
+                current_process.start()
+                self.current_loading_num += 1
+                self.wait_for_load_audiosegments(current_queue, current_ind,
+                                                 current_mode)
             except Exception as e:
                 print(traceback.format_exc())
                 output(traceback.format_exc())
@@ -3154,11 +2949,264 @@ class Root(Tk):
             fg=text_area_foreground_color,
             insertbackground=text_area_cursor_color)
 
-        self.initialize_menu()
+        self.init_menu()
 
         from scripts.change_settings import save_json
         current_settings['current_skin'] = skin
         save_json(current_settings, 'scripts/settings.json')
+
+
+class esi:
+
+    def __init__(self, samples, settings=None, name_mappings=None):
+        self.samples = samples
+        self.settings = settings
+        self.name_mappings = name_mappings
+        self.file_names = {os.path.splitext(i)[0]: i for i in self.samples}
+
+    def __getitem__(self, ind):
+        if self.name_mappings:
+            if ind in self.name_mappings:
+                return self.samples[self.name_mappings[ind]]
+        if ind in self.samples:
+            return self.samples[ind]
+        if ind in self.file_names:
+            return self.samples[self.file_names[ind]]
+
+
+class effect:
+
+    def __init__(self, func, name=None, *args, unknown_args=None, **kwargs):
+        self.func = func
+        if name is None:
+            name = 'effect'
+        self.name = name
+        self.parameters = [args, kwargs]
+        if unknown_args is None:
+            unknown_args = {}
+        self.unknown_args = unknown_args
+
+    def process(self, sound, *args, unknown_args=None, **kwargs):
+        if args or kwargs or unknown_args:
+            return self.func(*args, **kwargs, **unknown_args)
+        else:
+            return self.func(sound, *self.parameters[0], **self.parameters[1],
+                             **self.unknown_args)
+
+    def process_unknown_args(self, **kwargs):
+        for each in kwargs:
+            if each in self.unknown_args:
+                self.unknown_args[each] = kwargs[each]
+
+    def __call__(self, *args, unknown_args=None, **kwargs):
+        temp = copy(self)
+        temp.parameters[0] = args + temp.parameters[0][len(args):]
+        temp.parameters[1].update(kwargs)
+        if unknown_args is None:
+            unknown_args = {}
+        temp.unknown_args.update(unknown_args)
+        return temp
+
+    def new(self, *args, unknown_args=None, **kwargs):
+        temp = copy(self)
+        temp.parameters = [args, kwargs]
+        temp.parameters[1].update(kwargs)
+        if unknown_args is None:
+            unknown_args = {}
+        temp.unknown_args = unknown_args
+        return temp
+
+    def __repr__(self):
+        return f'[effect]\nname: {self.name}\nparameters: {self.parameters} unknown arguments: {self.unknown_args}'
+
+
+class effect_chain:
+
+    def __init__(self, *effects):
+        self.effects = list(effects)
+
+    def __call__(self, sound):
+        sound.effects = self.effects
+        return sound
+
+    def __repr__(self):
+        return f'[effect chain]\neffects:\n' + '\n\n'.join(
+            [str(i) for i in self.effects])
+
+
+class pitch:
+
+    def __init__(self, path, note='C5'):
+        self.note = N(note) if isinstance(note, str) else note
+        audio_load = False
+        if not isinstance(path, AudioSegment):
+            self.file_path = path
+            current_format = path[path.rfind('.') + 1:]
+            try:
+                self.sounds = AudioSegment.from_file(path,
+                                                     format=current_format)
+            except:
+                with open(path, 'rb') as f:
+                    current_data = f.read()
+                current_file = BytesIO(current_data)
+                self.sounds = AudioSegment.from_file(current_file,
+                                                     format=current_format)
+                os.chdir(abs_path)
+                self.sounds.export('scripts/temp.wav', format='wav')
+                self.audio = librosa.load('scripts/temp.wav',
+                                          sr=self.sounds.frame_rate)[0]
+                os.remove('scripts/temp.wav')
+                audio_load = True
+
+        else:
+            self.sounds = path
+            self.file_path = None
+        self.sample_rate = self.sounds.frame_rate
+        self.channels = self.sounds.channels
+        if self.sounds.sample_width != 2:
+            self.sounds = self.sounds.set_sample_width(2)
+        self.sample_width = self.sounds.sample_width
+        if not audio_load:
+            if not isinstance(path, AudioSegment):
+                self.audio = librosa.load(path, sr=self.sample_rate)[0]
+            else:
+                os.chdir(abs_path)
+                path.export('scripts/temp.wav', format='wav')
+                self.audio = librosa.load('scripts/temp.wav',
+                                          sr=path.frame_rate)[0]
+                os.remove('scripts/temp.wav')
+            audio_load = True
+
+    def pitch_shift(self, semitones=1, mode='librosa'):
+        if mode == 'librosa':
+            data_shifted = librosa.effects.pitch_shift(self.audio,
+                                                       self.sample_rate,
+                                                       n_steps=semitones)
+            current_sound = BytesIO()
+            soundfile.write(current_sound,
+                            data_shifted,
+                            self.sample_rate,
+                            format='wav')
+            result = AudioSegment.from_wav(current_sound)
+        elif mode == 'pydub':
+            new_sample_rate = int(self.sample_rate * (2**(semitones / 12)))
+            result = self.sounds._spawn(
+                self.sounds.raw_data,
+                overrides={'frame_rate': new_sample_rate})
+            result = result.set_frame_rate(44100)
+        return result
+
+    def __add__(self, semitones):
+        return self.pitch_shift(semitones)
+
+    def __sub__(self, semitones):
+        return self.pitch_shift(-semitones)
+
+    def get(self, pitch):
+        if not isinstance(pitch, note):
+            pitch = N(pitch)
+        semitones = pitch.degree - self.note.degree
+        return self + semitones
+
+    def set_note(self, pitch):
+        if not isinstance(pitch, note):
+            pitch = N(pitch)
+        self.note = pitch
+
+    def generate_dict(self,
+                      start='A0',
+                      end='C8',
+                      mode='librosa',
+                      pitch_shifter=False):
+        if not isinstance(start, note):
+            start = N(start)
+        if not isinstance(end, note):
+            end = N(end)
+        degree = self.note.degree
+        result = {}
+        for i in range(end.degree - start.degree + 1):
+            current_note_name = str(start + i)
+            converting_note = root.language_dict['Converting note']
+            if pitch_shifter:
+                root.pitch_msg(f'{converting_note} {current_note_name} ...')
+                root.pitch_shifter_window.msg.update()
+            else:
+                root.show_msg(f'{converting_note} {current_note_name} ...')
+                root.msg.update()
+            result[current_note_name] = self.pitch_shift(start.degree + i -
+                                                         degree,
+                                                         mode=mode)
+        return result
+
+    def export_sound_files(self,
+                           path='.',
+                           folder_name=None,
+                           start='A0',
+                           end='C8',
+                           format='wav',
+                           mode='librosa',
+                           pitch_shifter=False):
+        if folder_name is None:
+            folder_name = self.language_dict['Untitled']
+        os.chdir(path)
+        if folder_name not in os.listdir():
+            os.mkdir(folder_name)
+        os.chdir(folder_name)
+        current_dict = self.generate_dict(start,
+                                          end,
+                                          mode=mode,
+                                          pitch_shifter=pitch_shifter)
+        Exporting = root.language_dict['Exporting']
+        for each in current_dict:
+            if pitch_shifter:
+                root.pitch_msg(f'{Exporting} {each} ...')
+                root.pitch_shifter_window.msg.update()
+            current_dict[each].export(f'{each}.{format}', format=format)
+        os.chdir(abs_path)
+
+    def __len__(self):
+        return len(self.sounds)
+
+    def play(self):
+        play_audio(self)
+
+    def stop(self):
+        pygame.mixer.stop()
+
+
+class sound:
+
+    def __init__(self, path):
+        if not isinstance(path, AudioSegment):
+            current_format = path[path.rfind('.') + 1:]
+            try:
+                self.sounds = AudioSegment.from_file(path,
+                                                     format=current_format)
+
+            except:
+                with open(path, 'rb') as f:
+                    current_data = f.read()
+                current_file = BytesIO(current_data)
+                self.sounds = AudioSegment.from_file(current_file,
+                                                     format=current_format)
+            self.file_path = path
+        else:
+            self.sounds = path
+            self.file_path = None
+        self.sample_rate = self.sounds.frame_rate
+        self.channels = self.sounds.channels
+        if self.sounds.sample_width != 2:
+            self.sounds = self.sounds.set_sample_width(2)
+        self.sample_width = self.sounds.sample_width
+
+    def __len__(self):
+        return len(self.sounds)
+
+    def play(self):
+        play_audio(self)
+
+    def stop(self):
+        pygame.mixer.stop()
 
 
 class start_window(Tk):
@@ -3235,7 +3283,7 @@ def play_audio(audio, mode=0):
         current_sound_object.play()
 
 
-def load_audiosegments(current_dict, current_sound_path):
+def load_audiosegments(current_dict, current_sound_path, current_queue=None):
     current_sounds = {}
     current_sound_files = os.listdir(current_sound_path)
     current_sound_path += '/'
@@ -3262,12 +3310,9 @@ def load_audiosegments(current_dict, current_sound_path):
                         44100).set_channels(2).set_sample_width(2)
         else:
             current_sounds[i] = None
+    if current_queue:
+        current_queue.put(current_sounds)
     return current_sounds
-
-
-def load_sounds(dic):
-    wavedict = {i: (dic[i].get_raw() if dic[i] else None) for i in dic}
-    return wavedict
 
 
 def standardize_note(i):
