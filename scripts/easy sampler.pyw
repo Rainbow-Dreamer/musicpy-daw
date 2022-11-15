@@ -544,6 +544,7 @@ class Root(Tk):
                     self.current_channel_sound_modules_entry.delete(0, END)
                     self.current_channel_sound_modules_entry.insert(
                         END, sound_path)
+                    self.channel_sound_modules_name[current_ind] = sound_path
                 current_msg = self.language_dict["msg"][29].split('|')
                 self.show_msg(
                     f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
