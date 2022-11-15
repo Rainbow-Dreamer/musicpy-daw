@@ -549,10 +549,6 @@ class Root(Tk):
                 self.show_msg(
                     f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
                 )
-                if not current_mode:
-                    self.choose_channels.see(current_ind)
-                    self.choose_channels.selection_anchor(current_ind)
-                    self.choose_channels.selection_set(current_ind)
                 self.current_loading_num -= 1
 
     def check_if_edited(self):
@@ -1269,15 +1265,16 @@ class Root(Tk):
 
     def get_project_dict(self):
         project_dict = {}
-        project_dict['channel_num'] = self.channel_num
-        project_dict['channel_names'] = self.channel_names
-        project_dict[
-            'channel_sound_modules_name'] = self.channel_sound_modules_name
-        project_dict['channel_dict'] = self.channel_dict
-        project_dict['current_bpm'] = self.current_bpm
-        project_dict['current_midi_file'] = self.load_midi_file_entry.get()
-        project_dict['current_musicpy_code'] = self.set_musicpy_code_text.get(
-            '1.0', 'end-1c')
+        project_dict['channel_num'] = copy(self.channel_num)
+        project_dict['channel_names'] = copy(self.channel_names)
+        project_dict['channel_sound_modules_name'] = copy(
+            self.channel_sound_modules_name)
+        project_dict['channel_dict'] = copy(self.channel_dict)
+        project_dict['current_bpm'] = copy(self.current_bpm)
+        project_dict['current_midi_file'] = copy(
+            self.load_midi_file_entry.get())
+        project_dict['current_musicpy_code'] = copy(
+            self.set_musicpy_code_text.get('1.0', 'end-1c'))
         current_soundfonts = {
             i: self.channel_sound_modules[i]
             for i in range(len(self.channel_sound_modules))
@@ -1292,7 +1289,7 @@ class Root(Tk):
                     current_sound_modules.current_bank,
                     current_sound_modules.current_preset
                 ]
-                project_dict['soundfont'][i] = current_info
+                project_dict['soundfont'][i] = copy(current_info)
         return project_dict
 
     def save_as_project_file(self, new=False):
@@ -2731,8 +2728,14 @@ class Root(Tk):
                 self.change_current_bpm_entry.insert(END, current_bpm)
                 self.change_current_bpm(1)
         if current_chord is not None:
-            self.play_musicpy_sounds(current_chord, current_bpm,
-                                     current_channel_num)
+            try:
+                self.play_musicpy_sounds(current_chord, current_bpm,
+                                         current_channel_num)
+            except Exception as e:
+                print(traceback.format_exc())
+                if not global_play:
+                    self.show_msg(self.language_dict["msg"][4])
+                    output(traceback.format_exc())
 
     def play_musicpy_sounds(self,
                             current_chord,
