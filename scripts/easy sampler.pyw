@@ -2633,6 +2633,8 @@ class Root(Tk):
         current_bpm = self.change_current_bpm_entry.get()
         try:
             current_bpm = float(current_bpm)
+            if current_bpm.is_integer():
+                current_bpm = int(current_bpm)
             self.current_bpm = current_bpm
             if mode == 0:
                 self.show_msg(f'{self.language_dict["msg"][34]}{current_bpm}')
