@@ -1,5 +1,5 @@
 {
-    "sound_path": "resources/sounds",
+    "sound_path": "resources/gm.sf2",
     "sound_format": "mp3",
     "global_volume": 0.7,
     "font_type": "Consolas",

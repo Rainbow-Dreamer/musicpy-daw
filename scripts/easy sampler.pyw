@@ -499,15 +499,20 @@ class Root(Tk):
                 self.channel_sound_modules = [None]
                 self.project_dict = self.get_project_dict()
                 current_queue = multiprocessing.Queue()
-                current_process = multiprocessing.Process(
-                    target=load_audiosegments,
-                    args=(notedict, sound_path, current_queue))
-                current_process.start()
-                self.current_loading_num += 1
-                self.wait_for_load_audiosegments(current_queue)
+                if os.path.isfile(sound_path):
+                    self.load_sf2_file(current_ind=0, sound_path=sound_path)
+                    self.default_load = True
+                else:
+                    current_process = multiprocessing.Process(
+                        target=load_audiosegments,
+                        args=(notedict, sound_path, current_queue))
+                    current_process.start()
+                    self.current_loading_num += 1
+                    self.wait_for_load_audiosegments(current_queue)
             else:
                 self.channel_dict = [copy(notedict)]
                 self.channel_sound_modules = [None]
+                self.default_load = True
         elif mode == 1:
             self.channel_dict = []
             self.channel_sound_modules = []
