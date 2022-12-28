@@ -1,6 +1,8 @@
 import traceback
 import json
 import multiprocessing
+from scripts.change_settings import save_json
+from scripts.change_settings import settings_window
 
 settings_path = 'scripts/settings.json'
 with open(settings_path, encoding='utf-8') as f:
@@ -26,7 +28,6 @@ class Root(Tk):
         try:
             self.init_skin(current_skin)
         except:
-            import traceback
             print(traceback.format_exc())
             current_skin = 'default'
             self.init_skin(current_skin)
@@ -122,11 +123,10 @@ class Root(Tk):
         self.msg = ttk.Label(self, text='')
         self.msg.place(x=130, y=630)
 
-        self.change_current_sound_path_button = ttk.Button(
-            self,
-            text='Change Sound Path',
-            command=self.change_current_sound_path)
-        self.change_current_sound_path_button.place(x=550, y=210)
+        self.load_instrument_button = ttk.Button(self,
+                                                 text='Load Instrument',
+                                                 command=self.load_instrument)
+        self.load_instrument_button.place(x=550, y=210)
 
         self.load_midi_file_button = ttk.Button(
             self, text='Import MIDI File', command=self.load_midi_file_func)
@@ -178,13 +178,13 @@ class Root(Tk):
         self.current_channel_name_entry.bind(
             '<Return>', lambda e: self.change_current_channel_name())
         self.current_channel_sound_modules_label = ttk.Label(
-            self, text='Channel Sound Modules')
+            self, text='Channel Instrument')
         self.current_channel_sound_modules_entry = ttk.Entry(self,
                                                              width=90,
                                                              font=(font_type,
                                                                    font_size))
         self.current_channel_sound_modules_entry.bind(
-            '<Return>', lambda e: self.change_current_sound_path_func())
+            '<Return>', lambda e: self.load_instrument_func())
         self.current_channel_sound_modules_label.place(x=250, y=110)
         self.current_channel_sound_modules_entry.place(x=410, y=110)
 
@@ -222,14 +222,15 @@ class Root(Tk):
         self.load_channel_settings_button.place(x=700, y=210)
 
         self.configure_sf2_button = ttk.Button(self,
-                                               text='Configure Soundfonts',
+                                               text='Configure SoundFont',
                                                command=self.configure_sf2_file)
         self.configure_sf2_button.place(x=870, y=210)
 
-        self.load_sf2_button = ttk.Button(self,
-                                          text='Load Soundfonts',
-                                          command=self.load_sf2_file)
-        self.load_sf2_button.place(x=870, y=160)
+        self.clear_instrument_button = ttk.Button(
+            self,
+            text='Clear Instrument',
+            command=self.clear_current_instrument)
+        self.clear_instrument_button.place(x=870, y=160)
         self.export_button = ttk.Button(self,
                                         text='Export',
                                         command=self.open_export_menu)
@@ -490,6 +491,30 @@ class Root(Tk):
                                     foreground=label_foreground_color)
         self.file_top_tools.place(x=164, y=0)
 
+        self.load_instrument_menubar = Menu(
+            self,
+            tearoff=False,
+            bg=background_color,
+            activebackground=active_background_color,
+            activeforeground=active_foreground_color,
+            disabledforeground=disabled_foreground_color,
+            font=(font_type, font_size))
+
+        self.load_instrument_menubar.add_command(
+            label=self.language_dict['load_instrument'][0],
+            command=self.load_instrument_folder,
+            foreground=label_foreground_color)
+
+        self.load_instrument_menubar.add_command(
+            label=self.language_dict['load_instrument'][1],
+            command=self.load_sf2_file,
+            foreground=label_foreground_color)
+
+        self.load_instrument_menubar.add_command(
+            label=self.language_dict['load_instrument'][2],
+            command=self.load_esi_file,
+            foreground=label_foreground_color)
+
     def initialize(self, mode=0, file=None):
         if mode == 0:
             if os.path.exists(sound_path):
@@ -497,11 +522,12 @@ class Root(Tk):
                 self.msg.update()
                 self.channel_dict = [copy(notedict)]
                 self.channel_sound_modules = [None]
-                self.project_dict = self.get_project_dict()
                 current_queue = multiprocessing.Queue()
                 if os.path.isfile(sound_path):
                     self.load_sf2_file(current_ind=0, sound_path=sound_path)
                     self.default_load = True
+                    self.project_dict = self.get_project_dict()
+                    self.check_if_edited()
                 else:
                     current_process = multiprocessing.Process(
                         target=load_audiosegments,
@@ -541,15 +567,18 @@ class Root(Tk):
                     self.channel_sound_modules[0])
                 self.show_msg(self.language_dict['msg'][1])
                 self.default_load = True
+                self.project_dict = self.get_project_dict()
                 self.check_if_edited()
                 self.current_loading_num -= 1
             else:
                 self.channel_sound_modules[current_ind] = current_queue.get()
                 if not current_mode:
+                    current_sound_path = os.path.abspath(sound_path)
                     self.current_channel_sound_modules_entry.delete(0, END)
                     self.current_channel_sound_modules_entry.insert(
-                        END, sound_path)
-                    self.channel_sound_modules_name[current_ind] = sound_path
+                        END, current_sound_path)
+                    self.channel_sound_modules_name[
+                        current_ind] = current_sound_path
                 current_msg = self.language_dict["msg"][29].split('|')
                 self.show_msg(
                     f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
@@ -1087,34 +1116,41 @@ class Root(Tk):
         self.show_msg(
             f'{self.language_dict["msg"][9]}{os.path.basename(file_path)} ...')
         self.msg.update()
-        with open(file_path, 'rb') as file:
-            current_esi = pickle.load(file)
-        channel_settings = current_esi.settings
-        current_samples = current_esi.samples
-        filenames = list(current_samples.keys())
-        sound_files_audio = [
-            AudioSegment.from_file(
-                BytesIO(current_samples[i]), format=os.path.splitext(i)[1]
-                [1:]).set_frame_rate(44100).set_channels(2).set_sample_width(2)
-            for i in filenames
-        ]
-        self.channel_dict[current_ind] = copy(notedict)
-        if channel_settings is not None:
-            self.load_channel_settings(text=channel_settings)
-        current_dict = self.channel_dict[current_ind]
-        filenames = [os.path.splitext(i)[0] for i in filenames]
-        result_audio = {
-            filenames[i]: sound_files_audio[i]
-            for i in range(len(filenames))
-        }
+        try:
+            with open(file_path, 'rb') as file:
+                current_esi = pickle.load(file)
+            channel_settings = current_esi.settings
+            current_samples = current_esi.samples
+            filenames = list(current_samples.keys())
+            sound_files_audio = [
+                AudioSegment.from_file(
+                    BytesIO(current_samples[i]),
+                    format=os.path.splitext(i)[1][1:]).set_frame_rate(
+                        44100).set_channels(2).set_sample_width(2)
+                for i in filenames
+            ]
+            self.channel_dict[current_ind] = copy(notedict)
+            if channel_settings is not None:
+                self.load_channel_settings(text=channel_settings)
+            current_dict = self.channel_dict[current_ind]
+            filenames = [os.path.splitext(i)[0] for i in filenames]
+            result_audio = {
+                filenames[i]: sound_files_audio[i]
+                for i in range(len(filenames))
+            }
+        except:
+            self.show_msg(self.language_dict['msg'][46])
+            return
         self.channel_sound_modules[current_ind] = {
             i: (result_audio[current_dict[i]]
                 if current_dict[i] in result_audio else None)
             for i in current_dict
         }
-        self.channel_sound_modules_name[current_ind] = file_path
+        current_sound_path = os.path.abspath(file_path)
+        self.channel_sound_modules_name[current_ind] = current_sound_path
         self.current_channel_sound_modules_entry.delete(0, END)
-        self.current_channel_sound_modules_entry.insert(END, file_path)
+        self.current_channel_sound_modules_entry.insert(
+            END, current_sound_path)
         self.show_msg(
             f'{self.language_dict["msg"][10]}{os.path.basename(file_path)}')
 
@@ -1206,7 +1242,6 @@ class Root(Tk):
                 with open(filename, encoding='utf-8', errors='ignore') as f:
                     self.project_dict = json.load(f)
             except:
-                import traceback
                 print(traceback.format_exc())
                 self.set_musicpy_code_text.delete('1.0', END)
                 self.show_msg(self.language_dict["msg"][13])
@@ -1357,6 +1392,7 @@ class Root(Tk):
     def load_channel_settings(self, text=None):
         current_ind = self.choose_channels.index(ANCHOR)
         if current_ind >= self.channel_num or not self.channel_list_focus:
+            self.show_msg(self.language_dict['msg'][8])
             return
         if text is None:
             filename = filedialog.askopenfilename(
@@ -1395,18 +1431,23 @@ class Root(Tk):
                     f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
                 )
                 self.msg.update()
-                current_sf2 = rs.sf2_loader(sound_path)
-                current_sf2.all_instruments_dict = current_sf2.all_instruments(
-                )
-                current_sf2.all_available_banks = list(
-                    current_sf2.all_instruments_dict.keys())
                 try:
-                    current_sf2.current_preset_name, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
-                        get_ind=True, return_mode=1)
+                    current_sf2 = rs.sf2_loader(sound_path)
+                    current_sf2.all_instruments_dict = current_sf2.all_instruments(
+                    )
+                    current_sf2.all_available_banks = list(
+                        current_sf2.all_instruments_dict.keys())
+                    try:
+                        current_sf2.current_preset_name, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
+                            get_ind=True, return_mode=1)
+                    except:
+                        current_sf2.current_preset_name, current_sf2.current_preset_ind = [], []
                 except:
-                    current_sf2.current_preset_name, current_sf2.current_preset_ind = [], []
+                    self.show_msg(self.language_dict["msg"][30])
+                    return
                 self.channel_sound_modules[current_ind] = current_sf2
-                self.channel_sound_modules_name[current_ind] = sound_path
+                self.channel_sound_modules_name[current_ind] = os.path.abspath(
+                    sound_path)
                 current_msg = self.language_dict["msg"][29].split('|')
                 self.show_msg(
                     f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
@@ -1415,7 +1456,7 @@ class Root(Tk):
                 if mode == 0:
                     filename = filedialog.askopenfilename(
                         title=self.language_dict['title'][17],
-                        filetypes=(("Soundfont", ".sf2 .sf3 .dls"),
+                        filetypes=(("SoundFont", ".sf2 .sf3 .dls"),
                                    (self.language_dict['title'][1], "*")))
                 else:
                     filename = self.current_channel_sound_modules_entry.get()
@@ -1436,12 +1477,13 @@ class Root(Tk):
                                 get_ind=True, return_mode=1)
                         except:
                             current_sf2.current_preset_name, current_sf2.current_preset_ind = [], []
+                        current_sound_path = os.path.abspath(sound_path)
                         self.channel_sound_modules[current_ind] = current_sf2
                         self.channel_sound_modules_name[
-                            current_ind] = sound_path
+                            current_ind] = current_sound_path
                         self.current_channel_sound_modules_entry.delete(0, END)
                         self.current_channel_sound_modules_entry.insert(
-                            END, sound_path)
+                            END, current_sound_path)
                         current_msg = self.language_dict["msg"][29].split('|')
                         self.show_msg(
                             f'{current_msg[0]}{self.channel_names[current_ind]}{current_msg[1]}'
@@ -1453,6 +1495,9 @@ class Root(Tk):
                         print(traceback.format_exc())
                         output(traceback.format_exc())
                         self.show_msg(self.language_dict["msg"][30])
+                        return
+                else:
+                    return
         else:
             self.show_msg(self.language_dict['msg'][8])
 
@@ -1582,6 +1627,9 @@ class Root(Tk):
                 self.bank_label = ttk.Label(self.configure_sf2_file_window,
                                             text='Banks')
                 self.bank_label.place(x=0, y=0)
+            else:
+                self.show_msg(self.language_dict['msg'][8])
+                return
 
     def change_current_bank(self, mode=0):
         current_ind = self.choose_channels.index(ANCHOR)
@@ -1766,7 +1814,8 @@ class Root(Tk):
 
             current_sound_modules = self.channel_sound_modules[
                 current_channel_num]
-            if isinstance(current_sound_modules, rs.sf2_loader):
+            if not all_has_audio(current_chord) and isinstance(
+                    current_sound_modules, rs.sf2_loader):
                 if action == 'export':
                     current_msg = self.language_dict["msg"][27].split('|')
                     self.show_msg(
@@ -1866,7 +1915,8 @@ class Root(Tk):
                 current_sound_modules = self.channel_sound_modules[
                     current_channel_number]
                 current_track = current_tracks[i]
-                if isinstance(current_sound_modules, rs.sf2_loader):
+                if not all_has_audio(current_track) and isinstance(
+                        current_sound_modules, rs.sf2_loader):
                     if action == 'export':
                         current_msg = self.language_dict["msg"][27].split('|')
                         self.show_msg(
@@ -1990,11 +2040,6 @@ class Root(Tk):
         if len(self.channel_sound_modules) <= current_channel_num:
             self.show_msg(
                 f'{self.language_dict["msg"][25]}{current_channel_num+1}')
-            return
-        if not self.channel_sound_modules[current_channel_num]:
-            self.show_msg(
-                f'{self.language_dict["channel"]} {current_channel_num+1} {self.language_dict["msg"][26]}'
-            )
             return
 
         apply_fadeout_obj = self.apply_fadeout(current_chord, current_bpm)
@@ -2216,6 +2261,20 @@ class Root(Tk):
             self.channel_dict[current_ind] = copy(notedict)
             self.current_channel_name_entry.delete(0, END)
             self.current_channel_sound_modules_entry.delete(0, END)
+        else:
+            self.show_msg(self.language_dict['msg'][8])
+            return
+
+    def clear_current_instrument(self):
+        current_ind = self.choose_channels.index(ANCHOR)
+        if current_ind < self.channel_num and self.channel_list_focus:
+            self.channel_sound_modules_name[current_ind] = ''
+            self.channel_sound_modules[current_ind] = None
+            self.channel_dict[current_ind] = copy(notedict)
+            self.current_channel_sound_modules_entry.delete(0, END)
+        else:
+            self.show_msg(self.language_dict['msg'][8])
+            return
 
     def clear_all_channels(self, mode=0):
         if_clear = messagebox.askyesnocancel(
@@ -2251,6 +2310,9 @@ class Root(Tk):
             else:
                 self.current_channel_name_entry.delete(0, END)
                 self.current_channel_sound_modules_entry.delete(0, END)
+        else:
+            self.show_msg(self.language_dict['msg'][8])
+            return
 
     def add_new_channel(self):
         self.channel_num += 1
@@ -2358,11 +2420,16 @@ class Root(Tk):
                                                      width=10,
                                                      font=(font_type,
                                                            font_size))
+                self.reset_dict_button = ttk.Button(
+                    self.change_dict_window,
+                    text=self.language_dict['change_channel_dict'][9],
+                    command=self.reset_dict)
                 self.change_current_note_name_button.place(x=200, y=100)
                 self.change_current_note_value_button.place(x=350, y=100)
                 self.add_new_note_button.place(x=200, y=150)
                 self.new_note_name_entry.place(x=320, y=150)
                 self.remove_note_button.place(x=200, y=200)
+                self.reset_dict_button.place(x=350, y=250)
                 self.reload_channel_sounds_button = ttk.Button(
                     self.change_dict_window,
                     text=self.language_dict['change_channel_dict'][7],
@@ -2372,13 +2439,25 @@ class Root(Tk):
                     self.change_dict_window,
                     text=self.language_dict['change_channel_dict'][8],
                     command=self.clear_all_notes)
-                self.clear_all_notes_button.place(x=320, y=200)
+                self.clear_all_notes_button.place(x=350, y=200)
+            else:
+                self.show_msg(self.language_dict['msg'][8])
+                return
 
     def clear_all_notes(self):
         self.dict_configs.delete(0, END)
         self.current_dict.clear()
         self.current_note_name_entry.delete(0, END)
         self.current_note_value_entry.delete(0, END)
+
+    def reset_dict(self):
+        current_ind = self.choose_channels.index(ANCHOR)
+        self.channel_dict[current_ind] = copy(notedict)
+        current_dict = self.channel_dict[current_ind]
+        self.dict_configs.delete(0, END)
+        for each in current_dict:
+            self.dict_configs.insert(END, each)
+        self.current_dict = current_dict
 
     def close_change_dict_window(self):
         self.change_dict_window.destroy()
@@ -2522,7 +2601,7 @@ class Root(Tk):
                 current_process.start()
                 self.current_loading_num += 1
                 self.wait_for_load_audiosegments(current_queue, current_ind,
-                                                 current_mode)
+                                                 current_mode, sound_path)
             except Exception as e:
                 print(traceback.format_exc())
                 output(traceback.format_exc())
@@ -2547,6 +2626,9 @@ class Root(Tk):
             self.choose_channels.selection_anchor(current_ind)
             self.choose_channels.selection_set(current_ind)
             self.channel_names[current_ind] = current_channel_name
+        else:
+            self.show_msg(self.language_dict['msg'][8])
+            return
 
     def show_current_channel(self):
         self.channel_list_focus = True
@@ -2584,17 +2666,23 @@ class Root(Tk):
             self.set_musicpy_code_text.focus_set()
             self.show_msg(self.language_dict["msg"][32])
 
-    def change_current_sound_path_func(self):
+    def load_instrument_func(self):
         current_path = self.current_channel_sound_modules_entry.get()
         if os.path.isdir(current_path):
-            self.change_current_sound_path(1)
+            self.load_instrument_folder(1)
         elif os.path.isfile(current_path):
             if os.path.splitext(current_path)[1][1:].lower() == 'esi':
                 self.load_esi_file(1)
-            else:
+            elif os.path.splitext(current_path)[1][1:].lower() in [
+                    'sf2', 'sf3', 'dls'
+            ]:
                 self.load_sf2_file(1)
 
-    def change_current_sound_path(self, mode=0):
+    def load_instrument(self, mode=0):
+        self.load_instrument_menubar.tk_popup(x=self.winfo_pointerx(),
+                                              y=self.winfo_pointery())
+
+    def load_instrument_folder(self, mode=0):
         current_ind = self.choose_channels.index(ANCHOR)
         if current_ind < self.channel_num and self.channel_list_focus:
             self.show_msg('')
@@ -2624,6 +2712,9 @@ class Root(Tk):
                     print(traceback.format_exc())
                     output(traceback.format_exc())
                     self.show_msg(self.language_dict["msg"][30])
+        else:
+            self.show_msg(self.language_dict['msg'][8])
+            return
 
     def bar_to_real_time(self, bar, bpm, mode=0):
         # return time in ms
@@ -2855,7 +2946,6 @@ class Root(Tk):
         if not self.open_settings:
             self.open_settings = True
             os.chdir(abs_path)
-            from scripts.change_settings import settings_window
             self.current_settings_window = settings_window(settings_path,
                                                            root=self)
             self.current_settings_window.mainloop()
@@ -2958,7 +3048,6 @@ class Root(Tk):
 
         self.init_menu()
 
-        from scripts.change_settings import save_json
         current_settings['current_skin'] = skin
         save_json(current_settings, 'scripts/settings.json')
 
@@ -3360,6 +3449,13 @@ def has_audio(sound):
         return any(isinstance(i, AudioSegment) for i in sound.notes)
     elif isinstance(sound, piece):
         return any(has_audio(i) for i in sound.tracks)
+
+
+def all_has_audio(sound):
+    if isinstance(sound, chord):
+        return all(isinstance(i, AudioSegment) for i in sound.notes)
+    elif isinstance(sound, piece):
+        return all(all_has_audio(i) for i in sound.tracks)
 
 
 def check_special(sound):

@@ -4,7 +4,7 @@
 
 This is a music sampler and tracker to make music with musicpy.
 
-![image](https://github.com/Rainbow-Dreamer/easy-sampler/blob/main/previews/1.jpg?raw=True)
+![image](previews/1.jpg)
 
 ## Download
 
@@ -19,7 +19,7 @@ To play or export a musicpy data structure, like note, chord, track and piece, t
 1. You can just write the musicpy data structure in one line and press `Play Musicpy Code` to play it and press `Export` to export to audio files. 
    Note that in this way you must write the musicpy data structure in one line to make it work, for example,
    ```python
-   C('Cmaj7') % (1, 1/8) % 2
+   C('Cmaj7') % (1, 1/8) * 2
    ```
 
 2. To write more complicated musicpy codes to get the resulted musicpy data structure you want to play or export, you can just write musicpy codes as usual, but you must write
@@ -31,8 +31,8 @@ To play or export a musicpy data structure, like note, chord, track and piece, t
    Note that channel number is 1-based.
    Here is an example,
    ```python
-   part1 = C('Cmaj7') % (1, 1/8) % 2
-   part2 = C('Am7') % (1, 1/8) % 2
+   part1 = C('Cmaj7') % (1, 1/8) * 2
+   part2 = C('Am7') % (1, 1/8) * 2
    result = part1 | part2
    play result
    # with BPM and channel number: play result, 150, 1
@@ -87,7 +87,7 @@ Update (2021/10/12): Now there is a debug window, you can open the debug window 
 
 这是一个音乐取样机和tracker，可以用musicpy制作音乐。
 
-![image](https://github.com/Rainbow-Dreamer/easy-sampler/blob/main/previews/2.jpg?raw=True)
+![image](previews/2.jpg)
 
 ## 下载
 
@@ -102,7 +102,7 @@ Update (2021/10/12): Now there is a debug window, you can open the debug window 
 1. 你可以只写一行musicpy数据结构，然后按`演奏musicpy代码`来播放它，按`导出`来导出音频文件。
    注意，在这种方式下，你必须把musicpy的数据结构写在一行中才行，比如说
    ```python
-   C('Cmaj7') % (1, 1/8) % 2
+   C('Cmaj7') % (1, 1/8) * 2
    ```
 
 2. 要写更复杂的musicpy代码来获得你想播放或导出的musicpy数据结构，你可以像往常一样写musicpy代码，但你必须写
@@ -113,8 +113,8 @@ Update (2021/10/12): Now there is a debug window, you can open the debug window 
    BPM和通道编号可以省略，如果省略BPM，取样机将使用默认BPM，如果省略通道编号，取样机将使用通道编号1。
    注意，通道编号是基于1的。下面是一个例子
    ```python
-   part1 = C('Cmaj7') % (1, 1/8) % 2
-   part2 = C('Am7') % (1, 1/8) % 2
+   part1 = C('Cmaj7') % (1, 1/8) * 2
+   part2 = C('Am7') % (1, 1/8) * 2
    result = part1 | part2
    play result
    # 用BPM和通道编号: play result, 150, 1

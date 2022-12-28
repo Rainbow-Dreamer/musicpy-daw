@@ -136,17 +136,17 @@ def freq_to_note(freq, to_str=False, standard=440):
     return result
 
 
-def secondary_dom(root, mode='major'):
+def secondary_dom(root, current_scale='major'):
     if isinstance(root, str):
         root = to_note(root)
-    newscale = scale(root, mode)
+    newscale = scale(root, current_scale)
     return newscale.dom_chord()
 
 
-def secondary_dom7(root, mode='major'):
+def secondary_dom7(root, current_scale='major'):
     if isinstance(root, str):
         root = to_note(root)
-    newscale = scale(root, mode)
+    newscale = scale(root, current_scale)
     return newscale.dom7_chord()
 
 
@@ -181,7 +181,7 @@ def inversion(current_chord, num=1):
 
 
 def get_chord(start,
-              mode=None,
+              current_chord_type=None,
               duration=1 / 4,
               intervals=None,
               interval=None,
@@ -199,20 +199,22 @@ def get_chord(start,
                                      intervals,
                                      cummulative,
                                      start_time=start_time)
-    premode = mode
-    mode = mode.lower().replace(' ', '')
+    pre_chord_type = current_chord_type
+    current_chord_type = current_chord_type.lower().replace(' ', '')
     initial = start.degree
     chordlist = [start]
     current_chord_types = database.chordTypes if custom_mapping is None else custom_mapping
-    interval_premode = current_chord_types(premode, mode=1, index=ind)
-    if interval_premode != 'not found':
-        interval = interval_premode
+    if pre_chord_type in current_chord_types:
+        interval_pre_chord_type = current_chord_types[pre_chord_type][ind]
+        interval = interval_pre_chord_type
     else:
-        interval_mode = current_chord_types(mode, mode=1, index=ind)
-        if interval_mode != 'not found':
-            interval = interval_mode
+        if current_chord_type in current_chord_types:
+            interval_current_chord_type = current_chord_types[
+                current_chord_type][ind]
+            interval = interval_current_chord_type
         else:
-            raise ValueError('could not detect the chord types')
+            raise ValueError(
+                f'could not detect the chord type {current_chord_type}')
     for i in range(len(interval)):
         chordlist.append(degree_to_note(initial + interval[i]))
     return chord(chordlist, duration, intervals, start_time=start_time)
@@ -1213,7 +1215,8 @@ def trans(obj, pitch=4, duration=1 / 4, interval=None, custom_mapping=None):
                                  duration=duration,
                                  interval=interval)
     raise ValueError(
-        'not a valid chord representation or chord types not in database')
+        f'{obj} is not a valid chord representation or chord types not in database'
+    )
 
 
 def to_scale(obj, pitch=None):
@@ -1555,7 +1558,7 @@ def riff_to_midi(riff_name, name='temp.mid', output_file=False):
 
     chunk_id = root.getname()
     if chunk_id == b'MThd':
-        raise IOError(f"Already a Standard MIDI format file: {riff_name}")
+        raise IOError(f'Already a Standard MIDI format file: {riff_name}')
     elif chunk_id != b'RIFF':
         chunk_size = root.getsize()
         chunk_raw = root.read(chunk_size)
@@ -1570,11 +1573,11 @@ def riff_to_midi(riff_name, name='temp.mid', output_file=False):
                                                       chunk_raw[0:12])
 
         if hdr_id != b'RMID' or hdr_data != b'data':
-            raise IOError(f"Invalid or unsupported input file: {riff_name}")
+            raise IOError(f'Invalid or unsupported input file: {riff_name}')
         try:
             midi_raw = chunk_raw[12:12 + midi_size]
         except IndexError:
-            raise IOError(f"Broken input file: {riff_name}")
+            raise IOError(f'Broken input file: {riff_name}')
 
     root.close()
     if isinstance(riff_name, str):
@@ -1671,7 +1674,7 @@ def relative_note(a, b):
         elif accidental_a == '♮':
             pass
         else:
-            return f'unrecognizable accidentals {accidental_a}'
+            raise ValueError(f'unrecognizable accidentals {accidental_a}')
     if b in database.standard:
         b = note(b, 5)
     else:
@@ -1687,7 +1690,7 @@ def relative_note(a, b):
         elif accidental_b == '♮':
             pass
         else:
-            return f'unrecognizable accidentals {accidental_b}'
+            raise ValueError(f'unrecognizable accidentals {accidental_b}')
     degree1, degree2 = a.degree, b.degree
     diff1, diff2 = degree1 - degree2, (degree1 - degree2 -
                                        12 if degree1 >= degree2 else degree1 +
@@ -1706,6 +1709,47 @@ def relative_note(a, b):
         return b.name + 'b'
     if diff == -2:
         return b.name + 'bb'
+
+
+def standardize_note(a):
+    if a in database.standard2:
+        return a
+    elif a in database.standard_dict:
+        return database.standard_dict[a]
+    else:
+        if a.endswith('bb'):
+            current_name = a[:-2]
+            result = (N(standardize_note(current_name)) - 2).name
+        elif a.endswith('x'):
+            current_name = a[:-1]
+            result = (N(standardize_note(current_name)) + 2).name
+        elif a.endswith('♮'):
+            result = a[:-1]
+        elif a.endswith('#'):
+            current_name = a[:-1]
+            result = (N(standardize_note(current_name)) + 1).name
+        elif a.endswith('b'):
+            current_name = a[:-1]
+            result = (N(standardize_note(current_name)) - 1).name
+        else:
+            raise ValueError(f'Invalid note name or accidental {a}')
+        return result
+
+
+def get_accidental(a):
+    if a.endswith('bb'):
+        result = 'bb'
+    elif a.endswith('x'):
+        result = 'x'
+    elif a.endswith('♮'):
+        result = '♮'
+    elif a.endswith('#'):
+        result = '#'
+    elif a.endswith('b'):
+        result = 'b'
+    else:
+        result = ''
+    return result
 
 
 def reset(self, **kwargs):

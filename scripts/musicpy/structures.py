@@ -9,6 +9,9 @@ else:
 
 
 class note:
+    '''
+    This class represents a single note.
+    '''
 
     def __init__(self, name, num=4, duration=1 / 4, volume=100, channel=None):
         if name not in database.standard:
@@ -62,6 +65,15 @@ class note:
     def __mod__(self, obj):
         return self.set(*obj)
 
+    def accidental(self):
+        result = ''
+        if self.name in database.standard:
+            if '#' in self.name:
+                result = '#'
+            elif 'b' in self.name:
+                result = 'b'
+        return result
+
     def join(self, other, ind, interval):
         if isinstance(other, str):
             other = mp.to_note(other)
@@ -97,6 +109,9 @@ class note:
             return self.reset(name=database.reverse_standard_dict[name])
         else:
             return self.reset(name=name)
+
+    def flip_accidental(self):
+        return ~self
 
     def __add__(self, obj):
         if isinstance(obj, int):
@@ -162,7 +177,9 @@ class note:
 
 
 class chord:
-    ''' This class can contain a chord with many notes played simultaneously and either has intervals, the default interval is 0.'''
+    '''
+    This class represents a collection of notes with relative distances.
+    '''
 
     def __init__(self,
                  notes,
@@ -602,7 +619,7 @@ class chord:
                        interval,
                        start_time=copy(self.start_time))
         if volume is not None:
-            result.setvolume(volume, ind)
+            result.set_volume(volume, ind)
         return result
 
     def special_set(self,
@@ -621,9 +638,9 @@ class chord:
             and self.notes[i].keep_same_time else result.interval[i]
             for i in range(len(self))
         ]
-        result.setvolume(volume)
+        result.set_volume(volume)
         if volume is not None:
-            result.setvolume(volume, ind)
+            result.set_volume(volume, ind)
         return result
 
     def change_interval(self, newinterval):
@@ -638,7 +655,14 @@ class chord:
                 )
 
     def __repr__(self):
-        return f'{self.notes} with interval {self.interval}'
+        current_notes_str = ', '.join([str(i) for i in self.notes[:10]])
+        if len(self.notes) > 10:
+            current_notes_str += ', ...'
+        current_interval_str = ', '.join([str(i) for i in self.interval[:10]])
+        if len(self.interval) > 10:
+            current_interval_str += ', ...'
+        result = f'chord(notes=[{current_notes_str}], interval=[{current_interval_str}], start_time={self.start_time})'
+        return result
 
     def __contains__(self, note1):
         if not isinstance(note1, note):
@@ -855,6 +879,8 @@ class chord:
                 if degree in database.degree_match:
                     degree_ls = database.degree_match[degree]
                     temp += temp[0].up(degree_ls[0])
+            else:
+                raise ValueError(f'{obj} is not a valid chord alternation')
         return temp
 
     def get(self, ls):
@@ -986,7 +1012,11 @@ class chord:
             result = [i - root for i in others]
         if not translate:
             return result
-        return [database.INTERVAL[x % database.octave] for x in result]
+        return [
+            database.INTERVAL.get(i % (database.octave * 2),
+                                  database.INTERVAL[i % database.octave])
+            for i in result
+        ]
 
     def add(self, note1=None, mode='after', start=0, duration=1 / 4):
         if len(self) == 0:
@@ -1443,28 +1473,28 @@ class chord:
     def set_volume(self, vol, ind='all'):
         if isinstance(ind, int):
             each = self.notes[ind]
-            each.setvolume(vol)
+            each.set_volume(vol)
         elif isinstance(ind, list):
             if isinstance(vol, list):
                 for i in range(len(ind)):
                     current = ind[i]
                     each = self.notes[current]
-                    each.setvolume(vol[i])
+                    each.set_volume(vol[i])
             elif isinstance(vol, (int, float)):
                 vol = int(vol)
                 for i in range(len(ind)):
                     current = ind[i]
                     each = self.notes[current]
-                    each.setvolume(vol)
+                    each.set_volume(vol)
         elif ind == 'all':
             if isinstance(vol, list):
                 for i in range(len(vol)):
                     current = self.notes[i]
-                    current.setvolume(vol[i])
+                    current.set_volume(vol[i])
             elif isinstance(vol, (int, float)):
                 vol = int(vol)
                 for each in self.notes:
-                    each.setvolume(vol)
+                    each.set_volume(vol)
 
     def move(self, x):
         # x could be a dict or list of (index, move_steps)
@@ -1519,7 +1549,7 @@ class chord:
                                           [-i for i in pitch_intervals],
                                           temp.get_duration(), temp.interval,
                                           False)
-        result.setvolume(volumes)
+        result.set_volume(volumes)
         result += pitch_bend_changes
         return result
 
@@ -2111,9 +2141,13 @@ class chord:
 
 
 class scale:
+    '''
+    This class represents a scale.
+    '''
 
     def __init__(self, start=None, mode=None, interval=None, notes=None):
         self.interval = interval
+        self.notes = None
         if notes is not None:
             notes = [mp.to_note(i) if isinstance(i, str) else i for i in notes]
             self.notes = notes
@@ -2134,7 +2168,7 @@ class scale:
         if mode is None:
             current_mode = mp.alg.detect_scale_type(self.interval,
                                                     mode='interval')
-            if current_mode != 'not found':
+            if current_mode is not None:
                 self.mode = current_mode
 
     def set_mode_name(self, name):
@@ -2148,6 +2182,9 @@ class scale:
 
     def __eq__(self, other):
         return type(other) is scale and self.notes == other.notes
+
+    def get_scale_name(self):
+        return f'{self.start} {self.mode} scale'
 
     def standard(self):
         if len(self) == 8:
@@ -2225,12 +2262,11 @@ class scale:
             if self.interval is not None:
                 return self.interval
             mode = self.mode.lower()
-            result = database.scaleTypes[mode]
-            if result != 'not found':
-                return result
+            if mode in database.scaleTypes:
+                return database.scaleTypes[mode]
             else:
                 if self.notes is None:
-                    raise ValueError('could not find this scale')
+                    raise ValueError(f'could not find scale {self.mode}')
                 else:
                     notes = self.notes
                     rootdegree = notes[0].degree
@@ -2257,7 +2293,7 @@ class scale:
             count = self.start.degree
             interval1 = self.get_interval()
             if isinstance(interval1, str):
-                raise ValueError('cannot find this scale')
+                raise ValueError(f'cannot find scale {interval1}')
             for t in interval1:
                 count += t
                 result.append(mp.degree_to_note(count))
@@ -2427,9 +2463,9 @@ class scale:
 
     def relative_key(self):
         if self.mode == 'major':
-            return scale(self[5], 'minor')
+            return scale(self[5].reset_octave(self[0].num), 'minor')
         elif self.mode == 'minor':
-            return scale(self[2], 'major')
+            return scale(self[2].reset_octave(self[0].num), 'major')
         else:
             raise ValueError(
                 'this function only applies to major and minor scales')
@@ -2465,9 +2501,9 @@ class scale:
                     break
             if not found:
                 return f'{degree} is not a valid roman numerals chord representation'
-        current_degree = database.roman_numerals_dict[degree] - 1
-        if current_degree == 'not found':
+        if degree not in database.roman_numerals_dict[degree]:
             return f'{degree} is not a valid roman numerals chord representation'
+        current_degree = database.roman_numerals_dict[degree] - 1
         current_note = self[current_degree].name
         if natural:
             temp = mp.C(current_note + chord_type)
@@ -2566,10 +2602,10 @@ class scale:
             current_chord = chords[k]
             if isinstance(current_chord, (tuple, list)):
                 current_degree_name = current_chord[0]
+                if current_degree_name not in database.roman_numerals_dict:
+                    return f'{current_chord} is not a valid roman numerals chord representation'
                 current_degree = database.roman_numerals_dict[
                     current_degree_name] - 1
-                if current_degree == 'not found':
-                    return f'{current_chord} is not a valid roman numerals chord representation'
                 current_note = self[current_degree].name
                 if current_degree_name.islower():
                     current_note += 'm'
@@ -2628,6 +2664,9 @@ class scale:
 
 
 class circle_of_fifths:
+    '''
+    This class represents the circle of fifths.
+    '''
     outer = ['C', 'G', 'D', 'A', 'E', 'B', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F']
     inner = [
         'Am', 'Em', 'Bm', 'F#m', 'C#m', 'G#m', 'Ebm', 'Bbm', 'Fm', 'Cm', 'Gm',
@@ -2688,6 +2727,9 @@ class circle_of_fifths:
 
 
 class circle_of_fourths(circle_of_fifths):
+    '''
+    This class represents the circle of fourths.
+    '''
     outer = list(reversed(circle_of_fifths.outer))
     outer.insert(0, outer.pop())
     inner = list(reversed(circle_of_fifths.inner))
@@ -2701,6 +2743,9 @@ class circle_of_fourths(circle_of_fifths):
 
 
 class piece:
+    '''
+    This class represents a piece which contains multiple tracks.
+    '''
 
     def __init__(self,
                  tracks,
@@ -2816,18 +2861,18 @@ class piece:
             self.muted_msg = [each.get_volume() for each in self.tracks]
         if i is None:
             for k in range(len(self.tracks)):
-                self.tracks[k].setvolume(0)
+                self.tracks[k].set_volume(0)
         else:
-            self.tracks[i].setvolume(0)
+            self.tracks[i].set_volume(0)
 
     def unmute(self, i=None):
         if not hasattr(self, 'muted_msg'):
             return
         if i is None:
             for k in range(len(self.tracks)):
-                self.tracks[k].setvolume(self.muted_msg[k])
+                self.tracks[k].set_volume(self.muted_msg[k])
         else:
-            self.tracks[i].setvolume(self.muted_msg[i])
+            self.tracks[i].set_volume(self.muted_msg[i])
 
     def append(self, new_track):
         if not isinstance(new_track, track):
@@ -3835,7 +3880,7 @@ class piece:
 
 class tempo:
     '''
-    this is a class to change tempo for the notes after it when it is read,
+    This is a class to change tempo for the notes after it when it is read,
     it can be inserted into a chord, and if the chord is in a piece,
     then it also works for the piece.
     '''
@@ -3868,6 +3913,9 @@ class tempo:
 
 
 class pitch_bend:
+    '''
+    This class represents a pitch bend event in midi.
+    '''
 
     def __init__(self,
                  value,
@@ -3925,6 +3973,9 @@ class pitch_bend:
 
 
 class track:
+    '''
+    This class represents a single track, which content is a chord instance, and has other attributes that define a track.
+    '''
 
     def __init__(self,
                  content,
@@ -4114,9 +4165,9 @@ class track:
 
 class pan:
     '''
-    this is a class to set the pan position for a midi channel,
+    This is a class to set the pan position for a midi channel,
     it only works in piece class or track class, and must be set as one of the elements
-    of the pan list of a piece
+    of the pan list of a piece.
     '''
 
     def __init__(self,
@@ -4161,9 +4212,9 @@ class pan:
 
 class volume:
     '''
-    this is a class to set the volume for a midi channel,
+    This is a class to set the volume for a midi channel,
     it only works in piece class or track class, and must be set as one of the elements
-    of the volume list of a piece
+    of the volume list of a piece.
     '''
 
     def __init__(self,
@@ -4200,6 +4251,9 @@ class volume:
 
 
 class drum:
+    '''
+    This class represents a drum beat.
+    '''
 
     def __init__(self,
                  pattern='',
@@ -5043,6 +5097,9 @@ class event:
 
 
 class beat:
+    '''
+    This class represents a single beat.
+    '''
 
     def __init__(self, duration=1 / 4, dotted=None):
         self.rhythm_name = 'beat'
@@ -5064,6 +5121,9 @@ class beat:
 
 
 class rest_symbol(beat):
+    '''
+    This class represents a single rest.
+    '''
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -5071,6 +5131,9 @@ class rest_symbol(beat):
 
 
 class continue_symbol(beat):
+    '''
+    This class represents a single continuation of previous note.
+    '''
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -5082,6 +5145,9 @@ class rest(rest_symbol):
 
 
 class rhythm(list):
+    '''
+    This class represents a rhythm, which consists of beats, rest symbols and continue symbols.
+    '''
 
     def __init__(self,
                  beat_list,
@@ -5245,6 +5311,9 @@ class rhythm(list):
 
 @dataclass
 class chord_type:
+    '''
+    This class represents a chord type, which defines how a chord is derived precisely.
+    '''
     root: str = None
     chord_type: str = None
     chord_speciality: str = 'root position'
@@ -5260,7 +5329,10 @@ class chord_type:
     order: list = None
 
     def get_root_position(self):
-        return f'{self.root}{self.chord_type}'
+        if self.root is not None and self.chord_type is not None:
+            return f'{self.root}{self.chord_type}'
+        else:
+            return None
 
     def to_chord(self,
                  root_position=False,
@@ -5270,11 +5342,14 @@ class chord_type:
                  apply_non_chord_bass_note=True,
                  apply_inversion=True,
                  custom_mapping=None,
-                 custom_order=None):
+                 custom_order=None,
+                 root_octave=None):
         if self.type == 'note':
             return chord([self.note_name])
         elif self.type == 'interval':
             current_root = mp.N(self.root)
+            if root_octave is not None:
+                current_root.num = root_octave
             return chord([
                 current_root,
                 current_root.up(database.NAME_OF_INTERVAL[self.interval_name])
@@ -5295,6 +5370,8 @@ class chord_type:
                 ]
                 current = functools.reduce(chord.on, current_chords)
             else:
+                if self.root is None or self.chord_type is None:
+                    return None
                 current = mp.C(self.get_root_position(),
                                custom_mapping=custom_mapping)
                 if not root_position:
@@ -5312,9 +5389,19 @@ class chord_type:
                     for each in current_order:
                         if current_apply[each]:
                             current = self._apply_order(current, each)
+            if root_octave is not None:
+                current = current.reset_octave(root_octave)
             return current
 
     def _apply_order(self, current, order):
+        '''
+        order is an integer that represents a type of chord alternation
+        0: omit some notes
+        1: alter some notes
+        2: inversion
+        3: chord voicing
+        4: add a non-chord bass note
+        '''
         if order == 0:
             if self.omit:
                 current = current.omit([
@@ -5357,6 +5444,8 @@ class chord_type:
                     for i in self.polychords[::-1]
                 ])
             else:
+                if self.root is None or self.chord_type is None:
+                    return None
                 current_chord = mp.C(self.get_root_position(),
                                      custom_mapping=custom_mapping)
                 if self.altered:
@@ -5499,6 +5588,24 @@ class chord_type:
                         break
             current = '\n'.join(current)
         return current
+
+    def get_complexity(self):
+        score = 0
+        if self.type == 'chord':
+            if self.chord_speciality == 'polychord':
+                score += 100
+            else:
+                if self.inversion is not None:
+                    score += 10
+                if self.omit is not None:
+                    score += 10 * len(self.omit)
+                if self.altered is not None:
+                    score += 30 * len(self.altered)
+                if self.non_chord_bass_note is not None:
+                    score += 30
+                if self.voicing is not None:
+                    score += 10
+        return score
 
 
 def _read_notes(note_ls, rootpitch=4):

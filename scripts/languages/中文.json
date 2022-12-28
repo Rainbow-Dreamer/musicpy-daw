@@ -3,7 +3,7 @@
         "set_musicpy_code_button": "演奏musicpy代码",
         "stop_button": "停止",
         "change_current_bpm_button": "改变BPM",
-        "change_current_sound_path_button": "更改音源路径",
+        "load_instrument_button": "导入音源",
         "load_midi_file_button": "导入MIDI文件",
         "change_settings_button": "更改设置",
         "current_channel_name_label": "通道名称",
@@ -20,8 +20,8 @@
         "file_top_options": "选项",
         "file_top_tools": "工具",
         "load_musicpy_code_button": "导入musicpy代码",
-        "configure_sf2_button": "设置Soundfonts",
-        "load_sf2_button": "加载Soundfonts",
+        "configure_sf2_button": "设置SoundFont",
+        "clear_instrument_button": "清除乐器",
         "open_debug_window_button": "打开调试窗口"
     },
     "other": {
@@ -74,6 +74,11 @@
             "变调器",
             "更改皮肤"
         ],
+        "load_instrument": [
+            "文件夹",
+            "SoundFont",
+            "ESI"
+        ],
         "init": [
             "通道 1"
         ],
@@ -88,10 +93,11 @@
             "新增音符",
             "删除音符",
             "重新加载音源",
-            "清除所有音符"
+            "清除所有音符",
+            "重置为默认"
         ],
         "configure_sf2": [
-            "设置Soundfont",
+            "设置SoundFont",
             "群组编号",
             "预设编号",
             "改变群组",
@@ -146,7 +152,8 @@
             "加载音频文件...",
             "更改默认音高为 ",
             "正在修改当前音频文件的音高为 |, 请稍等...",
-            "已将当前音频文件的音高修改为 "
+            "已将当前音频文件的音高修改为 ",
+            "错误：无效的ESI文件"
         ],
         "title": [
             "选择一个音频文件",
