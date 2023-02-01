@@ -7,7 +7,22 @@ from copy import deepcopy as copy
 import json
 
 
+class json_module:
+
+    def __init__(self, file, text=None):
+        if text is None:
+            with open(file, encoding='utf-8') as f:
+                text = json.load(f)
+        for i, j in text.items():
+            setattr(self, i, j)
+
+    def to_json(self):
+        return vars(self)
+
+
 def save_json(config, config_path, whole_config=None):
+    if isinstance(config, json_module):
+        config = config.to_json()
     with open(config_path, 'w', encoding='utf-8') as f:
         json.dump(config if not whole_config else whole_config,
                   f,
@@ -31,11 +46,19 @@ class settings_window(Tk):
 
         self.title("Settings")
         self.minsize(800, 600)
+        self.config(background='white')
+        style = ttk.Style(self)
+        style.configure('TLabel',
+                        borderwidth=0,
+                        focuscolor='none',
+                        background='white',
+                        highlightthickness=0)
         self.protocol("WM_DELETE_WINDOW", self.close_settings_box)
         self.config_options_bar = Scrollbar(self)
         self.config_options_bar.place(x=235, y=120, height=170, anchor=CENTER)
         self.choose_config_options = Listbox(
             self, yscrollcommand=self.config_options_bar.set)
+        self.choose_config_options.configure(activestyle='none')
         self.choose_config_options.bind(
             '<<ListboxSelect>>', lambda e: self.show_current_config_options())
         self.choose_config_options.place(x=0, y=30, width=220)
@@ -121,7 +144,7 @@ class settings_window(Tk):
         except:
             pass
         self.destroy()
-        os.startfile('easy sampler.exe')
+        os.startfile('musicpy daw.exe')
 
     def change_sort(self):
         if self.current_config:

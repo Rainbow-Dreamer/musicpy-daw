@@ -5,6 +5,7 @@ plans.txt
 extra-hooks
 start program.pyw
 *.exe
+musicpy daw test
 
 # Byte-compiled / optimized / DLL files
 *.py[co]

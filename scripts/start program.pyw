@@ -27,5 +27,5 @@ sys.path.append('scripts')
 import sf2_loader as rs
 from musicpy import *
 
-with open('scripts/easy sampler.pyw', encoding='utf-8-sig') as f:
+with open('scripts/musicpy daw.pyw', encoding='utf-8-sig') as f:
     exec(f.read())
