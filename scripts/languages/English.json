@@ -18,7 +18,7 @@
         "file_top": "File",
         "file_top_options": "Options",
         "file_top_tools": "Tools",
-        "load_musicpy_code_button": "Import Musicpy Code",
+        "import_musicpy_code_button": "Import Musicpy Code",
         "configure_sf2_button": "Configure SoundFont",
         "clear_instrument_button": "Clear Instrument",
         "open_debug_window_button": "Open Debug Window"
@@ -192,6 +192,12 @@
             "Other Format",
             "Enter a file format, and we'll try to convert if it is supported",
             "OK",
+            "Cancel"
+        ],
+        "ask save": [
+            "The file has changed, do you want to save the changes?",
+            "Save",
+            "Discard",
             "Cancel"
         ],
         "other": [

@@ -18,7 +18,7 @@
         "file_top": "文件",
         "file_top_options": "选项",
         "file_top_tools": "工具",
-        "load_musicpy_code_button": "导入musicpy代码",
+        "import_musicpy_code_button": "导入musicpy代码",
         "configure_sf2_button": "设置SoundFont",
         "clear_instrument_button": "清除乐器",
         "open_debug_window_button": "打开调试窗口"
@@ -193,6 +193,12 @@
             "其他格式",
             "请输入一个文件格式，如果支持的话我们会尝试转换",
             "确定",
+            "取消"
+        ],
+        "ask save": [
+            "文件已经发生更改，是否保存更改?",
+            "保存",
+            "放弃更改",
             "取消"
         ],
         "other": [

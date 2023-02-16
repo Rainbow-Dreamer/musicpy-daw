@@ -1,10 +1,6 @@
 import os
 import sys
-from tkinter import *
-from tkinter import ttk
-from tkinter import filedialog
-from tkinter import messagebox
-import time
+from PyQt5 import QtGui, QtWidgets, QtCore
 import random
 import pickle
 from copy import deepcopy as copy

@@ -1,12 +1,13 @@
 {
-    "background_color": "sky blue",
+    "background_color": "skyblue",
     "foreground_color": "black",
-    "active_background_color": "light green",
+    "active_background_color": "lightgreen",
     "active_foreground_color": "black",
     "disabled_foreground_color": "white",
-    "button_background_color": "light blue",
+    "button_background_color": "lightblue",
     "label_foreground_color": "black",
     "text_area_background_color": "white",
     "text_area_foreground_color": "black",
-    "text_area_cursor_color": "black"
+    "text_area_selection_background_color": "black",
+    "text_area_selection_foreground_color": "white"
 }

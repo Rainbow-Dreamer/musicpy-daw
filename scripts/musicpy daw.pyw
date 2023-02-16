@@ -1,26 +1,130 @@
 import traceback
 import json
 import multiprocessing
-from scripts.change_settings import save_json, settings_window, json_module
+import threading
+from scripts.change_settings import change_parameter, config_window, json_module
 
 settings_path = 'scripts/settings.json'
 current_settings = json_module(settings_path)
+icon_path = 'resources/images/musicpy daw.png'
+
+import musicpy
+
+musicpy_vars = dir(musicpy)
+function_names = list(set(musicpy_vars))
+function_names.sort()
 
 
-class Root(Tk):
+class Daw(QtWidgets.QMainWindow):
 
-    def __init__(self, file=None):
-        super(Root, self).__init__()
+    def __init__(self, file=None, dpi=None):
+        super().__init__()
+        self.dpi = dpi
+        self.current_font = QtGui.QFont(current_settings.font_type,
+                                        current_settings.font_size)
+        self.current_font = set_font(self.current_font, self.dpi)
+        current_settings.font_size = self.current_font.pointSize()
+        self.current_text_area_font = QtGui.QFont(
+            current_settings.text_area_font_type,
+            current_settings.text_area_font_size)
+        self.current_text_area_font = set_font(self.current_text_area_font,
+                                               self.dpi)
+        current_settings.text_area_font_size = self.current_text_area_font.pointSize(
+        )
+        self.change_language(current_settings.default_language)
+        self.init_menu()
         self.init_screen()
         self.init_parameters()
+        for each, value in self.main_window_language_dict.items():
+            vars(self)[each].setText(value)
         if file is not None:
             self.after(10, lambda: self.initialize(mode=1, file=file))
         else:
             self.after(10, self.initialize)
 
+    def get_stylesheet(self):
+        result = f'''
+        QMainWindow {{
+        background-color: {current_settings.background_color};
+        }}
+        QPushButton {{
+        background-color: {current_settings.button_background_color};
+        color: {current_settings.foreground_color};
+        font-size: {current_settings.font_size}pt;
+        font-family: {current_settings.font_type};
+        border: 6px transparent;
+        border-style: outset;
+        }}
+        QPushButton:hover {{
+        background-color: {current_settings.active_background_color};
+        color: {current_settings.active_foreground_color};
+        }}
+        QCheckBox {{
+        background-color: {current_settings.background_color};
+        color: {current_settings.foreground_color};
+        }}
+        QLabel {{
+        background-color: {current_settings.background_color};
+        color: {current_settings.label_foreground_color};
+        font-size: {current_settings.font_size}pt;
+        font-family: {current_settings.font_type};
+        }}
+        QMenu {{
+        background-color: {current_settings.text_area_background_color};
+        color: {current_settings.text_area_foreground_color};
+        font-size: {current_settings.font_size}pt;
+        font-family: {current_settings.font_type};
+        }}
+        QMenu::item:selected {{
+        background-color: {current_settings.active_background_color};
+        color: {current_settings.active_foreground_color};
+        }}
+        QPlainTextEdit {{
+        background-color: {current_settings.text_area_background_color};
+        color: {current_settings.text_area_foreground_color};
+        selection-color: {current_settings.text_area_selection_foreground_color};
+        selection-background-color: {current_settings.text_area_selection_background_color};
+        }}
+    '''
+        return result
+
+    def get_action(self,
+                   text='',
+                   command=None,
+                   icon=None,
+                   shortcut=None,
+                   checkable=False,
+                   initial_value=False,
+                   **kwargs):
+        current_action = QtWidgets.QAction(
+            QtGui.QIcon() if icon is None else QtGui.QIcon(icon), text, self,
+            **kwargs)
+        current_action.setShortcutContext(QtCore.Qt.WidgetWithChildrenShortcut)
+        if command is not None:
+            current_action.triggered.connect(command)
+        if shortcut is not None:
+            current_action.setShortcut(shortcut)
+        if checkable:
+            current_action.setCheckable(True)
+            current_action.setChecked(initial_value)
+        return current_action
+
+    def get_menu(self, actions, text=''):
+        current_menu = QtWidgets.QMenu(text, self)
+        for i in actions:
+            if isinstance(i, QtWidgets.QAction):
+                current_menu.addAction(i)
+            elif isinstance(i, QtWidgets.QMenu):
+                current_menu.addMenu(i)
+        return current_menu
+
+    def after(self, time, function):
+        QtCore.QTimer.singleShot(time, function)
+
     def init_screen(self):
-        self.title("Musicpy Daw")
-        self.minsize(1100, 670)
+        self.setWindowTitle("Musicpy Daw")
+        self.setMinimumSize(1100, 670)
+        self.setWindowIcon(QtGui.QIcon(icon_path))
         try:
             self.init_skin(current_settings.current_skin)
         except:
@@ -28,225 +132,171 @@ class Root(Tk):
             current_settings.current_skin = 'default'
             self.init_skin(current_settings.current_skin)
 
-        self.configure(bg=current_settings.background_color)
-        self.icon_image = PhotoImage(file='resources/images/musicpy daw.png')
-        self.iconphoto(False, self.icon_image)
-
-        style = ttk.Style()
-        style.theme_use('alt')
-        style.configure('TButton',
-                        font=(current_settings.font_type,
-                              current_settings.font_size),
-                        background=current_settings.button_background_color,
-                        foreground=current_settings.foreground_color,
-                        borderwidth=0,
-                        focusthickness=3,
-                        focuscolor='none')
-        style.configure('TLabel',
-                        background=current_settings.background_color,
-                        foreground=current_settings.label_foreground_color,
-                        font=(current_settings.font_type,
-                              current_settings.font_size))
-        style.map('TButton',
-                  background=[('active',
-                               current_settings.active_background_color)],
-                  foreground=[('active',
-                               current_settings.active_foreground_color)])
-
-        self.set_musicpy_code_button = ttk.Button(
+        current_stylesheet = self.get_stylesheet()
+        self.setStyleSheet(current_stylesheet)
+        self.current_project_name = Label(self, text='untitled.mdp')
+        self.current_project_name.place(x=0, y=35)
+        self.set_musicpy_code_button = Button(
             self,
             text='Play Musicpy Code',
             command=self.play_current_musicpy_code)
         self.set_musicpy_code_button.place(x=0, y=310)
-        self.set_musicpy_code_text = Text(
-            self,
-            wrap='none',
-            undo=True,
-            autoseparators=True,
-            maxundo=-1,
-            font=(current_settings.text_area_font_type,
-                  current_settings.text_area_font_size),
-            bg=current_settings.text_area_background_color,
-            fg=current_settings.text_area_foreground_color,
-            insertbackground=current_settings.text_area_cursor_color)
-        self.set_musicpy_code_text.bind('<Control-MouseWheel>',
-                                        lambda e: self.change_font_size(e))
-        self.set_musicpy_code_text.place(x=150, y=250, height=335, width=810)
-        inputs_v = ttk.Scrollbar(self,
-                                 orient="vertical",
-                                 command=self.set_musicpy_code_text.yview)
-        inputs_h = ttk.Scrollbar(self,
-                                 orient="horizontal",
-                                 command=self.set_musicpy_code_text.xview)
-        self.set_musicpy_code_text.configure(yscrollcommand=inputs_v.set,
-                                             xscrollcommand=inputs_h.set)
-        inputs_v.place(x=960, y=250, height=335)
-        inputs_h.place(x=150, y=585, width=810)
 
+        self.set_musicpy_code_text = CustomTextEdit(
+            self,
+            pairing_symbols=current_settings.pairing_symbols,
+            custom_actions=self.set_musicpy_code_text_actions,
+            size=(810, 335),
+            font=QtGui.QFont(current_settings.text_area_font_type,
+                             current_settings.text_area_font_size),
+            place=(150, 250))
         self.current_line_number = 1
         self.current_column_number = 1
 
-        self.line_column = ttk.Label(
+        self.line_column = Label(
             self,
             text=
             f'Line {self.current_line_number} Col {self.current_column_number}'
         )
         self.line_column.place(x=780, y=610)
         self.get_current_line_column()
-
-        self.bind('<Control-r>', lambda e: self.play_current_musicpy_code())
-        self.bind('<Control-e>', lambda e: self.stop_playing())
-        self.bind('<Control-w>', lambda e: self.open_project_file())
-        self.bind('<Control-s>', lambda e: self.save_as_project_file())
-        self.bind('<Control-b>', lambda e: self.save_as_project_file(new=True))
-        self.bind('<Control-f>', lambda e: self.load_musicpy_code())
-        self.bind('<Control-d>', lambda e: self.save_current_musicpy_code())
-        self.bind('<Control-g>', lambda e: self.open_export_menu())
-        self.bind('<Control-h>', lambda e: self.load_midi_file_func())
-        self.bind('<Control-q>', lambda e: self.destroy())
-        self.set_musicpy_code_text.bind("<Button-3>",
-                                        lambda e: self.rightKey(e))
-
-        self.stop_button = ttk.Button(self,
-                                      text='Stop',
-                                      command=self.stop_playing)
+        self.custom_actions = [
+            self.get_action(command=self.play_current_musicpy_code,
+                            shortcut='Ctrl+R'),
+            self.get_action(command=self.stop_playing, shortcut='Ctrl+E'),
+            self.get_action(command=self.open_project_file, shortcut='Ctrl+W'),
+            self.get_action(command=self.save_as_project_file,
+                            shortcut='Ctrl+S'),
+            self.get_action(
+                command=lambda e: self.save_as_project_file(new=True),
+                shortcut='Ctrl+B'),
+            self.get_action(command=self.import_musicpy_code,
+                            shortcut='Ctrl+F'),
+            self.get_action(command=self.save_current_musicpy_code,
+                            shortcut='Ctrl+D'),
+            self.get_action(command=self.open_export_menu, shortcut='Ctrl+G'),
+            self.get_action(command=self.import_midi_file_func,
+                            shortcut='Ctrl+H'),
+            self.get_action(command=self.close, shortcut='Ctrl+Q')
+        ]
+        self.addActions(self.custom_actions)
+        self.stop_button = Button(self, text='Stop', command=self.stop_playing)
         self.stop_button.place(x=0, y=360)
 
-        self.change_current_bpm_button = ttk.Button(
+        self.change_current_bpm_button = Button(
             self, text='Change BPM', command=self.change_current_bpm)
         self.change_current_bpm_button.place(x=0, y=210)
-        self.change_current_bpm_entry = ttk.Entry(
-            self,
-            width=10,
-            font=(current_settings.font_type, current_settings.font_size))
-        self.change_current_bpm_entry.insert(END, '120')
-        self.change_current_bpm_entry.place(x=100, y=210)
-
-        self.msg = ttk.Label(self, text='')
+        self.change_current_bpm_entry = LineEdit(self,
+                                                 width=70,
+                                                 x=100,
+                                                 y=210,
+                                                 font=self.current_font)
+        self.change_current_bpm_entry.setText('120')
+        self.msg = Label(self, text='')
         self.msg.place(x=130, y=630)
 
-        self.load_instrument_button = ttk.Button(self,
-                                                 text='Load Instrument',
-                                                 command=self.load_instrument)
+        self.load_instrument_button = Button(self,
+                                             text='Load Instrument',
+                                             command=self.load_instrument)
         self.load_instrument_button.place(x=550, y=210)
 
-        self.change_settings_button = ttk.Button(
-            self, text='Change Settings', command=self.open_change_settings)
+        self.change_settings_button = Button(self,
+                                             text='Change Settings',
+                                             command=self.open_change_settings)
         self.change_settings_button.place(x=0, y=460)
 
-        self.open_debug_window_button = ttk.Button(
-            self, text='Open Debug Window', command=self.open_debug_window)
+        self.open_debug_window_button = Button(self,
+                                               text='Open Debug Window',
+                                               command=self.open_debug_window)
         self.open_debug_window_button.place(x=0, y=510)
 
-        self.choose_channels_bar = Scrollbar(self)
-        self.choose_channels_bar.place(x=227, y=124, height=125, anchor=CENTER)
-        self.choose_channels = Listbox(
-            self,
-            yscrollcommand=self.choose_channels_bar.set,
-            height=7,
-            exportselection=False,
-            font=(current_settings.font_type, current_settings.font_size))
-        self.choose_channels.config(activestyle='none')
-        self.choose_channels.bind('<<ListboxSelect>>',
-                                  lambda e: self.show_current_channel())
-        self.choose_channels.bind('<z>', lambda e: self.add_new_channel())
-        self.choose_channels.bind('<x>', lambda e: self.delete_channel())
-        self.choose_channels.bind('<c>',
-                                  lambda e: self.clear_current_channel())
-        self.choose_channels.bind('<v>', lambda e: self.clear_all_channels())
-        self.choose_channels.bind('<Button-3>',
-                                  lambda e: self.cancel_choose_channels())
-        self.choose_channels.place(x=0, y=62, width=220, height=125)
-        self.choose_channels_bar.config(command=self.choose_channels.yview)
+        self.choose_channels = Channel(self)
+        self.choose_channels.setFixedHeight(70)
+        self.choose_channels.setFont(self.current_font)
+        self.choose_channels.addActions([
+            self.get_action(shortcut='Z', command=self.add_new_channel),
+            self.get_action(shortcut='X', command=self.delete_channel),
+            self.get_action(shortcut='C', command=self.clear_current_channel),
+            self.get_action(shortcut='V', command=self.clear_all_channels)
+        ])
+        self.choose_channels.setFixedSize(220, 125)
+        self.choose_channels.move(0, 62)
+        self.choose_channels.insertItem(0, self.language_dict['init'][0])
 
-        self.current_channel_name_label = ttk.Label(self, text='Channel Name')
-        self.current_channel_name_entry = ttk.Entry(
-            self,
-            width=30,
-            font=(current_settings.font_type, current_settings.font_size))
-        self.current_channel_name_label.place(x=250, y=60)
-        self.current_channel_name_entry.place(x=350, y=60)
-        self.current_channel_name_entry.bind(
-            '<Return>', lambda e: self.change_current_channel_name())
-        self.current_channel_sound_modules_label = ttk.Label(
+        self.current_channel_name_label = Label(self,
+                                                text='Channel Name',
+                                                x=250,
+                                                y=60)
+        self.current_channel_name_entry = LineEdit(self,
+                                                   width=300,
+                                                   x=350,
+                                                   y=55,
+                                                   font=self.current_font)
+        self.current_channel_name_entry.addAction(
+            self.get_action(shortcut='Return',
+                            command=self.change_current_channel_name))
+        self.current_channel_sound_modules_label = Label(
             self, text='Channel Instrument')
-        self.current_channel_sound_modules_entry = ttk.Entry(
-            self,
-            width=90,
-            font=(current_settings.font_type, current_settings.font_size))
-        self.current_channel_sound_modules_entry.bind(
-            '<Return>', lambda e: self.load_instrument_func())
+        self.current_channel_sound_modules_entry = LineEdit(
+            self, width=500, x=410, y=105, font=self.current_font)
+        self.current_channel_sound_modules_entry.addAction(
+            self.get_action(shortcut='Return',
+                            command=self.load_instrument_func))
         self.current_channel_sound_modules_label.place(x=250, y=110)
-        self.current_channel_sound_modules_entry.place(x=410, y=110)
 
-        self.change_current_channel_name_button = ttk.Button(
+        self.change_current_channel_name_button = Button(
             self,
             text='Change Channel Name',
             command=self.change_current_channel_name)
         self.change_current_channel_name_button.place(x=550, y=160)
 
-        self.add_new_channel_button = ttk.Button(self,
-                                                 text='Add New Channel',
-                                                 command=self.add_new_channel)
+        self.add_new_channel_button = Button(self,
+                                             text='Add New Channel',
+                                             command=self.add_new_channel)
         self.add_new_channel_button.place(x=250, y=160)
 
-        self.delete_new_channel_button = ttk.Button(
-            self, text='Delete Channel', command=self.delete_channel)
+        self.delete_new_channel_button = Button(self,
+                                                text='Delete Channel',
+                                                command=self.delete_channel)
         self.delete_new_channel_button.place(x=400, y=160)
 
-        self.clear_all_channels_button = ttk.Button(
+        self.clear_all_channels_button = Button(
             self, text='Clear All Channels', command=self.clear_all_channels)
         self.clear_all_channels_button.place(x=250, y=210)
 
-        self.clear_channel_button = ttk.Button(
-            self, text='Clear Channel', command=self.clear_current_channel)
+        self.clear_channel_button = Button(self,
+                                           text='Clear Channel',
+                                           command=self.clear_current_channel)
         self.clear_channel_button.place(x=400, y=210)
 
-        self.change_channel_dict_button = ttk.Button(
+        self.change_channel_dict_button = Button(
             self, text='Change Channel Dict', command=self.change_channel_dict)
-        self.change_channel_dict_button.place(x=700, y=160)
+        self.change_channel_dict_button.place(x=710, y=160)
 
-        self.load_channel_settings_button = ttk.Button(
+        self.load_channel_settings_button = Button(
             self,
             text='Load Channel Settings',
             command=self.load_channel_settings)
-        self.load_channel_settings_button.place(x=700, y=210)
+        self.load_channel_settings_button.place(x=710, y=210)
 
-        self.configure_sf2_button = ttk.Button(self,
-                                               text='Configure SoundFont',
-                                               command=self.configure_sf2_file)
-        self.configure_sf2_button.place(x=870, y=210)
+        self.configure_sf2_button = Button(self,
+                                           text='Configure SoundFont',
+                                           command=self.configure_sf2_file)
+        self.configure_sf2_button.place(x=880, y=210)
 
-        self.clear_instrument_button = ttk.Button(
+        self.clear_instrument_button = Button(
             self,
             text='Clear Instrument',
             command=self.clear_current_instrument)
-        self.clear_instrument_button.place(x=870, y=160)
-        self.export_button = ttk.Button(self,
-                                        text='Export',
-                                        command=self.open_export_menu)
+        self.clear_instrument_button.place(x=880, y=160)
+        self.export_button = Button(self,
+                                    text='Export',
+                                    command=self.open_export_menu)
         self.export_button.place(x=0, y=260)
-        self.load_musicpy_code_button = ttk.Button(
-            self, text='Import Musicpy Code', command=self.load_musicpy_code)
-        self.load_musicpy_code_button.place(x=0, y=410)
-        self.file_top = ttk.Button(
-            self,
-            text='File',
-            command=lambda: self.file_top_make_menu(mode='file'))
-
-        self.file_top_options = ttk.Button(
-            self,
-            text='Options',
-            command=lambda: self.file_top_make_menu(mode='options'))
-
-        self.file_top_tools = ttk.Button(
-            self,
-            text='Tools',
-            command=lambda: self.file_top_make_menu(mode='tools'))
-        self.change_language(current_settings.default_language)
-        self.choose_channels.insert(END, self.language_dict['init'][0])
-        self.init_menu()
-        self.protocol("WM_DELETE_WINDOW", self.close_window)
+        self.import_musicpy_code_button = Button(
+            self, text='Import Musicpy Code', command=self.import_musicpy_code)
+        self.import_musicpy_code_button.place(x=0, y=410)
+        self.show()
 
     def init_parameters(self):
         self.font_type = current_settings.text_area_font_type
@@ -260,214 +310,162 @@ class Root(Tk):
         self.open_pitch_shifter_window = False
         self.open_configure_sf2_file = False
         self.default_load = False
-        self.current_project_name = ttk.Label(self, text='untitled.mdp')
-        self.current_project_name.place(x=0, y=30)
         self.project_name = 'untitled.mdp'
         self.opening_project_name = None
         self.channel_names = [self.language_dict['init'][0]]
         self.channel_sound_modules_name = [current_settings.sound_path]
         self.channel_num = 1
-        self.channel_list_focus = True
+        self.channel_list_focus = False
         self.project_dict = {}
         self.current_loading_num = 0
         self.current_project_file_path = ''
+        self.last_path = ''
+        if os.path.exists('last_path.txt'):
+            with open('last_path.txt', encoding='utf-8') as f:
+                self.last_path = f.read()
+        self.pitch_shifter_window = None
 
     def init_menu(self):
-        self.menubar = Menu(
+        self.file_top = Button(
             self,
-            tearoff=False,
-            bg=current_settings.background_color,
-            activebackground=current_settings.active_background_color,
-            activeforeground=current_settings.active_foreground_color,
-            disabledforeground=current_settings.disabled_foreground_color,
-            font=(current_settings.font_type, current_settings.font_size))
-        self.menubar.add_command(label=self.language_dict['right key'][0],
-                                 command=self.cut)
-        self.menubar.add_command(label=self.language_dict['right key'][1],
-                                 command=self.copy)
-        self.menubar.add_command(label=self.language_dict['right key'][2],
-                                 command=self.paste)
-        self.menubar.add_command(label=self.language_dict['right key'][3],
-                                 command=self.choose_all)
-        self.menubar.add_command(label=self.language_dict['right key'][4],
-                                 command=self.inputs_undo)
-        self.menubar.add_command(label=self.language_dict['right key'][5],
-                                 command=self.inputs_redo)
-        self.menubar.add_command(label=self.language_dict['right key'][6],
-                                 command=self.save_current_musicpy_code)
-        self.menubar.add_command(label=self.language_dict['right key'][7],
-                                 command=self.load_musicpy_code)
-
-        self.export_menubar = Menu(
-            self,
-            tearoff=False,
-            bg=current_settings.background_color,
-            activebackground=current_settings.active_background_color,
-            activeforeground=current_settings.active_foreground_color,
-            disabledforeground=current_settings.disabled_foreground_color,
-            font=(current_settings.font_type, current_settings.font_size))
-
-        self.export_audio_file_menubar = Menu(
-            self,
-            tearoff=False,
-            bg=current_settings.background_color,
-            activebackground=current_settings.active_background_color,
-            activeforeground=current_settings.active_foreground_color,
-            disabledforeground=current_settings.disabled_foreground_color,
-            font=(current_settings.font_type, current_settings.font_size))
-
-        self.menubar.add_cascade(label=self.language_dict['right key'][8],
-                                 menu=self.export_menubar)
-
-        self.menubar.add_command(
-            label=self.language_dict['right key'][9],
-            command=lambda: self.play_selected_musicpy_code())
-
-        self.menubar.add_command(label=self.language_dict['right key'][10],
-                                 command=lambda: self.play_selected_audio())
-
-        self.export_audio_file_menubar.add_command(
-            label=self.language_dict['export audio formats'][0],
-            command=lambda: self.export_audio_file(mode='wav'))
-        self.export_audio_file_menubar.add_command(
-            label=self.language_dict['export audio formats'][1],
-            command=lambda: self.export_audio_file(mode='mp3'))
-        self.export_audio_file_menubar.add_command(
-            label=self.language_dict['export audio formats'][2],
-            command=lambda: self.export_audio_file(mode='ogg'))
-        self.export_audio_file_menubar.add_command(
-            label=self.language_dict['export audio formats'][3],
-            command=lambda: self.export_audio_file(mode='other'))
-
-        self.export_menubar.add_cascade(
-            label=self.language_dict['export audio formats'][4],
-            menu=self.export_audio_file_menubar)
-        self.export_menubar.add_command(
-            label=self.language_dict['export audio formats'][5],
-            command=self.export_midi_file)
-
-        self.file_menu = Menu(
-            self,
-            tearoff=False,
-            bg=current_settings.background_color,
-            activebackground=current_settings.active_background_color,
-            activeforeground=current_settings.active_foreground_color,
-            disabledforeground=current_settings.disabled_foreground_color,
-            font=(current_settings.font_type, current_settings.font_size))
-        self.file_menu.add_command(label=self.language_dict['file'][7],
-                                   command=self.open_new_project_file)
-        self.file_menu.add_command(label=self.language_dict['file'][0],
-                                   command=self.open_project_file)
-        self.file_menu.add_command(label=self.language_dict['file'][1],
-                                   command=self.save_as_project_file)
-        self.file_menu.add_command(
-            label=self.language_dict['file'][6],
-            command=lambda: self.save_as_project_file(new=True))
-        self.file_menu.add_command(label=self.language_dict['file'][2],
-                                   command=self.load_midi_file_func)
-        self.file_menu.add_command(label=self.language_dict['file'][3],
-                                   command=self.save_current_musicpy_code)
-        self.file_menu.add_command(label=self.language_dict['file'][4],
-                                   command=self.load_musicpy_code)
-        self.file_menu.add_cascade(label=self.language_dict['file'][5],
-                                   menu=self.export_menubar)
+            text='File',
+            command=lambda: self.file_top_make_menu(mode='file'))
         self.file_top.place(x=0, y=0)
 
-        self.options_menu = Menu(
+        self.file_top_options = Button(
             self,
-            tearoff=False,
-            bg=current_settings.background_color,
-            activebackground=current_settings.active_background_color,
-            activeforeground=current_settings.active_foreground_color,
-            disabledforeground=current_settings.disabled_foreground_color,
-            font=(current_settings.font_type, current_settings.font_size))
-        self.options_menu.add_command(label=self.language_dict['option'][0],
-                                      command=self.open_change_settings)
-        self.options_menu.add_command(label=self.language_dict['option'][1],
-                                      command=self.change_channel_dict)
+            text='Options',
+            command=lambda: self.file_top_make_menu(mode='options'))
+        self.file_top_options.place(x=120, y=0)
 
-        self.change_languages_menu = Menu(
+        self.file_top_tools = Button(
             self,
-            tearoff=False,
-            bg=current_settings.background_color,
-            activebackground=current_settings.active_background_color,
-            activeforeground=current_settings.active_foreground_color,
-            disabledforeground=current_settings.disabled_foreground_color,
-            font=(current_settings.font_type, current_settings.font_size))
+            text='Tools',
+            command=lambda: self.file_top_make_menu(mode='tools'))
+        self.file_top_tools.place(x=240, y=0)
 
+        self.export_audio_menubar = self.get_menu(
+            text=self.language_dict['export audio formats'][4],
+            actions=[
+                self.get_action(
+                    text=self.language_dict['export audio formats'][0],
+                    command=lambda: self.export_audio_file(mode='wav')),
+                self.get_action(
+                    text=self.language_dict['export audio formats'][1],
+                    command=lambda: self.export_audio_file(mode='mp3')),
+                self.get_action(
+                    text=self.language_dict['export audio formats'][2],
+                    command=lambda: self.export_audio_file(mode='ogg')),
+                self.get_action(
+                    text=self.language_dict['export audio formats'][3],
+                    command=lambda: self.export_audio_file(mode='other'))
+            ])
+        self.export_menubar = self.get_menu(
+            text=self.language_dict['right key'][8],
+            actions=[
+                self.export_audio_menubar,
+                self.get_action(
+                    text=self.language_dict['export audio formats'][5],
+                    command=self.export_midi_file)
+            ])
+        self.set_musicpy_code_text_actions = [
+            self.get_action(text=self.language_dict['right key'][0],
+                            command=self.cut),
+            self.get_action(text=self.language_dict['right key'][1],
+                            command=self.copy),
+            self.get_action(text=self.language_dict['right key'][2],
+                            command=self.paste),
+            self.get_action(text=self.language_dict['right key'][3],
+                            command=self.choose_all),
+            self.get_action(text=self.language_dict['right key'][4],
+                            command=self.inputs_undo),
+            self.get_action(text=self.language_dict['right key'][5],
+                            command=self.inputs_redo),
+            self.get_action(text=self.language_dict['right key'][6],
+                            command=self.save_current_musicpy_code),
+            self.get_action(text=self.language_dict['right key'][7],
+                            command=self.import_musicpy_code),
+            self.export_menubar,
+            self.get_action(text=self.language_dict['right key'][9],
+                            command=self.play_selected_musicpy_code),
+            self.get_action(text=self.language_dict['right key'][10],
+                            command=self.play_selected_audio)
+        ]
+        self.file_menu = self.get_menu(actions=[
+            self.get_action(text=self.language_dict['file'][7],
+                            command=self.open_new_project_file),
+            self.get_action(text=self.language_dict['file'][0],
+                            command=self.open_project_file),
+            self.get_action(text=self.language_dict['file'][1],
+                            command=self.save_as_project_file),
+            self.get_action(
+                text=self.language_dict['file'][6],
+                command=lambda: self.save_as_project_file(new=True)),
+            self.get_action(text=self.language_dict['file'][2],
+                            command=self.import_midi_file_func),
+            self.get_action(text=self.language_dict['file'][3],
+                            command=self.save_current_musicpy_code),
+            self.get_action(text=self.language_dict['file'][4],
+                            command=self.import_musicpy_code),
+            self.export_menubar
+        ])
+
+        self.options_menu = self.get_menu(actions=[
+            self.get_action(text=self.language_dict['option'][0],
+                            command=self.open_change_settings),
+            self.get_action(text=self.language_dict['option'][1],
+                            command=self.change_channel_dict)
+        ])
+
+        self.change_languages_menu = self.get_menu(
+            text=self.language_dict['option'][2], actions=[])
         os.chdir(abs_path)
         current_languages = [
             os.path.splitext(i)[0] for i in os.listdir('scripts/languages')
         ]
         for each in current_languages:
-            self.change_languages_menu.add_command(
-                label=each,
-                command=lambda each=each: self.change_language(each, 1))
+            self.change_languages_menu.addAction(
+                self.get_action(text=each,
+                                command=lambda e, each=each: self.
+                                change_language(each, 1)))
 
-        self.options_menu.add_cascade(label=self.language_dict['option'][2],
-                                      menu=self.change_languages_menu)
+        self.options_menu.addMenu(self.change_languages_menu)
 
-        self.change_skin_menu = Menu(
-            self,
-            tearoff=False,
-            bg=current_settings.background_color,
-            activebackground=current_settings.active_background_color,
-            activeforeground=current_settings.active_foreground_color,
-            disabledforeground=current_settings.disabled_foreground_color,
-            font=(current_settings.font_type, current_settings.font_size))
+        self.change_skin_menu = self.get_menu(
+            text=self.language_dict['option'][3], actions=[])
 
         current_skins = [
             os.path.splitext(i)[0] for i in os.listdir('scripts/skins')
         ]
         for each in current_skins:
-            self.change_skin_menu.add_command(
-                label=each, command=lambda each=each: self.change_skin(each))
+            self.change_skin_menu.addAction(
+                self.get_action(
+                    text=each,
+                    command=lambda e, each=each: self.change_skin(each)))
 
-        self.options_menu.add_cascade(label=self.language_dict['option'][3],
-                                      menu=self.change_skin_menu)
+        self.options_menu.addMenu(self.change_skin_menu)
 
-        self.file_top_options.place(x=82, y=0)
+        self.tools_menu = self.get_menu(actions=[
+            self.get_action(text=self.language_dict['tool'][0],
+                            command=self.make_mdi_file),
+            self.get_action(text=self.language_dict['tool'][1],
+                            command=self.import_mdi_file),
+            self.get_action(text=self.language_dict['tool'][2],
+                            command=self.unzip_mdi_file),
+            self.get_action(text=self.language_dict['tool'][3],
+                            command=self.import_audio_file_as_sample),
+            self.get_action(text=self.language_dict['tool'][4],
+                            command=self.open_pitch_shifter)
+        ])
 
-        self.tools_menu = Menu(
-            self,
-            tearoff=False,
-            bg=current_settings.background_color,
-            activebackground=current_settings.active_background_color,
-            activeforeground=current_settings.active_foreground_color,
-            disabledforeground=current_settings.active_foreground_color,
-            font=(current_settings.font_type, current_settings.font_size))
-        self.tools_menu.add_command(label=self.language_dict['tool'][0],
-                                    command=self.make_mdi_file)
-        self.tools_menu.add_command(label=self.language_dict['tool'][1],
-                                    command=self.load_mdi_file)
-        self.tools_menu.add_command(label=self.language_dict['tool'][2],
-                                    command=self.unzip_mdi_file)
-        self.tools_menu.add_command(label=self.language_dict['tool'][3],
-                                    command=self.import_audio_file_as_sample)
-        self.tools_menu.add_command(label=self.language_dict['tool'][4],
-                                    command=self.open_pitch_shifter)
-        self.file_top_tools.place(x=164, y=0)
-
-        self.load_instrument_menubar = Menu(
-            self,
-            tearoff=False,
-            bg=current_settings.background_color,
-            activebackground=current_settings.active_background_color,
-            activeforeground=current_settings.active_foreground_color,
-            disabledforeground=current_settings.disabled_foreground_color,
-            font=(current_settings.font_type, current_settings.font_size))
-
-        self.load_instrument_menubar.add_command(
-            label=self.language_dict['load_instrument'][0],
-            command=self.load_instrument_folder)
-
-        self.load_instrument_menubar.add_command(
-            label=self.language_dict['load_instrument'][1],
-            command=self.load_sf2_file)
-
-        self.load_instrument_menubar.add_command(
-            label=self.language_dict['load_instrument'][2],
-            command=self.load_mdi_file)
+        self.load_instrument_menubar = self.get_menu(actions=[
+            self.get_action(text=self.language_dict['load_instrument'][0],
+                            command=self.load_instrument_folder),
+            self.get_action(text=self.language_dict['load_instrument'][1],
+                            command=self.load_sf2_file),
+            self.get_action(text=self.language_dict['load_instrument'][2],
+                            command=self.import_mdi_file)
+        ])
 
     def initialize(self, mode=0, file=None):
         if mode == 0:
@@ -475,7 +473,6 @@ class Root(Tk):
             self.channel_sound_modules = [None]
             if os.path.exists(current_settings.sound_path):
                 self.show_msg(self.language_dict['msg'][0])
-                self.msg.update()
                 self.load_default_instrument()
             else:
                 self.default_load = True
@@ -510,7 +507,7 @@ class Root(Tk):
                                     current_mode=None,
                                     sound_path=''):
         if current_queue.empty():
-            self.after(
+            QtCore.QTimer.singleShot(
                 200, lambda: self.wait_for_load_audiosegments(
                     current_queue, current_ind, current_mode, sound_path))
         else:
@@ -524,9 +521,11 @@ class Root(Tk):
             else:
                 self.channel_sound_modules[current_ind] = current_queue.get()
                 if not current_mode:
-                    self.current_channel_sound_modules_entry.delete(0, END)
-                    self.current_channel_sound_modules_entry.insert(
-                        END, sound_path)
+                    self.current_channel_sound_modules_entry.clear()
+                    self.current_channel_sound_modules_entry.setText(
+                        sound_path)
+                    self.current_channel_sound_modules_entry.setCursorPosition(
+                        0)
                     self.channel_sound_modules_name[current_ind] = sound_path
                 current_msg = self.language_dict["msg"][10].split('|')
                 self.show_msg(
@@ -535,22 +534,22 @@ class Root(Tk):
                 self.current_loading_num -= 1
 
     def check_if_edited(self):
+        self.get_current_line_column()
         if self.is_changed():
-            self.title('Musicpy Daw *')
+            self.setWindowTitle('Musicpy Daw *')
         else:
-            self.title('Musicpy Daw')
+            self.setWindowTitle('Musicpy Daw')
         self.after(100, self.check_if_edited)
 
     def get_current_line_column(self):
-        ind = self.set_musicpy_code_text.index(INSERT)
-        line, column = ind.split('.')
-        self.current_line_number = int(line)
-        self.current_column_number = int(column)
-        self.line_column.config(
-            text=
+        self.current_line_number = self.set_musicpy_code_text.textCursor(
+        ).blockNumber() + 1
+        self.current_column_number = self.set_musicpy_code_text.textCursor(
+        ).columnNumber() + 1
+        self.line_column.setText(
             f'Line {self.current_line_number} Col {self.current_column_number}'
         )
-        self.after(10, self.get_current_line_column)
+        self.line_column.adjustSize()
 
     def change_font_size(self, e):
         num = e.delta // 120
@@ -565,24 +564,24 @@ class Root(Tk):
         self.project_name = 'untitled.mdp'
         self.opening_project_name = None
         self.clear_all_channels(1)
-        self.set_musicpy_code_text.delete('1.0', END)
-        self.choose_channels.insert(END, self.language_dict['init'][0])
+        self.set_musicpy_code_text.clear()
+        self.choose_channels.addItem(self.language_dict['init'][0])
         self.channel_names = [self.language_dict['init'][0]]
         self.channel_sound_modules_name = [current_settings.sound_path]
         self.channel_num = 1
         self.channel_list_focus = True
-        self.change_current_bpm_entry.delete(0, END)
-        self.change_current_bpm_entry.insert(END, '120')
+        self.change_current_bpm_entry.clear()
+        self.change_current_bpm_entry.setText('120')
         self.change_current_bpm_entry.place(x=100, y=210)
         self.current_bpm = 120
         self.initialize()
         self.show_msg('')
 
     def show_msg(self, text=''):
-        self.msg.configure(text=text)
-
-    def pitch_msg(self, text=''):
-        self.pitch_shifter_window.msg.configure(text=text)
+        self.msg.setText(text)
+        self.msg.adjustSize()
+        self.msg.repaint()
+        app.processEvents()
 
     def change_language(self, language, mode=0):
         os.chdir(abs_path)
@@ -590,329 +589,66 @@ class Root(Tk):
             with open(f'scripts/languages/{language}.json',
                       encoding='utf-8') as f:
                 data = json.load(f)
-            current_language_dict = data['main_window']
+            self.main_window_language_dict = data['main_window']
             self.language_dict = data['other']
-            for each, value in current_language_dict.items():
-                vars(self)[each].configure(text=value)
             if mode == 1:
                 self.reload_language()
         except Exception as e:
             print(traceback.format_exc())
-            output(traceback.format_exc())
             current_msg = self.language_dict['msg'][2].split('|')
             self.show_msg(f'{current_msg[0]}{language}.py{current_msg[1]}')
 
     def reload_language(self):
+        for each, value in self.main_window_language_dict.items():
+            vars(self)[each].setText(value)
         self.init_menu()
+        self.set_musicpy_code_text = CustomTextEdit(
+            self,
+            pairing_symbols=current_settings.pairing_symbols,
+            custom_actions=self.set_musicpy_code_text_actions,
+            size=(810, 335),
+            font=QtGui.QFont(current_settings.text_area_font_type,
+                             current_settings.text_area_font_size),
+            place=(150, 250))
+        self.set_musicpy_code_text.show()
         self.show_msg('')
 
+    def update_last_path(self, path):
+        if not os.path.isdir(path):
+            current_path = os.path.dirname(path)
+        else:
+            current_path = path
+        if current_path != self.last_path:
+            with open('last_path.txt', 'w', encoding='utf-8') as f:
+                f.write(current_path)
+            self.last_path = current_path
+
     def import_audio_file_as_sample(self):
-        file_path = filedialog.askopenfilename(
-            title=self.language_dict['title'][0],
-            filetypes=((self.language_dict['title'][1], "*"), ))
+        file_path = Dialog(
+            caption=self.language_dict['title'][0],
+            directory=self.last_path,
+            filter=f"{self.language_dict['title'][1]} (*)").filename[0]
         if file_path:
-            current_text = self.set_musicpy_code_text.get('1.0', 'end-1c')
+            self.update_last_path(file_path)
+            current_text = self.set_musicpy_code_text.toPlainText()
             if current_text[current_text.rfind('\n') + 1:]:
-                self.set_musicpy_code_text.insert(
-                    END, f"\nnew_sound = sound('{file_path}')\n")
+                self.set_musicpy_code_text.appendPlainText(
+                    f"\nnew_sound = sound('{file_path}')\n")
             else:
-                self.set_musicpy_code_text.insert(
-                    END, f"new_sound = sound('{file_path}')\n")
+                self.set_musicpy_code_text.appendPlainText(
+                    f"new_sound = sound('{file_path}')\n")
+            self.set_musicpy_code_text.activateWindow()
+            self.set_musicpy_code_text.moveCursor(QtGui.QTextCursor.End)
         else:
             return
 
     def open_pitch_shifter(self):
         if self.open_pitch_shifter_window:
-            self.pitch_shifter_window.focus_set()
+            self.pitch_shifter_window.activateWindow()
             return
         else:
             self.open_pitch_shifter_window = True
-            self.pitch_shifter_window = Toplevel(self)
-            self.pitch_shifter_window.iconphoto(False, self.icon_image)
-            self.pitch_shifter_window.configure(
-                bg=current_settings.background_color)
-            x = self.winfo_x()
-            y = self.winfo_y()
-            w = self.pitch_shifter_window.winfo_width()
-            h = self.pitch_shifter_window.winfo_height()
-            self.pitch_shifter_window.geometry("%dx%d+%d+%d" %
-                                               (w, h, x + 200, y + 200))
-            self.pitch_shifter_window.protocol("WM_DELETE_WINDOW",
-                                               self.close_pitch_shifter_window)
-            self.pitch_shifter_window.title(
-                self.language_dict['pitch shifter'][0])
-            self.pitch_shifter_window.minsize(700, 400)
-            self.pitch_shifter_window.focus_set()
-
-            self.pitch_shifter_window.load_current_pitch_label = ttk.Label(
-                self.pitch_shifter_window,
-                text=self.language_dict['pitch shifter'][1])
-            self.pitch_shifter_window.load_current_pitch_label.place(x=0, y=50)
-            self.pitch_shifter_window.load_current_pitch_button = ttk.Button(
-                self.pitch_shifter_window,
-                text=self.language_dict['pitch shifter'][2],
-                command=self.pitch_shifter_load_pitch)
-            self.pitch_shifter_window.load_current_pitch_button.place(x=0,
-                                                                      y=100)
-            self.pitch_shifter_window.msg = ttk.Label(
-                self.pitch_shifter_window,
-                text=self.language_dict['pitch shifter'][3])
-            self.pitch_shifter_window.msg.place(x=0, y=350)
-
-            self.pitch_shifter_window.default_pitch_entry = ttk.Entry(
-                self.pitch_shifter_window,
-                width=10,
-                font=(current_settings.font_type, current_settings.font_size))
-            self.pitch_shifter_window.default_pitch_entry.insert(END, 'C5')
-            self.pitch_shifter_window.default_pitch_entry.place(x=150, y=150)
-            self.pitch_shifter_window.change_default_pitch_button = ttk.Button(
-                self.pitch_shifter_window,
-                text=self.language_dict['pitch shifter'][4],
-                command=self.pitch_shifter_change_default_pitch)
-            self.pitch_shifter_window.change_default_pitch_button.place(x=0,
-                                                                        y=150)
-            self.pitch_shifter_window.change_pitch_button = ttk.Button(
-                self.pitch_shifter_window,
-                text=self.language_dict['pitch shifter'][5],
-                command=self.pitch_shifter_change_pitch)
-            self.pitch_shifter_window.change_pitch_button.place(x=0, y=200)
-            self.pitch_shifter_window.pitch_entry = ttk.Entry(
-                self.pitch_shifter_window,
-                width=10,
-                font=(current_settings.font_type, current_settings.font_size))
-            self.pitch_shifter_window.pitch_entry.insert(END, 'C5')
-            self.pitch_shifter_window.pitch_entry.place(x=150, y=200)
-            self.pitch_shifter_window.has_load = False
-
-            self.pitch_shifter_window.play_button = ttk.Button(
-                self.pitch_shifter_window,
-                text=self.language_dict['pitch shifter'][6],
-                command=self.pitch_shifter_play)
-            self.pitch_shifter_window.stop_button = ttk.Button(
-                self.pitch_shifter_window,
-                text=self.language_dict['pitch shifter'][7],
-                command=self.pitch_shifter_stop)
-            self.pitch_shifter_window.play_button.place(x=250, y=150)
-            self.pitch_shifter_window.stop_button.place(x=350, y=150)
-            self.pitch_shifter_window.shifted_play_button = ttk.Button(
-                self.pitch_shifter_window,
-                text=self.language_dict['pitch shifter'][6],
-                command=self.pitch_shifter_play_shifted)
-            self.pitch_shifter_window.shifted_stop_button = ttk.Button(
-                self.pitch_shifter_window,
-                text=self.language_dict['pitch shifter'][7],
-                command=self.pitch_shifter_stop_shifted)
-            self.pitch_shifter_window.shifted_play_button.place(x=250, y=200)
-            self.pitch_shifter_window.shifted_stop_button.place(x=350, y=200)
-            self.pitch_shifter_playing = False
-            self.pitch_shifter_shifted_playing = False
-            self.current_pitch_note = N('C5')
-
-            self.pitch_shifter_window.shifted_export_button = ttk.Button(
-                self.pitch_shifter_window,
-                text=self.language_dict['export'],
-                command=self.pitch_shifter_export_shifted)
-            self.pitch_shifter_window.shifted_export_button.place(x=450, y=200)
-            self.pitch_shifter_window.export_sound_files_button = ttk.Button(
-                self.pitch_shifter_window,
-                text=self.language_dict['pitch shifter'][8],
-                command=self.pitch_shifter_export_sound_files)
-            self.pitch_shifter_window.export_sound_files_button.place(x=0,
-                                                                      y=250)
-
-            self.pitch_shifter_window.export_sound_files_from = ttk.Entry(
-                self.pitch_shifter_window,
-                width=10,
-                font=(current_settings.font_type, current_settings.font_size))
-            self.pitch_shifter_window.export_sound_files_to = ttk.Entry(
-                self.pitch_shifter_window,
-                width=10,
-                font=(current_settings.font_type, current_settings.font_size))
-            self.pitch_shifter_window.export_sound_files_from.insert(END, 'A0')
-            self.pitch_shifter_window.export_sound_files_to.insert(END, 'C8')
-            self.pitch_shifter_window.export_sound_files_from.place(x=220,
-                                                                    y=250)
-            self.pitch_shifter_window.export_sound_files_to.place(x=345, y=250)
-            self.pitch_shifter_window.export_sound_files_label = ttk.Label(
-                self.pitch_shifter_window,
-                text=self.language_dict['pitch shifter'][9])
-            self.pitch_shifter_window.export_sound_files_label.place(x=310,
-                                                                     y=250)
-
-            self.pitch_shifter_window.change_folder_name_button = ttk.Button(
-                self.pitch_shifter_window,
-                text=self.language_dict['pitch shifter'][10],
-                command=self.pitch_shifter_change_folder_name)
-            self.pitch_shifter_window.change_folder_name_button.place(x=0,
-                                                                      y=300)
-            self.pitch_shifter_window.folder_name = ttk.Entry(
-                self.pitch_shifter_window,
-                width=30,
-                font=(current_settings.font_type, current_settings.font_size))
-            self.pitch_shifter_window.folder_name.insert(
-                END, self.language_dict['Untitled'])
-            self.pitch_shifter_window.folder_name.place(x=280, y=300)
-            self.pitch_shifter_folder_name = self.language_dict['Untitled']
-
-    def pitch_shifter_change_folder_name(self):
-        self.pitch_shifter_folder_name = self.pitch_shifter_window.folder_name.get(
-        )
-        self.pitch_msg(
-            f'{self.language_dict["msg"][38]}{self.pitch_shifter_folder_name}')
-
-    def pitch_shifter_export_sound_files(self):
-        if not self.pitch_shifter_window.has_load:
-            self.pitch_msg(self.language_dict["msg"][39])
-            return
-        try:
-            start = N(self.pitch_shifter_window.export_sound_files_from.get())
-            end = N(self.pitch_shifter_window.export_sound_files_to.get())
-        except:
-            self.pitch_msg(self.language_dict["msg"][40])
-            return
-        file_path = file_path = filedialog.askdirectory(
-            parent=self.pitch_shifter_window,
-            title=self.language_dict['title'][2],
-        )
-        if not file_path:
-            return
-        self.current_pitch.export_sound_files(file_path,
-                                              self.pitch_shifter_folder_name,
-                                              start,
-                                              end,
-                                              pitch_shifter=True)
-        self.pitch_msg(f'{self.language_dict["msg"][24]}{file_path}')
-
-    def pitch_shifter_play(self):
-        if self.pitch_shifter_window.has_load:
-            if self.pitch_shifter_playing:
-                self.pitch_shifter_stop()
-            play_audio(self.current_pitch)
-            self.pitch_shifter_playing = True
-
-    def pitch_shifter_stop(self):
-        if self.pitch_shifter_playing:
-            pygame.mixer.stop()
-            self.pitch_shifter_playing = False
-
-    def pitch_shifter_play_shifted(self):
-        if self.pitch_shifter_window.has_load:
-            if self.pitch_shifter_shifted_playing:
-                self.pitch_shifter_stop_shifted()
-            play_audio(self.new_pitch)
-            self.pitch_shifter_shifted_playing = True
-
-    def pitch_shifter_stop_shifted(self):
-        if self.pitch_shifter_shifted_playing:
-            pygame.mixer.stop()
-            self.pitch_shifter_shifted_playing = False
-
-    def pitch_shifter_export_shifted(self):
-        export_audio_file_menubar = Menu(
-            self.pitch_shifter_window,
-            tearoff=False,
-            bg=current_settings.background_color,
-            activebackground=current_settings.active_background_color,
-            activeforeground=current_settings.active_foreground_color,
-            disabledforeground=current_settings.disabled_foreground_color,
-            font=(current_settings.font_type, current_settings.font_size))
-        export_audio_file_menubar.add_command(
-            label=self.language_dict['export audio formats'][0],
-            command=lambda: self.export_pitch_audio_file(mode='wav'))
-        export_audio_file_menubar.add_command(
-            label=self.language_dict['export audio formats'][1],
-            command=lambda: self.export_pitch_audio_file(mode='mp3'))
-        export_audio_file_menubar.add_command(
-            label=self.language_dict['export audio formats'][2],
-            command=lambda: self.export_pitch_audio_file(mode='ogg'))
-        export_audio_file_menubar.add_command(
-            label=self.language_dict['export audio formats'][3],
-            command=lambda: self.export_pitch_audio_file(mode='other'))
-
-        export_audio_file_menubar.tk_popup(x=self.winfo_pointerx(),
-                                           y=self.winfo_pointery())
-
-    def export_pitch_audio_file(self, mode='wav'):
-        if not self.pitch_shifter_window.has_load:
-            self.pitch_msg(self.language_dict["msg"][39])
-            return
-        if mode == 'other':
-            self.ask_other_format(mode=1)
-            return
-        filename = filedialog.asksaveasfilename(
-            parent=self.pitch_shifter_window,
-            title=self.language_dict['title'][3],
-            filetypes=((self.language_dict['title'][1], "*"), ),
-            defaultextension=f".{mode}",
-            initialfile=self.language_dict['untitled'])
-        if not filename:
-            return
-        self.pitch_msg(self.language_dict["msg"][41])
-        self.pitch_shifter_window.msg.update()
-        self.new_pitch.export(filename, format=mode)
-        self.pitch_msg(f'{self.language_dict["msg"][24]}{filename}')
-
-    def pitch_shifter_read_other_format(self):
-        current_format = self.ask_other_format_entry.get()
-        self.ask_other_format_window.destroy()
-        if current_format:
-            self.export_pitch_audio_file(mode=current_format)
-
-    def pitch_shifter_load_pitch(self):
-        file_path = filedialog.askopenfilename(
-            parent=self.pitch_shifter_window,
-            title=self.language_dict['title'][0],
-            filetypes=((self.language_dict['title'][1], "*"), ))
-        if file_path:
-            self.pitch_msg(self.language_dict["msg"][42])
-            self.pitch_shifter_window.msg.update()
-            self.pitch_shifter_window.load_current_pitch_label.configure(
-                text=f'{self.language_dict["pitch shifter"][1]}{file_path}')
-
-            try:
-                default_pitch = self.pitch_shifter_window.default_pitch_entry.get(
-                )
-            except:
-                default_pitch = 'C5'
-            self.current_pitch = pitch(file_path, default_pitch)
-            self.pitch_msg(self.language_dict["msg"][1])
-
-            self.pitch_shifter_window.has_load = True
-            self.new_pitch = self.current_pitch.sounds
-
-    def pitch_shifter_change_default_pitch(self):
-        if self.pitch_shifter_window.has_load:
-            new_pitch = self.pitch_shifter_window.default_pitch_entry.get()
-            try:
-                self.current_pitch.set_note(new_pitch)
-                self.pitch_msg(f'{self.language_dict["msg"][43]}{new_pitch}')
-            except:
-                self.pitch_msg(self.language_dict["msg"][37])
-
-    def pitch_shifter_change_pitch(self):
-        if not self.pitch_shifter_window.has_load:
-            return
-
-        try:
-            new_pitch = N(self.pitch_shifter_window.pitch_entry.get())
-            current_msg = self.language_dict["msg"][44].split('|')
-            self.pitch_msg(f'{current_msg[0]}{new_pitch}{current_msg[1]}')
-            self.pitch_shifter_window.msg.update()
-            self.new_pitch = self.current_pitch + (
-                new_pitch.degree - self.current_pitch.note.degree)
-            self.pitch_msg(f'{self.language_dict["msg"][45]}{new_pitch}')
-        except Exception as e:
-            print(traceback.format_exc())
-            output(traceback.format_exc())
-            self.pitch_msg(self.language_dict["msg"][40])
-
-    def close_pitch_shifter_window(self):
-        self.pitch_shifter_window.destroy()
-        self.open_pitch_shifter_window = False
-
-    def close_debug_window(self):
-        self.debug_window.destroy()
-        self.is_open_debug_window = False
+            self.pitch_shifter_window = Pitch_shifter_window(self)
 
     def play_selected_musicpy_code(self):
         if not self.default_load:
@@ -922,12 +658,13 @@ class Root(Tk):
             self.show_msg(self.language_dict['msg'][3])
             return
         try:
-            current_notes = self.set_musicpy_code_text.selection_get()
+            current_notes = self.set_musicpy_code_text.textCursor(
+            ).selectedText()
         except:
             return
         current_channel_num = 0
         current_bpm = self.current_bpm
-        current_codes = self.set_musicpy_code_text.get('1.0', 'end-1c')
+        current_codes = self.set_musicpy_code_text.toPlainText()
         try:
             exec(current_codes, globals(), globals())
         except:
@@ -976,8 +713,8 @@ class Root(Tk):
                     if isinstance(current_bpm,
                                   float) and current_bpm.is_integer():
                         current_bpm = int(current_bpm)
-                    self.change_current_bpm_entry.delete(0, END)
-                    self.change_current_bpm_entry.insert(END, current_bpm)
+                    self.change_current_bpm_entry.clear()
+                    self.change_current_bpm_entry.setText(str(current_bpm))
                     self.change_current_bpm(1)
         self.stop_playing()
         try:
@@ -993,10 +730,11 @@ class Root(Tk):
             return
         self.show_msg('')
         try:
-            current_notes = self.set_musicpy_code_text.selection_get()
+            current_notes = self.set_musicpy_code_text.textCursor(
+            ).selectedText()
         except:
             return
-        current_codes = self.set_musicpy_code_text.get('1.0', 'end-1c')
+        current_codes = self.set_musicpy_code_text.toPlainText()
         try:
             exec(current_codes, globals(), globals())
         except:
@@ -1012,12 +750,15 @@ class Root(Tk):
 
     def make_mdi_file(self):
         self.show_msg('')
-        file_path = filedialog.askdirectory(
-            title=self.language_dict['title'][5], )
+        file_path = Dialog(caption=self.language_dict['title'][5],
+                           directory=self.last_path,
+                           mode=1).directory
         if not file_path:
             return
-        export_path = filedialog.askdirectory(
-            title=self.language_dict['title'][6], )
+        self.update_last_path(file_path)
+        export_path = Dialog(caption=self.language_dict['title'][6],
+                             directory=self.last_path,
+                             mode=1).directory
         if not export_path:
             return
         abs_path = os.getcwd()
@@ -1047,24 +788,27 @@ class Root(Tk):
         os.chdir(abs_path)
         return
 
-    def load_mdi_file(self, mode=0, current_ind=None, sound_path=None):
+    def import_mdi_file(self, mode=0, current_ind=None, sound_path=None):
         self.show_msg('')
         if current_ind is None:
-            current_ind = self.choose_channels.index(ANCHOR)
+            current_ind = self.choose_channels.currentIndex().row()
         if current_ind >= self.channel_num or not self.channel_list_focus:
             self.show_msg(self.language_dict['msg'][8])
             return
         abs_path = os.getcwd()
         if sound_path is None:
             if mode == 0:
-                sound_path = filedialog.askopenfilename(
-                    title=self.language_dict['title'][7],
-                    filetypes=(("Musicpy Daw Instrument", ".mdi"),
-                               (self.language_dict['title'][1], "*")))
+                sound_path = Dialog(
+                    caption=self.language_dict['title'][7],
+                    directory=self.last_path,
+                    filter=
+                    f"Musicpy Daw Instrument (*.mdi);;{self.language_dict['title'][1]} (*)"
+                ).filename[0]
                 if not sound_path:
                     return
+                self.update_last_path(sound_path)
             else:
-                sound_path = self.current_channel_sound_modules_entry.get()
+                sound_path = self.current_channel_sound_modules_entry.text()
         original_sound_path = sound_path
         if not os.path.exists(sound_path):
             sound_path = os.path.join(self.current_project_file_path,
@@ -1076,7 +820,6 @@ class Root(Tk):
         self.show_msg(
             f'{self.language_dict["msg"][9]}{os.path.basename(sound_path)} ...'
         )
-        self.msg.update()
         try:
             with open(sound_path, 'rb') as file:
                 current_mdi = pickle.load(file)
@@ -1108,9 +851,9 @@ class Root(Tk):
             for i in current_dict
         }
         self.channel_sound_modules_name[current_ind] = original_sound_path
-        self.current_channel_sound_modules_entry.delete(0, END)
-        self.current_channel_sound_modules_entry.insert(
-            END, original_sound_path)
+        self.current_channel_sound_modules_entry.clear()
+        self.current_channel_sound_modules_entry.setText(original_sound_path)
+        self.current_channel_sound_modules_entry.setCursorPosition(0)
         current_msg = self.language_dict["msg"][10].split('|')
         self.show_msg(
             f'{current_msg[0]}{os.path.basename(sound_path)}{current_msg[1]}{current_ind+1}'
@@ -1119,15 +862,19 @@ class Root(Tk):
     def unzip_mdi_file(self):
         self.show_msg('')
         abs_path = os.getcwd()
-        file_path = filedialog.askopenfilename(
-            title=self.language_dict['title'][7],
-            filetypes=(("Musicpy Daw Instrument", ".mdi"),
-                       (self.language_dict['title'][1], "*")))
+        file_path = Dialog(
+            caption=self.language_dict['title'][7],
+            directory=self.last_path,
+            filter=
+            f"Musicpy Daw Instrument (*.mdi);;{self.language_dict['title'][1]} (*)"
+        ).filename[0]
         if not file_path:
             return
 
-        export_path = filedialog.askdirectory(
-            title=self.language_dict['title'][8], )
+        self.update_last_path(file_path)
+        export_path = Dialog(caption=self.language_dict['title'][8],
+                             directory=self.last_path,
+                             mode=1).directory
         if export_path:
             os.chdir(export_path)
         folder_name = os.path.basename(file_path)
@@ -1145,67 +892,60 @@ class Root(Tk):
             f'{current_msg[0]}{os.path.basename(file_path)}{current_msg[1]}')
         os.chdir(abs_path)
 
-    def load_musicpy_code(self):
-        filename = filedialog.askopenfilename(
-            title=self.language_dict['title'][9],
-            filetypes=((self.language_dict['title'][19], ".txt"),
-                       (self.language_dict['title'][1], "*")))
+    def import_musicpy_code(self):
+        filename = Dialog(
+            caption=self.language_dict['title'][9],
+            directory=self.last_path,
+            filter=
+            f'{self.language_dict["title"][19]} (*.txt);;{self.language_dict["title"][1]} (*)'
+        ).filename[0]
         if filename:
+            self.update_last_path(filename)
             try:
                 with open(filename, encoding='utf-8', errors='ignore') as f:
-                    self.set_musicpy_code_text.delete('1.0', END)
-                    self.set_musicpy_code_text.insert(END, f.read())
-                    self.set_musicpy_code_text.see(INSERT)
+                    self.set_musicpy_code_text.clear()
+                    self.set_musicpy_code_text.insertPlainText(f.read())
             except:
-                self.set_musicpy_code_text.delete('1.0', END)
+                self.set_musicpy_code_text.clear()
                 self.show_msg(self.language_dict["msg"][12])
 
     def cut(self):
-        self.set_musicpy_code_text.event_generate("<<Cut>>")
+        self.set_musicpy_code_text.cut()
 
     def copy(self):
-        self.set_musicpy_code_text.event_generate("<<Copy>>")
+        self.set_musicpy_code_text.copy()
 
     def paste(self):
-        self.set_musicpy_code_text.event_generate('<<Paste>>')
+        self.set_musicpy_code_text.paste()
 
     def choose_all(self):
-        self.set_musicpy_code_text.tag_add(SEL, '1.0', END)
-        self.set_musicpy_code_text.mark_set(INSERT, END)
-        self.set_musicpy_code_text.see(INSERT)
+        self.set_musicpy_code_text.selectAll()
 
     def inputs_undo(self):
-        try:
-            self.set_musicpy_code_text.edit_undo()
-        except:
-            pass
+        self.set_musicpy_code_text.undo()
 
     def inputs_redo(self):
-        try:
-            self.set_musicpy_code_text.edit_redo()
-        except:
-            pass
-
-    def rightKey(self, event):
-        self.menubar.tk_popup(event.x_root, event.y_root)
+        self.set_musicpy_code_text.redo()
 
     def open_project_file(self, filename=None):
         if not self.default_load:
             return
         self.show_msg('')
         if not filename:
-            filename = filedialog.askopenfilename(
-                title=self.language_dict['title'][11],
-                filetypes=(("Musicpy Daw Project", ".mdp"),
-                           (self.language_dict['title'][10],
-                            ".json"), (self.language_dict['title'][1], "*")))
+            filename = Dialog(
+                caption=self.language_dict['title'][11],
+                directory=self.last_path,
+                filter=
+                f"Musicpy Daw Project (*.mdp);;{self.language_dict['title'][10]} (.json);;{self.language_dict['title'][1]} (*)"
+            ).filename[0]
         if filename:
+            self.update_last_path(filename)
             try:
                 with open(filename, encoding='utf-8', errors='ignore') as f:
                     self.project_dict = json.load(f)
             except:
                 print(traceback.format_exc())
-                self.set_musicpy_code_text.delete('1.0', END)
+                self.set_musicpy_code_text.clear()
                 self.show_msg(self.language_dict["msg"][13])
                 return
             self.current_project_file_path = os.path.dirname(filename)
@@ -1223,16 +963,16 @@ class Root(Tk):
         if isinstance(self.current_bpm,
                       float) and self.current_bpm.is_integer():
             self.current_bpm = int(self.current_bpm)
-        self.change_current_bpm_entry.delete(0, END)
-        self.change_current_bpm_entry.insert(END, self.current_bpm)
-        self.set_musicpy_code_text.delete('1.0', END)
-        self.set_musicpy_code_text.insert(
-            END, self.project_dict['current_musicpy_code'])
-        self.current_channel_name_label.focus_set()
+        self.change_current_bpm_entry.clear()
+        self.change_current_bpm_entry.setText(str(self.current_bpm))
+        self.set_musicpy_code_text.clear()
+        self.set_musicpy_code_text.setPlainText(
+            self.project_dict['current_musicpy_code'])
+        self.current_channel_name_label.activateWindow()
+        self.choose_channels.clear()
         for current_ind in range(self.channel_num):
-            self.choose_channels.delete(current_ind)
-            self.choose_channels.insert(current_ind,
-                                        self.channel_names[current_ind])
+            self.choose_channels.insertItem(current_ind,
+                                            self.channel_names[current_ind])
         for i in range(self.channel_num):
             self.reload_channel_sounds(i)
         self.waiting_for_open_project_file(filename)
@@ -1242,8 +982,8 @@ class Root(Tk):
             self.after(200,
                        lambda: self.waiting_for_open_project_file(filename))
         else:
-            self.current_channel_sound_modules_entry.delete(0, END)
-            self.choose_channels.selection_clear(0, END)
+            self.current_channel_sound_modules_entry.clear()
+            self.choose_channels.clearSelection()
             current_project_name = os.path.basename(filename)
             self.current_project_name.configure(text=current_project_name)
             self.project_name = current_project_name
@@ -1274,7 +1014,7 @@ class Root(Tk):
         project_dict['channel_dict'] = copy(self.channel_dict)
         project_dict['current_bpm'] = copy(self.current_bpm)
         project_dict['current_musicpy_code'] = copy(
-            self.set_musicpy_code_text.get('1.0', 'end-1c'))
+            self.set_musicpy_code_text.toPlainText())
         current_soundfonts = {
             i: self.channel_sound_modules[i]
             for i in range(len(self.channel_sound_modules))
@@ -1307,15 +1047,16 @@ class Root(Tk):
             self.show_msg(self.language_dict["msg"][15])
             return
         else:
-            filename = filedialog.asksaveasfilename(
-                title=self.language_dict['title'][12]
+            filename = Dialog(
+                caption=self.language_dict['title'][12]
                 if new else self.language_dict['title'][18],
-                filetypes=(("Musicpy Daw Project", ".mdp"),
-                           (self.language_dict['title'][10],
-                            ".json"), (self.language_dict['title'][1], "*")),
-                defaultextension=f".mdp",
-                initialfile=self.language_dict['untitled'])
+                directory=self.last_path,
+                filter=
+                f"Musicpy Daw Project (*.mdp);;{self.language_dict['title'][10]} (*.json);;{self.language_dict['title'][1]} (*)",
+                default_filename=os.path.splitext(self.project_name)[0],
+                mode=2).filename[0]
             if filename:
+                self.update_last_path(filename)
                 with open(filename, 'w', encoding='utf-8') as f:
                     json.dump(self.project_dict,
                               f,
@@ -1329,43 +1070,46 @@ class Root(Tk):
                 self.opening_project_name = filename
 
     def save_current_musicpy_code(self):
-        filename = filedialog.asksaveasfilename(
-            title=self.language_dict['title'][13],
-            filetypes=((self.language_dict['title'][1], "*"), ),
-            defaultextension=f".txt",
-            initialfile=self.language_dict['untitled'])
+        filename = Dialog(
+            caption=self.language_dict['title'][13],
+            directory=self.last_path,
+            filter=f"{self.language_dict['title'][1]}, (*)",
+            default_filename=f"{self.language_dict['untitled']}.txt",
+            mode=2).filename[0]
         if filename:
+            self.update_last_path(filename)
             with open(filename, 'w', encoding='utf-8') as f:
-                f.write(self.set_musicpy_code_text.get('1.0', 'end-1c'))
+                f.write(self.set_musicpy_code_text.toPlainText())
 
     def file_top_make_menu(self, mode='file'):
         if mode == 'file':
-            self.file_menu.tk_popup(x=self.winfo_pointerx(),
-                                    y=self.winfo_pointery())
+            self.file_menu.popup(QtGui.QCursor().pos())
         elif mode == 'options':
-            self.options_menu.tk_popup(x=self.winfo_pointerx(),
-                                       y=self.winfo_pointery())
+            self.options_menu.popup(QtGui.QCursor().pos())
         elif mode == 'tools':
-            self.tools_menu.tk_popup(x=self.winfo_pointerx(),
-                                     y=self.winfo_pointery())
+            self.tools_menu.popup(QtGui.QCursor().pos())
 
-    def load_channel_settings(self, text=None):
-        current_ind = self.choose_channels.index(ANCHOR)
-        if current_ind >= self.channel_num or not self.channel_list_focus:
+    def load_channel_settings(self, event, text=None):
+        current_ind = self.choose_channels.currentIndex().row()
+        if current_ind < self.channel_num and self.channel_list_focus:
+            if text is None:
+                filename = Dialog(
+                    caption=self.language_dict['title'][14],
+                    directory=self.last_path,
+                    filter=
+                    f"{self.language_dict['title'][19]} (*.txt);;{self.language_dict['title'][1]} (*)"
+                ).filename[0]
+                if filename:
+                    self.update_last_path(filename)
+                    with open(filename, encoding='utf-8') as f:
+                        data = f.read()
+                else:
+                    return
+            else:
+                data = text
+        else:
             self.show_msg(self.language_dict['msg'][8])
             return
-        if text is None:
-            filename = filedialog.askopenfilename(
-                title=self.language_dict['title'][14],
-                filetypes=((self.language_dict['title'][19], ".txt"),
-                           (self.language_dict['title'][1], "*")))
-            if filename:
-                with open(filename, encoding='utf-8') as f:
-                    data = f.read()
-            else:
-                return
-        else:
-            data = text
         data = data.split('\n')
         current_dict = self.channel_dict[current_ind]
         for each in data:
@@ -1382,7 +1126,7 @@ class Root(Tk):
 
     def load_sf2_file(self, mode=0, current_ind=None, sound_path=None):
         if current_ind is None:
-            current_ind = self.choose_channels.index(ANCHOR)
+            current_ind = self.choose_channels.currentIndex().row()
         if current_ind < self.channel_num and (self.channel_list_focus or
                                                (current_ind is not None)):
             self.show_msg('')
@@ -1394,7 +1138,6 @@ class Root(Tk):
                 self.show_msg(
                     f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
                 )
-                self.msg.update()
                 try:
                     current_sf2 = rs.sf2_loader(sound_path)
                     current_sf2.all_instruments_dict = current_sf2.all_instruments(
@@ -1418,14 +1161,18 @@ class Root(Tk):
                 )
             else:
                 if mode == 0:
-                    sound_path = filedialog.askopenfilename(
-                        title=self.language_dict['title'][17],
-                        filetypes=(("SoundFont", ".sf2 .sf3 .dls"),
-                                   (self.language_dict['title'][1], "*")))
+                    sound_path = Dialog(
+                        caption=self.language_dict['title'][17],
+                        directory=self.last_path,
+                        filter=
+                        f"SoundFont (*.sf2 *.sf3 *.dls);;{self.language_dict['title'][1]} (*)"
+                    ).filename[0]
                     if not sound_path:
                         return
+                    self.update_last_path(sound_path)
                 else:
-                    sound_path = self.current_channel_sound_modules_entry.get()
+                    sound_path = self.current_channel_sound_modules_entry.text(
+                    )
                 original_sound_path = sound_path
                 if not os.path.exists(sound_path):
                     sound_path = os.path.join(self.current_project_file_path,
@@ -1435,7 +1182,6 @@ class Root(Tk):
                         self.show_msg(
                             f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
                         )
-                        self.msg.update()
                         current_sf2 = rs.sf2_loader(sound_path)
                         current_sf2.all_instruments_dict = current_sf2.all_instruments(
                         )
@@ -1449,16 +1195,16 @@ class Root(Tk):
                         self.channel_sound_modules[current_ind] = current_sf2
                         self.channel_sound_modules_name[
                             current_ind] = original_sound_path
-                        self.current_channel_sound_modules_entry.delete(0, END)
-                        self.current_channel_sound_modules_entry.insert(
-                            END, original_sound_path)
+                        self.current_channel_sound_modules_entry.clear()
+                        self.current_channel_sound_modules_entry.setText(
+                            original_sound_path)
+                        self.current_channel_sound_modules_entry.setCursorPosition(
+                            0)
                         current_msg = self.language_dict["msg"][10].split('|')
                         self.show_msg(
                             f'{current_msg[0]}{os.path.basename(sound_path)}{current_msg[1]}{current_ind+1}'
                         )
-                        self.choose_channels.see(current_ind)
-                        self.choose_channels.selection_anchor(current_ind)
-                        self.choose_channels.selection_set(current_ind)
+                        self.choose_channels.setCurrentRow(current_ind)
                     except Exception as e:
                         print(traceback.format_exc())
                         output(traceback.format_exc())
@@ -1471,255 +1217,26 @@ class Root(Tk):
 
     def configure_sf2_file(self):
         if self.open_configure_sf2_file:
-            self.configure_sf2_file_window.focus_set()
+            self.configure_sf2_file_window.activateWindow()
             return
         else:
-            current_ind = self.choose_channels.index(ANCHOR)
+            current_ind = self.choose_channels.currentIndex().row()
             if current_ind < self.channel_num and self.channel_list_focus:
                 current_sf2 = self.channel_sound_modules[current_ind]
                 if not isinstance(current_sf2, rs.sf2_loader):
                     return
                 self.open_configure_sf2_file = True
-                self.configure_sf2_file_window = Toplevel(self)
-                self.configure_sf2_file_window.iconphoto(
-                    False, self.icon_image)
-                self.configure_sf2_file_window.configure(
-                    bg=current_settings.background_color)
-                x = self.winfo_x()
-                y = self.winfo_y()
-                w = self.configure_sf2_file_window.winfo_width()
-                h = self.configure_sf2_file_window.winfo_height()
-                self.configure_sf2_file_window.geometry(
-                    "%dx%d+%d+%d" % (w, h, x + 200, y + 200))
-                self.configure_sf2_file_window.protocol(
-                    "WM_DELETE_WINDOW", self.close_configure_sf2_file_window)
-                self.configure_sf2_file_window.title(
-                    self.language_dict['configure_sf2'][0])
-                self.configure_sf2_file_window.minsize(700, 300)
-                self.configure_sf2_file_window.focus_set()
-
-                self.preset_configs_bar = Scrollbar(
-                    self.configure_sf2_file_window)
-                self.preset_configs_bar.place(x=367,
-                                              y=120,
-                                              height=185,
-                                              anchor=CENTER)
-                self.preset_configs = Listbox(
-                    self.configure_sf2_file_window,
-                    yscrollcommand=self.preset_configs_bar.set,
-                    exportselection=False,
-                    font=(current_settings.font_type,
-                          current_settings.font_size))
-                self.preset_configs.config(activestyle='none')
-                self.preset_configs.bind(
-                    '<<ListboxSelect>>',
-                    lambda e: self.show_current_preset_configs())
-                self.preset_configs_bar.config(
-                    command=self.preset_configs.yview)
-                self.preset_configs.place(x=200, y=30, height=185, width=160)
-
-                self.bank_configs_bar = Scrollbar(
-                    self.configure_sf2_file_window)
-                self.bank_configs_bar.place(x=167,
-                                            y=120,
-                                            height=185,
-                                            anchor=CENTER)
-                self.bank_configs = Listbox(
-                    self.configure_sf2_file_window,
-                    yscrollcommand=self.bank_configs_bar.set,
-                    exportselection=False,
-                    font=(current_settings.font_type,
-                          current_settings.font_size))
-                self.bank_configs.config(activestyle='none')
-                self.bank_configs.bind(
-                    '<<ListboxSelect>>',
-                    lambda e: self.show_current_bank_configs())
-                self.bank_configs_bar.config(command=self.bank_configs.yview)
-                self.bank_configs.place(x=0, y=30, height=185, width=160)
-
-                self.current_all_available_banks = current_sf2.all_available_banks
-                self.current_preset_ind = current_sf2.current_preset_ind
-
-                for each in current_sf2.current_preset_name:
-                    self.preset_configs.insert(END, each)
-                for each in current_sf2.all_available_banks:
-                    self.bank_configs.insert(END, each)
-                self.current_bank = ttk.Label(
-                    self.configure_sf2_file_window,
-                    text=self.language_dict['configure_sf2'][1])
-                self.current_bank.place(x=400, y=30)
-                self.current_bank_entry = ttk.Entry(
-                    self.configure_sf2_file_window,
-                    width=10,
-                    font=(current_settings.font_type,
-                          current_settings.font_size))
-                self.current_bank_entry.insert(END,
-                                               str(current_sf2.current_bank))
-                self.current_bank_entry.place(x=500, y=30)
-                self.current_preset = ttk.Label(
-                    self.configure_sf2_file_window,
-                    text=self.language_dict['configure_sf2'][2])
-                self.current_preset.place(x=400, y=80)
-                self.current_preset_entry = ttk.Entry(
-                    self.configure_sf2_file_window,
-                    width=10,
-                    font=(current_settings.font_type,
-                          current_settings.font_size))
-                self.current_preset_entry.insert(
-                    END, str(current_sf2.current_preset + 1))
-                self.current_preset_entry.place(x=500, y=80)
-                if current_sf2.current_preset in current_sf2.current_preset_ind:
-                    current_preset_ind = current_sf2.current_preset_ind.index(
-                        current_sf2.current_preset)
-                    self.preset_configs.selection_clear(0, END)
-                    self.preset_configs.selection_set(current_preset_ind)
-                    self.preset_configs.see(current_preset_ind)
-                    self.bank_configs.selection_clear(0, END)
-                    self.bank_configs.selection_set(
-                        current_sf2.all_available_banks.index(
-                            current_sf2.current_bank))
-                    self.bank_configs.see(current_preset_ind)
-                self.change_current_bank_button = ttk.Button(
-                    self.configure_sf2_file_window,
-                    text=self.language_dict['configure_sf2'][3],
-                    command=self.change_current_bank)
-                self.change_current_preset_button = ttk.Button(
-                    self.configure_sf2_file_window,
-                    text=self.language_dict['configure_sf2'][4],
-                    command=self.change_current_preset)
-                self.listen_preset_button = ttk.Button(
-                    self.configure_sf2_file_window,
-                    text=self.language_dict['configure_sf2'][5],
-                    command=self.listen_preset)
-                self.change_current_bank_button.place(x=400, y=130)
-                self.change_current_preset_button.place(x=520, y=130)
-                self.listen_preset_button.place(x=400, y=180)
-                self.preset_label = ttk.Label(self.configure_sf2_file_window,
-                                              text='Presets')
-                self.preset_label.place(x=200, y=0)
-                self.bank_label = ttk.Label(self.configure_sf2_file_window,
-                                            text='Banks')
-                self.bank_label.place(x=0, y=0)
+                self.configure_sf2_file_window = SoundFont_window(
+                    self, current_sf2=current_sf2)
             else:
                 self.show_msg(self.language_dict['msg'][8])
                 return
 
-    def change_current_bank(self, mode=0):
-        current_ind = self.choose_channels.index(ANCHOR)
-        if mode == 0:
-            current_bank = self.current_bank_entry.get()
-            if not current_bank.isdigit():
-                return
-            else:
-                current_bank = int(current_bank)
-        elif mode == 1:
-            current_bank_ind = self.bank_configs.index(ANCHOR)
-            current_bank = self.current_all_available_banks[current_bank_ind]
-        current_sf2 = self.channel_sound_modules[current_ind]
-        if current_bank == current_sf2.current_bank:
-            return
-        current_sf2.change(bank=current_bank, preset=0, correct=False)
-        try:
-            current_sf2.current_preset_name, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
-                get_ind=True, mode=1, return_mode=1)
-        except:
-            current_sf2.current_preset_name, current_sf2.current_preset_ind = [], []
-        self.current_preset_ind = current_sf2.current_preset_ind
-        self.current_preset_entry.delete(0, END)
-        self.current_preset_entry.insert(
-            END, '1' if not current_sf2.current_preset_ind else
-            str(current_sf2.current_preset_ind[0] + 1))
-        self.preset_configs.delete(0, END)
-        for each in current_sf2.current_preset_name:
-            self.preset_configs.insert(END, each)
-        self.preset_configs.selection_clear(0, END)
-        self.preset_configs.selection_set(0)
-        self.preset_configs.see(0)
-
-    def change_current_preset(self, mode=0):
-        current_ind = self.choose_channels.index(ANCHOR)
-        if mode == 1:
-            current_preset = str(self.current_preset_ind[
-                self.preset_configs.curselection()[0]] + 1)
-        else:
-            current_preset = self.current_preset_entry.get()
-        current_sf2 = self.channel_sound_modules[current_ind]
-        if current_preset.isdigit():
-            current_preset = int(current_preset)
-            current_sf2.change(preset=current_preset - 1)
-            if current_preset - 1 in current_sf2.current_preset_ind:
-                self.preset_configs.selection_clear(0, END)
-                current_preset_ind = current_sf2.current_preset_ind.index(
-                    current_preset - 1)
-                self.preset_configs.selection_set(current_preset_ind)
-                self.preset_configs.see(current_preset_ind)
-
-    def listen_preset(self):
-        current_ind = self.choose_channels.index(ANCHOR)
-        current_sf2 = self.channel_sound_modules[current_ind]
-        current_sf2.play_note('C5')
-
-    def show_current_preset_configs(self):
-        current_ind = self.preset_configs.index(ANCHOR)
-        self.current_preset_entry.delete(0, END)
-        self.current_preset_entry.insert(
-            END, str(self.current_preset_ind[current_ind] + 1))
-        self.change_current_preset(1)
-
-    def show_current_bank_configs(self):
-        current_ind = self.bank_configs.index(ANCHOR)
-        current_bank = self.current_all_available_banks[current_ind]
-        self.current_bank_entry.delete(0, END)
-        self.current_bank_entry.insert(END, str(current_bank))
-        self.change_current_bank(mode=1)
-
     def open_export_menu(self):
-        self.export_menubar.tk_popup(x=self.winfo_pointerx(),
-                                     y=self.winfo_pointery())
+        self.export_menubar.popup(QtGui.QCursor().pos())
 
     def ask_other_format(self, mode=0):
-        self.ask_other_format_window = Toplevel(self)
-        self.ask_other_format_window.iconphoto(False, self.icon_image)
-        self.ask_other_format_window.configure(
-            bg=current_settings.background_color)
-        self.ask_other_format_window.minsize(470, 200)
-        x = self.winfo_x()
-        y = self.winfo_y()
-        w = self.ask_other_format_window.winfo_width()
-        h = self.ask_other_format_window.winfo_height()
-        self.ask_other_format_window.geometry("%dx%d+%d+%d" %
-                                              (w, h, x + 200, y + 200))
-        self.ask_other_format_window.title(
-            self.language_dict['ask other format'][0])
-        x = self.winfo_x()
-        y = self.winfo_y()
-        self.ask_other_format_window.geometry("+%d+%d" % (x + 100, y + 140))
-        self.ask_other_format_label = ttk.Label(
-            self.ask_other_format_window,
-            text=self.language_dict['ask other format'][1])
-        self.ask_other_format_label.place(x=0, y=50)
-        self.ask_other_format_entry = ttk.Entry(
-            self.ask_other_format_window,
-            width=20,
-            font=(current_settings.font_type, current_settings.font_size))
-        self.ask_other_format_entry.place(x=100, y=100)
-        self.ask_other_format_ok_button = ttk.Button(
-            self.ask_other_format_window,
-            text=self.language_dict['ask other format'][2],
-            command=self.read_other_format
-            if mode == 0 else self.pitch_shifter_read_other_format)
-        self.ask_other_format_cancel_button = ttk.Button(
-            self.ask_other_format_window,
-            text=self.language_dict['ask other format'][3],
-            command=self.ask_other_format_window.destroy)
-        self.ask_other_format_ok_button.place(x=60, y=150)
-        self.ask_other_format_cancel_button.place(x=200, y=150)
-
-    def read_other_format(self):
-        current_format = self.ask_other_format_entry.get()
-        self.ask_other_format_window.destroy()
-        if current_format:
-            self.export_audio_file(mode=current_format)
+        self.ask_other_format_window = Ask_other_format_window(self, mode=mode)
 
     def export_audio_file(self,
                           obj=None,
@@ -1747,13 +1264,16 @@ class Root(Tk):
                 self.show_msg(self.language_dict["msg"][19])
                 return
         if action == 'export':
-            filename = filedialog.asksaveasfilename(
-                title=self.language_dict['title'][3],
-                filetypes=((self.language_dict['title'][1], "*"), ),
-                defaultextension=f".{mode}",
-                initialfile=self.language_dict['untitled'])
+            filename = Dialog(
+                caption=self.language_dict['title'][3],
+                directory=self.last_path,
+                filter=f"{self.language_dict['title'][1]} (*)",
+                default_filename=
+                f"{os.path.splitext(self.project_name)[0]}.{mode}",
+                mode=2).filename[0]
             if not filename:
                 return
+            self.update_last_path(filename)
         if obj is None:
             obj = self.play_current_musicpy_code(mode=1)
         if isinstance(obj, chord):
@@ -1765,7 +1285,6 @@ class Root(Tk):
             return
         if action == 'export':
             self.show_msg(f'{self.language_dict["msg"][21]}{filename}')
-            self.msg.update()
         if soundfont_args is None:
             soundfont_args = current_settings.default_soundfont_args
         types = obj[0]
@@ -1791,7 +1310,6 @@ class Root(Tk):
                     self.show_msg(
                         f'{current_msg[0]}{self.language_dict["track"]} 1/1 {self.language_dict["channel"]} {current_channel_num + 1} (soundfont) '
                     )
-                    self.msg.update()
                 silent_audio = current_sound_modules.export_chord(
                     current_chord,
                     bpm=current_bpm,
@@ -1880,7 +1398,6 @@ class Root(Tk):
                     self.show_msg(
                         f'{self.language_dict["track"]} {i+1} : {self.language_dict["msg"][25]}{current_channel_number+1}'
                     )
-                    self.msg.update()
                     continue
                 current_sound_modules = self.channel_sound_modules[
                     current_channel_number]
@@ -1892,7 +1409,6 @@ class Root(Tk):
                         self.show_msg(
                             f'{current_msg[0]}{self.language_dict["track"]} {i+1}/{track_number} {self.language_dict["channel"]} {current_channels[i] + 1} (soundfont)'
                         )
-                        self.msg.update()
                     current_instrument = current_chord.instruments_numbers[i]
                     current_channel = current_chord.channels[
                         i] if current_chord.channels else current_sound_modules.current_channel
@@ -2041,7 +1557,6 @@ class Root(Tk):
                 self.show_msg(
                     f'{current_msg[0]}{round((counter / whole_length) * 100, 3):.3f}{current_msg[1]} {self.language_dict["track"]} {track_ind+1}/{whole_track_number} {self.language_dict["channel"]} {current_channel_num + 1}'
                 )
-                self.msg.update()
                 counter += 1
             each = current_chord.notes[i]
             if isinstance(each, (note, AudioSegment)):
@@ -2133,28 +1648,31 @@ class Root(Tk):
                                             position=current_start_time)
         return silent_audio
 
-    def export_midi_file(self, current_chord=None, write_args={}):
+    def export_midi_file(self, event, current_chord=None, write_args={}):
         self.show_msg('')
-        filename = filedialog.asksaveasfilename(
-            title=self.language_dict['title'][15],
-            filetypes=((self.language_dict['title'][1], "*"), ),
-            defaultextension=f".mid",
-            initialfile=self.language_dict['untitled'])
+        filename = Dialog(
+            caption=self.language_dict['title'][15],
+            directory=self.last_path,
+            filter=f"{self.language_dict['title'][1]} (*)",
+            default_filename=f"{os.path.splitext(self.project_name)[0]}.mid",
+            mode=2).filename[0]
         if not filename:
             return
+        self.update_last_path(filename)
         self.show_msg(f'{self.language_dict["msg"][21]}{filename}')
-        self.msg.update()
         if current_chord is None:
             current_chord = self.play_current_musicpy_code(mode=1)
+        if current_chord is None:
+            return
         write(current_chord, self.current_bpm, name=filename, **write_args)
         self.show_msg(f'{self.language_dict["msg"][24]}{filename}')
 
     def clear_current_channel(self):
-        current_ind = self.choose_channels.index(ANCHOR)
+        current_ind = self.choose_channels.currentIndex().row()
         if current_ind < self.channel_num and self.channel_list_focus:
-            self.choose_channels.delete(current_ind)
-            self.choose_channels.insert(current_ind,
-                                        f'Channel {current_ind+1}')
+            self.choose_channels.takeItem(current_ind)
+            self.choose_channels.insertItem(current_ind,
+                                            f'Channel {current_ind+1}')
             self.channel_names[current_ind] = f'Channel {current_ind+1}'
             self.channel_sound_modules_name[current_ind] = ''
             current_instrument = self.channel_sound_modules[current_ind]
@@ -2162,14 +1680,14 @@ class Root(Tk):
                 current_instrument.synth.delete()
             self.channel_sound_modules[current_ind] = None
             self.channel_dict[current_ind] = copy(current_settings.notedict)
-            self.current_channel_name_entry.delete(0, END)
-            self.current_channel_sound_modules_entry.delete(0, END)
+            self.current_channel_name_entry.clear()
+            self.current_channel_sound_modules_entry.clear()
         else:
             self.show_msg(self.language_dict['msg'][8])
             return
 
     def clear_current_instrument(self):
-        current_ind = self.choose_channels.index(ANCHOR)
+        current_ind = self.choose_channels.currentIndex().row()
         if current_ind < self.channel_num and self.channel_list_focus:
             self.channel_sound_modules_name[current_ind] = ''
             current_instrument = self.channel_sound_modules[current_ind]
@@ -2177,19 +1695,25 @@ class Root(Tk):
                 current_instrument.synth.delete()
             self.channel_sound_modules[current_ind] = None
             self.channel_dict[current_ind] = copy(current_settings.notedict)
-            self.current_channel_sound_modules_entry.delete(0, END)
+            self.current_channel_sound_modules_entry.clear()
         else:
             self.show_msg(self.language_dict['msg'][8])
             return
 
     def clear_all_channels(self, mode=0):
-        if_clear = messagebox.askyesnocancel(
-            self.language_dict['other'][0],
-            self.language_dict['other'][1],
-            icon='warning') if mode == 0 else True
+        if mode == 0:
+            if_clear = QtWidgets.QMessageBox.question(
+                self, self.language_dict['other'][0],
+                self.language_dict['other'][1])
+            if if_clear == QtWidgets.QMessageBox.Yes:
+                if_clear = True
+            else:
+                if_clear = False
+        else:
+            if_clear = True
         if if_clear:
             self.stop_playing()
-            self.choose_channels.delete(0, END)
+            self.choose_channels.clear()
             self.channel_names.clear()
             self.channel_sound_modules_name.clear()
             for i in self.channel_sound_modules:
@@ -2198,17 +1722,16 @@ class Root(Tk):
             self.channel_sound_modules.clear()
             self.channel_dict.clear()
             self.channel_num = 0
-            self.current_channel_name_entry.delete(0, END)
-            self.current_channel_sound_modules_entry.delete(0, END)
+            self.current_channel_name_entry.clear()
+            self.current_channel_sound_modules_entry.clear()
 
     def delete_channel(self):
-        current_ind = self.choose_channels.index(ANCHOR)
-        if current_ind < self.channel_num and self.channel_list_focus:
-            self.choose_channels.delete(current_ind)
+        current_ind = self.choose_channels.currentIndex().row()
+        if current_ind >= 0 and current_ind < self.channel_num and self.channel_list_focus:
+            self.choose_channels.takeItem(current_ind)
             new_ind = min(current_ind, self.channel_num - 2)
-            self.choose_channels.see(new_ind)
-            self.choose_channels.selection_anchor(new_ind)
-            self.choose_channels.selection_set(new_ind)
+            self.choose_channels.setCurrentRow(self.choose_channels.count() -
+                                               1)
             del self.channel_names[current_ind]
             del self.channel_sound_modules_name[current_ind]
             current_instrument = self.channel_sound_modules[current_ind]
@@ -2220,8 +1743,8 @@ class Root(Tk):
             if self.channel_num > 0:
                 self.show_current_channel()
             else:
-                self.current_channel_name_entry.delete(0, END)
-                self.current_channel_sound_modules_entry.delete(0, END)
+                self.current_channel_name_entry.clear()
+                self.current_channel_sound_modules_entry.clear()
         else:
             self.show_msg(self.language_dict['msg'][8])
             return
@@ -2229,11 +1752,9 @@ class Root(Tk):
     def add_new_channel(self):
         self.channel_num += 1
         current_channel_name = f'{self.language_dict["channel"]} {self.channel_num}'
-        self.choose_channels.insert(END, current_channel_name)
-        self.choose_channels.selection_clear(ANCHOR)
-        self.choose_channels.see(END)
-        self.choose_channels.selection_anchor(END)
-        self.choose_channels.selection_set(END)
+        self.choose_channels.addItem(current_channel_name)
+        self.choose_channels.clearSelection()
+        self.choose_channels.setCurrentRow(self.choose_channels.count() - 1)
         self.channel_names.append(current_channel_name)
         self.channel_sound_modules_name.append('')
         self.channel_sound_modules.append(None)
@@ -2244,7 +1765,7 @@ class Root(Tk):
         self.channel_num = num
         for i in range(self.channel_num):
             current_channel_name = f'{self.language_dict["channel"]} {i+1}'
-            self.choose_channels.insert(END, current_channel_name)
+            self.choose_channels.insertItem(i, current_channel_name)
             self.channel_names.append(current_channel_name)
             self.channel_sound_modules_name.append('')
             self.channel_sound_modules.append(None)
@@ -2252,172 +1773,30 @@ class Root(Tk):
 
     def change_channel_dict(self):
         if self.open_change_channel_dict:
-            self.change_dict_window.focus_set()
+            self.change_dict_window.activateWindow()
             return
         else:
-            current_ind = self.choose_channels.index(ANCHOR)
+            current_ind = self.choose_channels.currentIndex().row()
             self.current_channel_dict_num = current_ind
             if current_ind < self.channel_num and self.channel_list_focus:
                 self.open_change_channel_dict = True
-                self.change_dict_window = Toplevel(self)
-                self.change_dict_window.iconphoto(False, self.icon_image)
-                self.change_dict_window.configure(
-                    bg=current_settings.background_color)
-                x = self.winfo_x()
-                y = self.winfo_y()
-                w = self.change_dict_window.winfo_width()
-                h = self.change_dict_window.winfo_height()
-                self.change_dict_window.geometry("%dx%d+%d+%d" %
-                                                 (w, h, x + 200, y + 200))
-                self.change_dict_window.protocol("WM_DELETE_WINDOW",
-                                                 self.close_change_dict_window)
-                self.change_dict_window.title(
-                    self.language_dict['change_channel_dict'][0])
-                self.change_dict_window.minsize(500, 300)
-                self.change_dict_window.focus_set()
-                current_dict = self.channel_dict[current_ind]
-                self.current_dict = current_dict
-                self.dict_configs_bar = Scrollbar(self.change_dict_window)
-                self.dict_configs_bar.place(x=151,
-                                            y=90,
-                                            height=185,
-                                            anchor=CENTER)
-                self.dict_configs = Listbox(
-                    self.change_dict_window,
-                    yscrollcommand=self.dict_configs_bar.set,
-                    exportselection=False,
-                    font=(current_settings.font_type,
-                          current_settings.font_size))
-                self.dict_configs.config(activestyle='none')
-                self.dict_configs.bind(
-                    '<<ListboxSelect>>',
-                    lambda e: self.show_current_dict_configs())
-                self.dict_configs_bar.config(command=self.dict_configs.yview)
-                self.dict_configs.place(x=0, y=0, height=185)
-                for each in current_dict:
-                    self.dict_configs.insert(END, each)
-                self.current_note_name = ttk.Label(
-                    self.change_dict_window,
-                    text=self.language_dict['change_channel_dict'][1])
-                self.current_note_name.place(x=200, y=0)
-                self.current_note_name_entry = ttk.Entry(
-                    self.change_dict_window,
-                    width=10,
-                    font=(current_settings.font_type,
-                          current_settings.font_size))
-                self.current_note_name_entry.place(x=300, y=0)
-                self.current_note_value = ttk.Label(
-                    self.change_dict_window,
-                    text=self.language_dict['change_channel_dict'][2])
-                self.current_note_value.place(x=200, y=50)
-                self.current_note_value_entry = ttk.Entry(
-                    self.change_dict_window,
-                    width=10,
-                    font=(current_settings.font_type,
-                          current_settings.font_size))
-                self.current_note_value_entry.place(x=300, y=50)
-                self.change_current_note_name_button = ttk.Button(
-                    self.change_dict_window,
-                    text=self.language_dict['change_channel_dict'][3],
-                    command=self.change_current_note_name)
-                self.change_current_note_value_button = ttk.Button(
-                    self.change_dict_window,
-                    text=self.language_dict['change_channel_dict'][4],
-                    command=self.change_current_note_value)
-                self.add_new_note_button = ttk.Button(
-                    self.change_dict_window,
-                    text=self.language_dict['change_channel_dict'][5],
-                    command=self.add_new_note)
-                self.remove_note_button = ttk.Button(
-                    self.change_dict_window,
-                    text=self.language_dict['change_channel_dict'][6],
-                    command=self.remove_note)
-                self.new_note_name_entry = ttk.Entry(
-                    self.change_dict_window,
-                    width=10,
-                    font=(current_settings.font_type,
-                          current_settings.font_size))
-                self.reset_dict_button = ttk.Button(
-                    self.change_dict_window,
-                    text=self.language_dict['change_channel_dict'][9],
-                    command=self.reset_dict)
-                self.change_current_note_name_button.place(x=200, y=100)
-                self.change_current_note_value_button.place(x=350, y=100)
-                self.add_new_note_button.place(x=200, y=150)
-                self.new_note_name_entry.place(x=320, y=150)
-                self.remove_note_button.place(x=200, y=200)
-                self.reset_dict_button.place(x=350, y=250)
-                self.reload_channel_sounds_button = ttk.Button(
-                    self.change_dict_window,
-                    text=self.language_dict['change_channel_dict'][7],
-                    command=self.reload_channel_sounds)
-                self.reload_channel_sounds_button.place(x=200, y=250)
-                self.clear_all_notes_button = ttk.Button(
-                    self.change_dict_window,
-                    text=self.language_dict['change_channel_dict'][8],
-                    command=self.clear_all_notes)
-                self.clear_all_notes_button.place(x=350, y=200)
+                self.change_dict_window = Channel_dict_window(
+                    self, current_ind)
             else:
                 self.show_msg(self.language_dict['msg'][8])
                 return
 
-    def clear_all_notes(self):
-        self.dict_configs.delete(0, END)
-        self.current_dict.clear()
-        self.current_note_name_entry.delete(0, END)
-        self.current_note_value_entry.delete(0, END)
-
-    def reset_dict(self):
-        current_ind = self.choose_channels.index(ANCHOR)
-        self.channel_dict[current_ind] = copy(current_settings.notedict)
-        current_dict = self.channel_dict[current_ind]
-        self.dict_configs.delete(0, END)
-        for each in current_dict:
-            self.dict_configs.insert(END, each)
-        self.current_dict = current_dict
-
-    def close_change_dict_window(self):
-        self.change_dict_window.destroy()
-        self.open_change_channel_dict = False
-
-    def close_configure_sf2_file_window(self):
-        self.configure_sf2_file_window.destroy()
-        self.open_configure_sf2_file = False
+    def closeEvent(self, event):
+        current_text = self.set_musicpy_code_text.toPlainText()
+        if not self.is_changed():
+            event.accept()
+            os._exit(0)
+        else:
+            event.ignore()
+            self.close_window()
 
     def close_window(self):
-        if self.is_changed():
-            self.ask_save_window = Toplevel(
-                self, bg=current_settings.background_color)
-            self.ask_save_window.wm_overrideredirect(True)
-            self.ask_save_window.minsize(400, 150)
-            ask_save_window_x = self.winfo_x()
-            ask_save_window_y = self.winfo_y()
-            self.ask_save_window.geometry(
-                f"+{ask_save_window_x + 300}+{ask_save_window_y + 200}")
-            self.ask_save_window.ask_save_label = ttk.Label(
-                self.ask_save_window,
-                text='The file has changed, do you want to save the changes?')
-            self.ask_save_window.ask_save_label.place(x=0, y=30)
-            self.ask_save_window.save_button = ttk.Button(
-                self.ask_save_window,
-                text='Save',
-                command=self.save_and_quit,
-                style='New.TButton')
-            self.ask_save_window.not_save_button = ttk.Button(
-                self.ask_save_window,
-                text='Discard',
-                command=self.destroy,
-                style='New.TButton')
-            self.ask_save_window.cancel_button = ttk.Button(
-                self.ask_save_window,
-                text='Cancel',
-                command=self.ask_save_window.destroy,
-                style='New.TButton')
-            self.ask_save_window.save_button.place(x=0, y=100)
-            self.ask_save_window.not_save_button.place(x=90, y=100)
-            self.ask_save_window.cancel_button.place(x=200, y=100)
-        else:
-            self.destroy()
+        self.ask_save_window = Ask_save_window(self)
 
     def is_changed(self):
         if not self.default_load:
@@ -2430,60 +1809,9 @@ class Root(Tk):
 
     def save_and_quit(self):
         self.save_as_project_file()
-        self.destroy()
-
-    def change_current_note_name(self):
-        current_note = self.dict_configs.get(ANCHOR)
-        current_ind = self.dict_configs.index(ANCHOR)
-        current_note_name = self.current_note_name_entry.get()
-        if current_note_name and current_note_name != current_note:
-            current_keys = list(self.current_dict.keys())
-            current_keys[current_ind] = current_note_name
-            self.current_dict[current_note_name] = self.current_dict[
-                current_note]
-            del self.current_dict[current_note]
-            self.current_dict = {i: self.current_dict[i] for i in current_keys}
-            self.channel_dict[
-                self.current_channel_dict_num] = self.current_dict
-            self.dict_configs.delete(0, END)
-            for each in self.current_dict:
-                self.dict_configs.insert(END, each)
-            self.dict_configs.see(current_ind)
-            self.dict_configs.selection_anchor(current_ind)
-            self.dict_configs.selection_set(current_ind)
-
-    def change_current_note_value(self):
-        current_note = self.dict_configs.get(ANCHOR)
-        if not current_note:
-            return
-        current_note_value_before = self.current_dict[current_note]
-        current_note_value = self.current_note_value_entry.get()
-        if current_note_value != current_note_value_before:
-            self.current_dict[current_note] = current_note_value
-
-    def add_new_note(self):
-        current_note_name = self.new_note_name_entry.get()
-        if current_note_name and current_note_name not in self.current_dict:
-            self.current_dict[current_note_name] = ''
-            self.dict_configs.insert(END, current_note_name)
-            self.dict_configs.see(END)
-            self.dict_configs.selection_clear(ANCHOR)
-            self.dict_configs.selection_anchor(END)
-            self.dict_configs.selection_set(END)
-            self.show_current_dict_configs()
-
-    def remove_note(self):
-        current_note = self.dict_configs.get(ANCHOR)
-        if current_note not in self.current_dict:
-            return
-        del self.current_dict[current_note]
-        current_ind = self.dict_configs.index(ANCHOR)
-        self.dict_configs.delete(current_ind)
-        new_ind = min(current_ind, len(self.current_dict) - 1)
-        self.dict_configs.see(new_ind)
-        self.dict_configs.selection_anchor(new_ind)
-        self.dict_configs.selection_set(new_ind)
-        self.show_current_dict_configs()
+        self.ask_save_window.close()
+        self.close()
+        os._exit(0)
 
     def reload_channel_sounds(self, current_ind=None):
         if current_ind is None:
@@ -2501,8 +1829,8 @@ class Root(Tk):
                 return
         if os.path.isfile(sound_path):
             if os.path.splitext(sound_path)[1][1:].lower() == 'mdi':
-                self.load_mdi_file(current_ind=current_ind,
-                                   sound_path=original_sound_path)
+                self.import_mdi_file(current_ind=current_ind,
+                                     sound_path=original_sound_path)
             else:
                 self.load_sf2_file(current_ind=current_ind,
                                    sound_path=original_sound_path)
@@ -2511,7 +1839,6 @@ class Root(Tk):
                 self.show_msg(
                     f'{self.language_dict["msg"][28]}{self.channel_names[current_ind]} ...'
                 )
-                self.msg.update()
 
                 notedict = self.channel_dict[current_ind]
                 current_queue = multiprocessing.Queue()
@@ -2528,24 +1855,14 @@ class Root(Tk):
                 output(traceback.format_exc())
                 self.show_msg(self.language_dict["msg"][30])
 
-    def show_current_dict_configs(self):
-        current_note = self.dict_configs.get(ANCHOR)
-        if current_note in self.current_dict:
-            self.current_note_name_entry.delete(0, END)
-            self.current_note_name_entry.insert(END, current_note)
-            self.current_note_value_entry.delete(0, END)
-            self.current_note_value_entry.insert(
-                END, self.current_dict[current_note])
-
     def change_current_channel_name(self):
-        current_ind = self.choose_channels.index(ANCHOR)
+        current_ind = self.choose_channels.currentIndex().row()
         if current_ind < self.channel_num and self.channel_list_focus:
-            current_channel_name = self.current_channel_name_entry.get()
-            self.choose_channels.delete(current_ind)
-            self.choose_channels.insert(current_ind, current_channel_name)
-            self.choose_channels.see(current_ind)
-            self.choose_channels.selection_anchor(current_ind)
-            self.choose_channels.selection_set(current_ind)
+            current_channel_name = self.current_channel_name_entry.text()
+            self.choose_channels.takeItem(current_ind)
+            self.choose_channels.insertItem(current_ind, current_channel_name)
+            self.choose_channels.setCurrentRow(self.choose_channels.count() -
+                                               1)
             self.channel_names[current_ind] = current_channel_name
         else:
             self.show_msg(self.language_dict['msg'][8])
@@ -2553,41 +1870,44 @@ class Root(Tk):
 
     def show_current_channel(self):
         self.channel_list_focus = True
-        current_ind = self.choose_channels.index(ANCHOR)
-        if current_ind < self.channel_num and self.channel_list_focus:
-            self.current_channel_name_entry.delete(0, END)
-            self.current_channel_name_entry.insert(
-                END, self.channel_names[current_ind])
-            self.current_channel_sound_modules_entry.delete(0, END)
-            self.current_channel_sound_modules_entry.insert(
-                END, self.channel_sound_modules_name[current_ind])
+        current_ind = self.choose_channels.currentIndex().row()
+        if current_ind >= 0 and current_ind < self.channel_num and self.channel_list_focus:
+            self.current_channel_name_entry.clear()
+            self.current_channel_name_entry.setText(
+                self.channel_names[current_ind])
+            self.current_channel_sound_modules_entry.clear()
+            self.current_channel_sound_modules_entry.setText(
+                self.channel_sound_modules_name[current_ind])
+            self.current_channel_sound_modules_entry.setCursorPosition(0)
 
     def cancel_choose_channels(self):
-        self.choose_channels.selection_clear(0, END)
-        self.current_channel_name_entry.delete(0, END)
-        self.current_channel_sound_modules_entry.delete(0, END)
-        self.current_channel_name_label.focus_set()
+        self.choose_channels.clearSelection()
+        self.current_channel_name_entry.clear()
+        self.current_channel_sound_modules_entry.clear()
+        self.current_channel_name_label.activateWindow()
         self.channel_list_focus = False
 
-    def load_midi_file_func(self):
+    def import_midi_file_func(self):
         self.show_msg('')
-        filename = filedialog.askopenfilename(
-            title=self.language_dict['title'][16],
-            filetypes=(("MIDI", ".mid"), (self.language_dict['title'][1],
-                                          "*")))
+        filename = Dialog(
+            caption=self.language_dict['title'][16],
+            directory=self.last_path,
+            filter=f"MIDI (*.mid);;{self.language_dict['title'][1]} (*)"
+        ).filename[0]
         if filename:
-            current_text = self.set_musicpy_code_text.get('1.0', 'end-1c')
+            self.update_last_path(filename)
+            current_text = self.set_musicpy_code_text.toPlainText()
             if current_text[current_text.rfind('\n') + 1:]:
-                self.set_musicpy_code_text.insert(
-                    END, f'\nnew_midi_file = read("{filename}")\n')
+                self.set_musicpy_code_text.appendPlainText(
+                    f'\nnew_midi_file = read("{filename}")\n')
             else:
-                self.set_musicpy_code_text.insert(
-                    END, f'new_midi_file = read("{filename}")\n')
-            self.set_musicpy_code_text.focus_set()
-            self.set_musicpy_code_text.see(END)
+                self.set_musicpy_code_text.appendPlainText(
+                    f'new_midi_file = read("{filename}")\n')
+            self.set_musicpy_code_text.activateWindow()
+            self.set_musicpy_code_text.moveCursor(QtGui.QTextCursor.End)
 
     def load_instrument_func(self):
-        sound_path = self.current_channel_sound_modules_entry.get()
+        sound_path = self.current_channel_sound_modules_entry.text()
         if not os.path.exists(sound_path):
             sound_path = os.path.join(self.current_project_file_path,
                                       sound_path)
@@ -2595,7 +1915,7 @@ class Root(Tk):
             self.load_instrument_folder(1)
         elif os.path.isfile(sound_path):
             if os.path.splitext(sound_path)[1][1:].lower() == 'mdi':
-                self.load_mdi_file(1)
+                self.import_mdi_file(1)
             elif os.path.splitext(sound_path)[1][1:].lower() in [
                     'sf2', 'sf3', 'dls'
             ]:
@@ -2604,20 +1924,21 @@ class Root(Tk):
             self.show_msg(self.language_dict["msg"][30])
 
     def load_instrument(self, mode=0):
-        self.load_instrument_menubar.tk_popup(x=self.winfo_pointerx(),
-                                              y=self.winfo_pointery())
+        self.load_instrument_menubar.popup(QtGui.QCursor().pos())
 
     def load_instrument_folder(self, mode=0):
-        current_ind = self.choose_channels.index(ANCHOR)
+        current_ind = self.choose_channels.currentIndex().row()
         if current_ind < self.channel_num and self.channel_list_focus:
             self.show_msg('')
             if mode == 0:
-                sound_path = filedialog.askdirectory(
-                    title=self.language_dict['title'][17], )
+                sound_path = Dialog(caption=self.language_dict['title'][17],
+                                    directory=self.last_path,
+                                    mode=1).directory
                 if not sound_path:
                     return
+                self.update_last_path(sound_path)
             else:
-                sound_path = self.current_channel_sound_modules_entry.get()
+                sound_path = self.current_channel_sound_modules_entry.text()
             original_sound_path = sound_path
             if not os.path.exists(sound_path):
                 sound_path = os.path.join(self.current_project_file_path,
@@ -2627,7 +1948,6 @@ class Root(Tk):
                     self.show_msg(
                         f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
                     )
-                    self.msg.update()
                     sound_path = sound_path
                     notedict = self.channel_dict[current_ind]
                     current_queue = multiprocessing.Queue()
@@ -2657,7 +1977,7 @@ class Root(Tk):
 
     def change_current_bpm(self, mode=0):
         self.show_msg('')
-        current_bpm = self.change_current_bpm_entry.get()
+        current_bpm = self.change_current_bpm_entry.text()
         try:
             current_bpm = float(current_bpm)
             if current_bpm.is_integer():
@@ -2679,17 +1999,19 @@ class Root(Tk):
                 current_sound.set_volume(current_settings.global_volume *
                                          volume / 127)
                 duration_time = self.bar_to_real_time(duration,
-                                                      self.current_bpm)
+                                                      self.current_bpm,
+                                                      mode=1)
                 current_sound.play()
                 current_fadeout_time = int(
                     duration_time *
                     current_settings.play_audio_fadeout_time_ratio
                 ) if current_settings.play_fadeout_use_ratio else int(
                     current_settings.play_audio_fadeout_time)
-                current_id = self.after(
-                    duration_time,
+                current_id = threading.Timer(
+                    duration_time / 1000,
                     lambda: current_sound.fadeout(current_fadeout_time)
                     if current_fadeout_time != 0 else current_sound.stop())
+                current_id.start()
                 self.current_playing.append(current_id)
 
     def stop_playing(self):
@@ -2697,18 +2019,17 @@ class Root(Tk):
         pygame.mixer.music.stop()
         if self.current_playing:
             for each in self.current_playing:
-                self.after_cancel(each)
+                each.cancel()
             self.current_playing.clear()
         if self.piece_playing:
             for each in self.piece_playing:
-                self.after_cancel(each)
+                each.cancel()
             self.piece_playing.clear()
 
     def play_current_musicpy_code(self, mode=0):
         if not self.default_load:
             return
         self.show_msg('')
-        self.msg.update()
         if not self.channel_sound_modules:
             self.show_msg(self.language_dict["msg"][18])
             return
@@ -2716,7 +2037,7 @@ class Root(Tk):
         self.stop_playing()
         global global_play
         global_play = False
-        current_notes = self.set_musicpy_code_text.get('1.0', 'end-1c')
+        current_notes = self.set_musicpy_code_text.toPlainText()
         current_channel_num = 0
         current_bpm = self.current_bpm
         lines = current_notes.split('\n')
@@ -2760,8 +2081,8 @@ class Root(Tk):
                     if isinstance(current_bpm,
                                   float) and current_bpm.is_integer():
                         current_bpm = int(current_bpm)
-                    self.change_current_bpm_entry.delete(0, END)
-                    self.change_current_bpm_entry.insert(END, current_bpm)
+                    self.change_current_bpm_entry.clear()
+                    self.change_current_bpm_entry.setText(str(current_bpm))
                     self.change_current_bpm(1)
         if mode == 0:
             try:
@@ -2824,8 +2145,8 @@ class Root(Tk):
             current_bpm = current_chord.bpm
             if isinstance(current_bpm, float) and current_bpm.is_integer():
                 current_bpm = int(current_bpm)
-            self.change_current_bpm_entry.delete(0, END)
-            self.change_current_bpm_entry.insert(END, current_bpm)
+            self.change_current_bpm_entry.clear()
+            self.change_current_bpm_entry.setText(str(current_bpm))
             self.change_current_bpm(1)
             current_channel_nums = current_chord.daw_channels if current_chord.daw_channels else [
                 i for i in range(len(current_chord))
@@ -2846,16 +2167,20 @@ class Root(Tk):
             current_start_times = current_chord.start_times
             if isinstance(current_bpm, float) and current_bpm.is_integer():
                 current_bpm = int(current_bpm)
-            self.change_current_bpm_entry.delete(0, END)
-            self.change_current_bpm_entry.insert(END, current_bpm)
+            self.change_current_bpm_entry.clear()
+            self.change_current_bpm_entry.setText(str(current_bpm))
             self.change_current_bpm(1)
             for each in range(len(current_chord)):
-                current_id = self.after(
-                    self.bar_to_real_time(
-                        current_start_times[each] +
-                        current_tracks[each].start_time, self.current_bpm),
+                current_time = self.bar_to_real_time(
+                    current_start_times[each] +
+                    current_tracks[each].start_time,
+                    self.current_bpm,
+                    mode=1)
+                current_id = threading.Timer(
+                    current_time / 1000,
                     lambda each=each: self.play_channel(
                         current_tracks[each], current_channel_nums[each]))
+                current_id.start()
                 self.piece_playing.append(current_id)
         self.show_msg(self.language_dict["msg"][22])
 
@@ -2878,11 +2203,12 @@ class Root(Tk):
             if isinstance(each, note):
                 duration = current_durations[i]
                 volume = current_volumes[i]
-                current_id = self.after(
-                    int(current_time),
+                current_id = threading.Timer(
+                    current_time / 1000,
                     lambda each=each, duration=duration, volume=volume: self.
                     play_note_func(f'{standardize_note(each.name)}{each.num}',
                                    duration, volume, current_channel_num))
+                current_id.start()
                 self.current_playing.append(current_id)
                 current_time += self.bar_to_real_time(current_intervals[i],
                                                       self.current_bpm, 1)
@@ -2891,11 +2217,11 @@ class Root(Tk):
         if not self.open_settings:
             self.open_settings = True
             os.chdir(abs_path)
-            self.current_settings_window = settings_window(settings_path,
-                                                           root=self)
-            self.current_settings_window.mainloop()
+            self.current_config_window = config_window(
+                config_path=settings_path, dpi=self.dpi, parent=self)
+            self.current_config_window.setStyleSheet(self.get_stylesheet())
         else:
-            self.current_settings_window.focus_force()
+            self.current_config_window.activateWindow()
 
     def modules(self, ind):
         return self.channel_sound_modules[ind]
@@ -2905,58 +2231,11 @@ class Root(Tk):
 
     def open_debug_window(self):
         if self.is_open_debug_window:
-            self.debug_window.focus_set()
+            self.debug_window.activateWindow()
             return
         else:
             self.is_open_debug_window = True
-            self.debug_window = Toplevel(self)
-            self.debug_window.iconphoto(False, self.icon_image)
-            self.debug_window.configure(bg=current_settings.background_color)
-            x = self.winfo_x()
-            y = self.winfo_y()
-            w = self.debug_window.winfo_width()
-            h = self.debug_window.winfo_height()
-            self.debug_window.geometry("%dx%d+%d+%d" %
-                                       (w, h, x + 200, y + 200))
-            self.debug_window.protocol("WM_DELETE_WINDOW",
-                                       self.close_debug_window)
-            self.debug_window.title(self.language_dict['debug window'])
-            self.debug_window.minsize(700, 400)
-            self.debug_window.focus_set()
-            self.debug_window.output_text = Text(
-                self.debug_window,
-                wrap='none',
-                undo=True,
-                autoseparators=True,
-                maxundo=-1,
-                font=(current_settings.text_area_font_type,
-                      current_settings.text_area_font_size),
-                bg=current_settings.text_area_background_color,
-                fg=current_settings.text_area_foreground_color,
-                insertbackground=current_settings.text_area_cursor_color)
-            self.debug_window.output_text.place(x=20,
-                                                y=20,
-                                                width=612,
-                                                height=285)
-            self.debug_window.clear_text_button = ttk.Button(
-                self.debug_window,
-                text=self.language_dict['debug clear'],
-                command=lambda: self.debug_window.output_text.delete(
-                    '1.0', END))
-            self.debug_window.clear_text_button.place(x=600, y=350)
-            debug_inputs_v = ttk.Scrollbar(
-                self.debug_window,
-                orient="vertical",
-                command=self.debug_window.output_text.yview)
-            debug_inputs_h = ttk.Scrollbar(
-                self.debug_window,
-                orient="horizontal",
-                command=self.debug_window.output_text.xview)
-            self.debug_window.output_text.configure(
-                yscrollcommand=debug_inputs_v.set,
-                xscrollcommand=debug_inputs_h.set)
-            debug_inputs_v.place(x=632, y=20, height=285)
-            debug_inputs_h.place(x=20, y=305, width=612)
+            self.debug_window = Debug_window(self)
 
     def init_skin(self, skin):
         os.chdir(abs_path)
@@ -2970,36 +2249,13 @@ class Root(Tk):
             current_skin_dict = json.load(f)
         vars(current_settings).update(current_skin_dict)
 
-        self.configure(bg=current_settings.background_color)
-        style = ttk.Style()
-        style.theme_use('alt')
-        style.configure('TButton',
-                        font=(current_settings.font_type,
-                              current_settings.font_size),
-                        background=current_settings.button_background_color,
-                        foreground=current_settings.foreground_color,
-                        borderwidth=0,
-                        focusthickness=3,
-                        focuscolor='none')
-        style.configure('TLabel',
-                        background=current_settings.background_color,
-                        foreground=current_settings.label_foreground_color,
-                        font=(current_settings.font_type,
-                              current_settings.font_size))
-        style.map('TButton',
-                  background=[('active',
-                               current_settings.active_background_color)],
-                  foreground=[('active',
-                               current_settings.active_foreground_color)])
-        self.set_musicpy_code_text.configure(
-            bg=current_settings.text_area_background_color,
-            fg=current_settings.text_area_foreground_color,
-            insertbackground=current_settings.text_area_cursor_color)
+        current_stylesheet = self.get_stylesheet()
+        self.setStyleSheet(current_stylesheet)
 
         self.init_menu()
 
         current_settings.current_skin = skin
-        save_json(current_settings, 'scripts/settings.json')
+        change_parameter('current_skin', skin, settings_path)
 
 
 class mdi:
@@ -3172,13 +2428,13 @@ class pitch:
         result = {}
         for i in range(end.degree - start.degree + 1):
             current_note_name = str(start + i)
-            converting_note = root.language_dict['Converting note']
+            converting_note = current_daw.language_dict['Converting note']
             if pitch_shifter:
-                root.pitch_msg(f'{converting_note} {current_note_name} ...')
-                root.pitch_shifter_window.msg.update()
+                current_daw.pitch_shifter_window.pitch_msg(
+                    f'{converting_note} {current_note_name} ...')
             else:
-                root.show_msg(f'{converting_note} {current_note_name} ...')
-                root.msg.update()
+                current_daw.show_msg(
+                    f'{converting_note} {current_note_name} ...')
             result[current_note_name] = self.pitch_shift(start.degree + i -
                                                          degree,
                                                          mode=mode)
@@ -3202,11 +2458,11 @@ class pitch:
                                           end,
                                           mode=mode,
                                           pitch_shifter=pitch_shifter)
-        Exporting = root.language_dict['Exporting']
+        Exporting = current_daw.language_dict['Exporting']
         for each in current_dict:
             if pitch_shifter:
-                root.pitch_msg(f'{Exporting} {each} ...')
-                root.pitch_shifter_window.msg.update()
+                current_daw.pitch_shifter_window.pitch_msg(
+                    f'{Exporting} {each} ...')
             current_dict[each].export(f'{each}.{format}', format=format)
         os.chdir(abs_path)
 
@@ -3255,54 +2511,1005 @@ class sound:
         pygame.mixer.stop()
 
 
-class start_window(Tk):
+def set_font(font, dpi):
+    if dpi != 96.0:
+        font.setPointSize(int(font.pointSize() * (96.0 / dpi)))
+    return font
 
-    def __init__(self):
-        super(start_window, self).__init__()
-        self.configure(bg='ivory2')
-        self.overrideredirect(True)
-        self.minsize(500, 220)
-        self.lift()
-        self.attributes("-topmost", True)
-        self.attributes('-topmost', 0)
 
-        window_width = self.winfo_reqwidth()
-        window_height = self.winfo_reqheight()
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
-        x = (screen_width / 2) - (window_width * 1.5)
-        y = (screen_height / 2) - window_height
-        self.geometry('+%d+%d' % (x, y))
+class Dialog(QtWidgets.QMainWindow):
 
-        style = ttk.Style()
-        style.configure('TLabel', font=('Consolas', 30), background='ivory2')
-        style.configure('loading.TLabel',
-                        font=('Consolas', 15),
-                        background='ivory2')
+    def __init__(self,
+                 caption,
+                 directory='',
+                 filter=None,
+                 default_filename=None,
+                 mode=0):
+        super().__init__()
+        if mode == 0:
+            self.filename = QtWidgets.QFileDialog.getOpenFileName(
+                self, caption=caption, directory=directory, filter=filter)
+        elif mode == 1:
+            self.directory = QtWidgets.QFileDialog.getExistingDirectory(
+                self, caption=caption, directory=directory)
+        elif mode == 2:
+            self.filename = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                caption,
+                os.path.join(directory, default_filename),
+                filter=filter)
 
-        self.title_label = ttk.Label(self, text='Musicpy Daw')
-        self.title_label.place(x=120, y=80)
+
+class Button(QtWidgets.QPushButton):
+
+    def __init__(self, *args, command=None, x=None, y=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if command is not None:
+            self.clicked.connect(command)
+        if x is not None and y is not None:
+            self.move(x, y)
+        self.adjustSize()
+
+    def place(self, x, y):
+        self.move(x, y)
+
+
+class Label(QtWidgets.QLabel):
+
+    def __init__(self, *args, x=None, y=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if x is not None and y is not None:
+            self.move(x, y)
+        self.adjustSize()
+
+    def place(self, x, y):
+        self.move(x, y)
+
+    def configure(self, text):
+        self.setText(text)
+        self.adjustSize()
+
+
+class Slider(QtWidgets.QSlider):
+
+    def __init__(self,
+                 *args,
+                 value=None,
+                 command=None,
+                 x=None,
+                 y=None,
+                 range=[0, 100],
+                 width=200,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setRange(*range)
+        self.setFixedWidth(width)
+        if value is not None:
+            self.setValue(value)
+        if command is not None:
+            self.valueChanged.connect(command)
+        if x is not None and y is not None:
+            self.move(x, y)
+
+    def place(self, x, y):
+        self.move(x, y)
+
+    def change(self, value):
+        self.blockSignals(True)
+        self.setValue(value)
+        self.blockSignals(False)
+
+
+class CheckBox(QtWidgets.QCheckBox):
+
+    def __init__(self,
+                 *args,
+                 value=None,
+                 command=None,
+                 x=None,
+                 y=None,
+                 font=None,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+        if value is not None:
+            self.setChecked(value)
+        if command is not None:
+            self.clicked.connect(command)
+        if x is not None and y is not None:
+            self.move(x, y)
+        if font is not None:
+            self.setFont(font)
+        self.adjustSize()
+
+    def place(self, x, y):
+        self.move(x, y)
+
+
+class LineEdit(QtWidgets.QLineEdit):
+
+    def __init__(self,
+                 *args,
+                 x=None,
+                 y=None,
+                 width=None,
+                 height=None,
+                 font=None,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+        if x is not None and y is not None:
+            self.move(x, y)
+        if width is not None:
+            self.setFixedWidth(width)
+        if height is not None:
+            self.setFixedHeight(height)
+        if font is not None:
+            self.setFont(font)
+        self.adjustSize()
+
+    def place(self, x, y):
+        self.move(x, y)
+
+
+class CustomTextEdit(QtWidgets.QPlainTextEdit):
+
+    def __init__(self,
+                 parent=None,
+                 pairing_symbols=[],
+                 custom_actions=[],
+                 size=None,
+                 font=None,
+                 place=None):
+        super().__init__(parent)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.__contextMenu)
+        self._completer = None
+        self.pairing_symbols = pairing_symbols
+        self.pairing_symbols_left = [each[0] for each in self.pairing_symbols]
+        self.completion_prefix = ''
+        self.default_completer_keys = [
+            QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return, QtCore.Qt.Key_Escape,
+            QtCore.Qt.Key_Tab, QtCore.Qt.Key_Backtab
+        ]
+        self.special_words = "~!@#$%^&*()+{}|:\"<>?,./;'[]\\-="
+        self.current_completion_words = function_names
+        self.custom_actions = custom_actions
+        if size is not None:
+            self.setFixedSize(*size)
+        if font is not None:
+            self.setFont(font)
+        if place is not None:
+            self.move(*place)
+        self.input_completer = QtWidgets.QCompleter(function_names)
+        self.setCompleter(self.input_completer)
+
+    def __contextMenu(self):
+        self._normalMenu = self.createStandardContextMenu()
+        self._normalMenu.clear()
+        self._addCustomMenuItems(self._normalMenu)
+        self._normalMenu.exec_(QtGui.QCursor.pos())
+
+    def _addCustomMenuItems(self, menu):
+        for i in self.custom_actions:
+            if isinstance(i, QtWidgets.QAction):
+                menu.addAction(i)
+            elif isinstance(i, QtWidgets.QMenu):
+                menu.addMenu(i)
+
+    def setCompleter(self, completer):
+
+        self._completer = completer
+        completer.setWidget(self)
+        completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        completer.activated.connect(self.insertCompletion)
+
+    def insertCompletion(self, completion):
+        if self._completer.widget() is not self:
+            return
+
+        tc = self.textCursor()
+        extra = len(completion) - len(self._completer.completionPrefix())
+        tc.movePosition(QtGui.QTextCursor.Left)
+        tc.movePosition(QtGui.QTextCursor.EndOfWord)
+
+        if self.completion_prefix.lower() != completion[-extra:].lower():
+            tc.insertText(completion[-extra:])
+            self.setTextCursor(tc)
+        if self.current_completion_words != function_names:
+            self._completer.setModel(
+                QtCore.QStringListModel(function_names, self._completer))
+            self.current_completion_words = function_names
+
+    def textUnderCursor(self):
+        tc = self.textCursor()
+        tc.select(QtGui.QTextCursor.WordUnderCursor)
+        return tc.selectedText()
+
+    def focusInEvent(self, e):
+        if self._completer is not None:
+            self._completer.setWidget(self)
+        super().focusInEvent(e)
+
+    def keyPressEvent(self, e):
+
+        isShortcut = False
+        current_text = e.text()
+
+        if current_text and current_text[-1] in self.pairing_symbols_left:
+            self._completer.popup().hide()
+            ind = self.pairing_symbols_left.index(current_text[-1])
+            current_pairing_symbol = self.pairing_symbols[ind][1]
+            super().keyPressEvent(e)
+            self.insertPlainText(current_pairing_symbol)
+            self.moveCursor(QtGui.QTextCursor.PreviousCharacter)
+            return
+
+        if self._completer is not None and self._completer.popup().isVisible():
+            if e.key() in self.default_completer_keys:
+                e.ignore()
+                return
+
+        if e.key() == QtCore.Qt.Key_Period:
+            current_whole_text = self.toPlainText()
+            current_row = current_whole_text.split('\n')[-1].replace(' ', '')
+            current_word = current_row.split(',')[-1]
+            try:
+                words = dir(eval(current_word))
+                super().keyPressEvent(e)
+                self._completer.setModel(
+                    QtCore.QStringListModel(words, self._completer))
+                self.current_completion_words = words
+                isShortcut = True
+            except:
+                pass
+
+        if self._completer is None or not isShortcut:
+            super().keyPressEvent(e)
+
+        ctrlOrShift = e.modifiers() & (QtCore.Qt.ControlModifier
+                                       | QtCore.Qt.ShiftModifier)
+        if self._completer is None or (ctrlOrShift and not current_text):
+            return
+        hasModifier = (e.modifiers() !=
+                       QtCore.Qt.NoModifier) and not ctrlOrShift
+        completionPrefix = self.textUnderCursor()
+        self.completion_prefix = completionPrefix
+        if not isShortcut and (hasModifier or len(current_text) == 0
+                               or len(completionPrefix) < 1
+                               or current_text[-1] in self.special_words):
+            self._completer.popup().hide()
+            return
+
+        if completionPrefix != self._completer.completionPrefix():
+            self._completer.setCompletionPrefix(completionPrefix)
+            self._completer.popup().setCurrentIndex(
+                self._completer.completionModel().index(0, 0))
+
+        cr = self.cursorRect()
+        cr.setWidth(
+            self._completer.popup().sizeHintForColumn(0) +
+            self._completer.popup().verticalScrollBar().sizeHint().width())
+        self._completer.complete(cr)
+
+    def zoom(self, delta):
+        if delta < 0:
+            self.zoomOut(1)
+        elif delta > 0:
+            self.zoomIn(1)
+
+    def wheelEvent(self, event):
+        if (event.modifiers() & QtCore.Qt.ControlModifier):
+            self.zoom(event.angleDelta().y())
+        else:
+            super().wheelEvent(event)
+
+
+class Channel(QtWidgets.QListWidget):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            super().mousePressEvent(event)
+            current_daw.show_current_channel()
+        if event.button() == QtCore.Qt.RightButton:
+            current_daw.cancel_choose_channels()
+
+
+class Start_window(QtWidgets.QMainWindow):
+
+    def __init__(self, dpi=None):
+        super().__init__()
+        self.dpi = dpi
+        self.setStyleSheet('background-color: gainsboro;')
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint
+                            | QtCore.Qt.WindowStaysOnTopHint)
+        self.setMinimumSize(500, 220)
+        self.title_label = Label(self,
+                                 text='Musicpy Daw',
+                                 font=set_font(QtGui.QFont('Consolas', 30),
+                                               self.dpi))
+        self.title_label.move(120, 80)
         pygame.mixer.quit()
         pygame.mixer.init(current_settings.frequency,
                           current_settings.sound_size,
                           current_settings.channel, current_settings.buffer)
         pygame.mixer.set_num_channels(current_settings.maxinum_channels)
-        self.after(500, open_main_window)
+        QtCore.QTimer.singleShot(500, open_main_window)
+        self.show()
+
+
+class Channel_dict_window(QtWidgets.QMainWindow):
+
+    def __init__(self, parent=None, current_ind=0):
+        super().__init__()
+        self.parent = parent
+        self.current_ind = current_ind
+        self.current_font = self.parent.current_font
+        self.language_dict = self.parent.language_dict
+        self.setStyleSheet(self.parent.get_stylesheet())
+        self.setWindowIcon(QtGui.QIcon(icon_path))
+        self.setStyleSheet(
+            f'background-color: {current_settings.background_color}')
+        self.closeEvent = self.close_change_dict_window
+        self.setWindowTitle(self.language_dict['change_channel_dict'][0])
+        self.setMinimumSize(500, 300)
+        self.activateWindow()
+        current_dict = self.parent.channel_dict[current_ind]
+        self.parent.current_dict = current_dict
+        self.dict_configs = QtWidgets.QListWidget(self)
+        self.dict_configs.setFont(self.current_font)
+        self.dict_configs.clicked.connect(self.show_current_dict_configs)
+        self.dict_configs.setFixedHeight(185)
+        self.dict_configs.move(0, 0)
+        for i, each in enumerate(current_dict):
+            self.dict_configs.insertItem(i, each)
+        self.current_note_name = Label(
+            self, text=self.language_dict['change_channel_dict'][1])
+        self.current_note_name.place(x=200, y=5)
+        self.current_note_name_entry = LineEdit(self,
+                                                width=70,
+                                                x=300,
+                                                y=0,
+                                                font=self.current_font)
+        self.current_note_value = Label(
+            self, text=self.language_dict['change_channel_dict'][2])
+        self.current_note_value.place(x=200, y=50)
+        self.current_note_value_entry = LineEdit(self,
+                                                 width=70,
+                                                 x=300,
+                                                 y=50,
+                                                 font=self.current_font)
+        self.change_current_note_name_button = Button(
+            self,
+            text=self.language_dict['change_channel_dict'][3],
+            command=self.change_current_note_name)
+        self.change_current_note_value_button = Button(
+            self,
+            text=self.language_dict['change_channel_dict'][4],
+            command=self.change_current_note_value)
+        self.add_new_note_button = Button(
+            self,
+            text=self.language_dict['change_channel_dict'][5],
+            command=self.add_new_note)
+        self.remove_note_button = Button(
+            self,
+            text=self.language_dict['change_channel_dict'][6],
+            command=self.remove_note)
+        self.new_note_name_entry = LineEdit(self,
+                                            width=70,
+                                            x=320,
+                                            y=150,
+                                            font=self.current_font)
+        self.reset_dict_button = Button(
+            self,
+            text=self.language_dict['change_channel_dict'][9],
+            command=self.reset_dict)
+        self.change_current_note_name_button.place(x=200, y=100)
+        self.change_current_note_value_button.place(x=350, y=100)
+        self.add_new_note_button.place(x=200, y=150)
+        self.remove_note_button.place(x=200, y=200)
+        self.reset_dict_button.place(x=350, y=250)
+        self.reload_channel_sounds_button = Button(
+            self,
+            text=self.language_dict['change_channel_dict'][7],
+            command=self.parent.reload_channel_sounds)
+        self.reload_channel_sounds_button.place(x=200, y=250)
+        self.clear_all_notes_button = Button(
+            self,
+            text=self.language_dict['change_channel_dict'][8],
+            command=self.clear_all_notes)
+        self.clear_all_notes_button.place(x=350, y=200)
+        self.show()
+
+    def close_change_dict_window(self, event):
+        self.close()
+        self.parent.open_change_channel_dict = False
+
+    def show_current_dict_configs(self):
+        current_note = self.dict_configs.currentItem().text()
+        if current_note in self.parent.current_dict:
+            self.current_note_name_entry.clear()
+            self.current_note_name_entry.setText(current_note)
+            self.current_note_value_entry.clear()
+            self.current_note_value_entry.setText(
+                self.parent.current_dict[current_note])
+
+    def change_current_note_name(self):
+        current_note = self.dict_configs.currentItem().text()
+        current_ind_whole = self.dict_configs.currentIndex()
+        current_ind = current_ind_whole.row()
+        current_note_name = self.current_note_name_entry.text()
+        if current_note_name and current_note_name != current_note:
+            current_keys = list(self.parent.current_dict.keys())
+            current_keys[current_ind] = current_note_name
+            self.parent.current_dict[
+                current_note_name] = self.parent.current_dict[current_note]
+            del self.parent.current_dict[current_note]
+            self.parent.current_dict = {
+                i: self.parent.current_dict[i]
+                for i in current_keys
+            }
+            self.parent.channel_dict[
+                self.parent.
+                current_channel_dict_num] = self.parent.current_dict
+            self.dict_configs.clear()
+            self.dict_configs.addItems(list(self.parent.current_dict.keys()))
+            self.dict_configs.setCurrentRow(current_ind)
+
+    def change_current_note_value(self):
+        current_note = self.dict_configs.currentItem().text()
+        if not current_note:
+            return
+        current_note_value_before = self.parent.current_dict[current_note]
+        current_note_value = self.current_note_value_entry.text()
+        if current_note_value != current_note_value_before:
+            self.parent.current_dict[current_note] = current_note_value
+
+    def add_new_note(self):
+        current_note_name = self.new_note_name_entry.text()
+        if current_note_name and current_note_name not in self.parent.current_dict:
+            self.parent.current_dict[current_note_name] = ''
+            self.dict_configs.addItem(current_note_name)
+            current_ind = len(self.parent.current_dict) - 1
+            self.dict_configs.setCurrentRow(current_ind)
+            self.show_current_dict_configs()
+
+    def remove_note(self):
+        current_note = self.dict_configs.currentItem().text()
+        if current_note not in self.parent.current_dict:
+            return
+        del self.parent.current_dict[current_note]
+        current_ind = self.dict_configs.currentIndex().row()
+        self.dict_configs.takeItem(current_ind)
+        new_ind = min(current_ind, len(self.parent.current_dict) - 1)
+        self.dict_configs.setCurrentRow(new_ind)
+        self.show_current_dict_configs()
+
+    def clear_all_notes(self):
+        self.dict_configs.clear()
+        self.parent.current_dict.clear()
+        self.current_note_name_entry.clear()
+        self.current_note_value_entry.clear()
+
+    def reset_dict(self):
+        current_ind = self.current_ind
+        self.parent.channel_dict[current_ind] = copy(current_settings.notedict)
+        current_dict = self.parent.channel_dict[current_ind]
+        self.dict_configs.clear()
+        for each in current_dict:
+            self.dict_configs.addItem(each)
+        self.parent.current_dict = current_dict
+
+
+class SoundFont_window(QtWidgets.QMainWindow):
+
+    def __init__(self, parent=None, current_sf2=None):
+        super().__init__()
+        self.parent = parent
+        self.current_font = self.parent.current_font
+        self.language_dict = self.parent.language_dict
+        self.setWindowIcon(QtGui.QIcon(icon_path))
+        self.setStyleSheet(self.parent.get_stylesheet())
+        self.closeEvent = self.close_configure_sf2_file_window
+        self.setWindowTitle(self.language_dict['configure_sf2'][0])
+        self.setMinimumSize(700, 300)
+        self.activateWindow()
+        self.preset_configs = QtWidgets.QListWidget(self)
+        self.preset_configs.setFixedSize(185, 160)
+        self.preset_configs.move(200, 30)
+        self.preset_configs.setFont(self.current_font)
+        self.preset_configs.clicked.connect(self.show_current_preset_configs)
+        self.bank_configs = QtWidgets.QListWidget(self)
+        self.bank_configs.setFixedSize(185, 160)
+        self.bank_configs.move(0, 30)
+        self.bank_configs.setFont(self.current_font)
+        self.bank_configs.clicked.connect(self.show_current_bank_configs)
+        self.current_all_available_banks = current_sf2.all_available_banks
+        self.current_preset_ind = current_sf2.current_preset_ind
+        self.preset_configs.addItems(current_sf2.current_preset_name)
+        self.bank_configs.addItems(
+            [str(i) for i in current_sf2.all_available_banks])
+        self.current_bank = Label(self,
+                                  text=self.language_dict['configure_sf2'][1])
+        self.current_bank.place(x=400, y=30)
+        self.current_bank_entry = LineEdit(self,
+                                           width=70,
+                                           font=self.current_font)
+        self.current_bank_entry.setText(str(current_sf2.current_bank))
+        self.current_bank_entry.place(x=500, y=30)
+        self.current_preset = Label(
+            self, text=self.language_dict['configure_sf2'][2])
+        self.current_preset.place(x=400, y=80)
+        self.current_preset_entry = LineEdit(self,
+                                             width=70,
+                                             font=self.current_font)
+        self.current_preset_entry.setText(str(current_sf2.current_preset + 1))
+        self.current_preset_entry.place(x=500, y=80)
+        if current_sf2.current_preset in current_sf2.current_preset_ind:
+            current_preset_ind = current_sf2.current_preset_ind.index(
+                current_sf2.current_preset)
+            self.preset_configs.clearSelection()
+            self.preset_configs.setCurrentRow(current_preset_ind)
+            self.bank_configs.clearSelection()
+            self.bank_configs.setCurrentRow(
+                current_sf2.all_available_banks.index(
+                    current_sf2.current_bank))
+        self.change_current_bank_button = Button(
+            self,
+            text=self.language_dict['configure_sf2'][3],
+            command=self.change_current_bank)
+        self.change_current_preset_button = Button(
+            self,
+            text=self.language_dict['configure_sf2'][4],
+            command=self.change_current_preset)
+        self.listen_preset_button = Button(
+            self,
+            text=self.language_dict['configure_sf2'][5],
+            command=self.listen_preset)
+        self.change_current_bank_button.place(x=400, y=130)
+        self.change_current_preset_button.place(x=520, y=130)
+        self.listen_preset_button.place(x=400, y=180)
+        self.preset_label = Label(self, text='Presets')
+        self.preset_label.place(x=200, y=0)
+        self.bank_label = Label(self, text='Banks')
+        self.bank_label.place(x=0, y=0)
+        self.show()
+
+    def close_configure_sf2_file_window(self, event):
+        self.close()
+        self.parent.open_configure_sf2_file = False
+
+    def change_current_bank(self, mode=0):
+        current_ind = self.parent.choose_channels.currentIndex().row()
+        if mode == 0:
+            current_bank = self.current_bank_entry.text()
+            if not current_bank.isdigit():
+                return
+            else:
+                current_bank = int(current_bank)
+        elif mode == 1:
+            current_bank_ind = self.bank_configs.currentRow()
+            current_bank = self.current_all_available_banks[current_bank_ind]
+        current_sf2 = self.parent.channel_sound_modules[current_ind]
+        if current_bank == current_sf2.current_bank:
+            return
+        current_sf2.change(bank=current_bank, preset=0, correct=False)
+        try:
+            current_sf2.current_preset_name, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
+                get_ind=True, mode=1, return_mode=1)
+        except:
+            current_sf2.current_preset_name, current_sf2.current_preset_ind = [], []
+        self.current_preset_ind = current_sf2.current_preset_ind
+        self.current_preset_entry.clear()
+        self.current_preset_entry.setText(
+            '1' if not current_sf2.current_preset_ind else str(
+                current_sf2.current_preset_ind[0] + 1))
+        self.preset_configs.clear()
+        self.preset_configs.addItems(current_sf2.current_preset_name)
+        self.preset_configs.clearSelection()
+        self.preset_configs.setCurrentRow(0)
+
+    def change_current_preset(self, mode=0):
+        current_ind = self.parent.choose_channels.currentIndex().row()
+        if mode == 1:
+            current_preset = str(
+                self.current_preset_ind[self.preset_configs.currentRow()] + 1)
+        else:
+            current_preset = self.current_preset_entry.text()
+        current_sf2 = self.parent.channel_sound_modules[current_ind]
+        if current_preset.isdigit():
+            current_preset = int(current_preset)
+            current_sf2.change(preset=current_preset - 1)
+            if current_preset - 1 in current_sf2.current_preset_ind:
+                self.preset_configs.clearSelection()
+                current_preset_ind = current_sf2.current_preset_ind.index(
+                    current_preset - 1)
+                self.preset_configs.setCurrentRow(current_preset_ind)
+
+    def listen_preset(self):
+        current_ind = self.parent.choose_channels.currentIndex().row()
+        current_sf2 = self.parent.channel_sound_modules[current_ind]
+        current_sf2.play_note('C5')
+
+    def show_current_preset_configs(self):
+        current_ind = self.preset_configs.currentIndex().row()
+        self.current_preset_entry.clear()
+        self.current_preset_entry.setText(
+            str(self.current_preset_ind[current_ind] + 1))
+        self.change_current_preset(1)
+
+    def show_current_bank_configs(self):
+        current_ind = self.bank_configs.currentIndex().row()
+        current_bank = self.current_all_available_banks[current_ind]
+        self.current_bank_entry.clear()
+        self.current_bank_entry.setText(str(current_bank))
+        self.change_current_bank(mode=1)
+
+
+class Ask_save_window(QtWidgets.QMainWindow):
+
+    def __init__(self, parent=None):
+        super().__init__()
+        self.parent = parent
+        self.current_font = self.parent.current_font
+        self.language_dict = self.parent.language_dict
+        self.setStyleSheet(self.parent.get_stylesheet())
+        self.setWindowFlag(QtCore.Qt.FramelessWindowHint)
+        self.setMinimumSize(400, 150)
+        self.ask_save_label = Label(self,
+                                    text=self.language_dict['ask save'][0])
+        self.ask_save_label.place(x=0, y=30)
+        self.save_button = Button(self,
+                                  text=self.language_dict['ask save'][1],
+                                  command=self.parent.save_and_quit)
+        self.not_save_button = Button(self,
+                                      text=self.language_dict['ask save'][2],
+                                      command=self.close_all)
+        self.cancel_button = Button(self,
+                                    text=self.language_dict['ask save'][3],
+                                    command=self.close)
+        self.save_button.place(x=0, y=100)
+        self.not_save_button.place(x=90, y=100)
+        self.cancel_button.place(x=200, y=100)
+        self.show()
+
+    def close_all(self):
+        self.close()
+        self.parent.close()
+        os._exit(0)
+
+
+class Ask_other_format_window(QtWidgets.QMainWindow):
+
+    def __init__(self, parent=None, mode=0):
+        super().__init__()
+        self.parent = parent
+        self.current_font = self.parent.current_font
+        self.language_dict = self.parent.language_dict
+        self.setStyleSheet(self.parent.get_stylesheet())
+        self.setWindowIcon(QtGui.QIcon(icon_path))
+        self.setMinimumSize(470, 200)
+        self.setWindowTitle(self.language_dict['ask other format'][0])
+        self.ask_other_format_label = Label(
+            self, text=self.language_dict['ask other format'][1])
+        self.ask_other_format_label.place(x=0, y=50)
+        self.ask_other_format_entry = LineEdit(self,
+                                               width=140,
+                                               font=self.current_font)
+        self.ask_other_format_entry.place(x=100, y=100)
+        self.ask_other_format_ok_button = Button(
+            self,
+            text=self.language_dict['ask other format'][2],
+            command=self.read_other_format
+            if mode == 0 else self.pitch_shifter_read_other_format)
+        self.ask_other_format_cancel_button = Button(
+            self,
+            text=self.language_dict['ask other format'][3],
+            command=self.close)
+        self.ask_other_format_ok_button.place(x=60, y=150)
+        self.ask_other_format_cancel_button.place(x=200, y=150)
+        self.show()
+
+    def read_other_format(self):
+        current_format = self.ask_other_format_entry.text()
+        self.close()
+        if current_format:
+            self.parent.export_audio_file(mode=current_format)
+
+    def pitch_shifter_read_other_format(self):
+        current_format = self.ask_other_format_entry.text()
+        self.close()
+        if current_format:
+            self.parent.export_pitch_audio_file(mode=current_format)
+
+
+class Debug_window(QtWidgets.QMainWindow):
+
+    def __init__(self, parent=None):
+        super().__init__()
+        self.parent = parent
+        self.current_font = self.parent.current_font
+        self.language_dict = self.parent.language_dict
+        self.setStyleSheet(self.parent.get_stylesheet())
+        self.setWindowIcon(QtGui.QIcon(icon_path))
+        self.closeEvent = self.close_debug_window
+        self.setWindowTitle(self.language_dict['debug window'])
+        self.setMinimumSize(700, 400)
+        self.activateWindow()
+        self.output_text = QtWidgets.QPlainTextEdit(self)
+        self.output_text.setFont(self.current_font)
+        self.output_text.setFixedSize(612, 285)
+        self.output_text.move(20, 20)
+        self.clear_text_button = Button(self,
+                                        text=self.language_dict['debug clear'],
+                                        command=self.output_text.clear)
+        self.clear_text_button.place(x=600, y=350)
+        self.show()
+
+    def close_debug_window(self, event):
+        self.close()
+        self.parent.is_open_debug_window = False
+
+
+class Pitch_shifter_window(QtWidgets.QMainWindow):
+
+    def __init__(self, parent=None):
+        super().__init__()
+        self.parent = parent
+        self.current_font = self.parent.current_font
+        self.language_dict = self.parent.language_dict
+        self.setStyleSheet(self.parent.get_stylesheet())
+        self.setWindowIcon(QtGui.QIcon(icon_path))
+        self.closeEvent = self.close_pitch_shifter_window
+        self.setWindowTitle(self.language_dict['pitch shifter'][0])
+        self.setMinimumSize(700, 400)
+        self.activateWindow()
+
+        self.load_current_pitch_label = Label(
+            self, text=self.language_dict['pitch shifter'][1])
+        self.load_current_pitch_label.place(x=0, y=50)
+        self.load_current_pitch_button = Button(
+            self,
+            text=self.language_dict['pitch shifter'][2],
+            command=self.pitch_shifter_load_pitch)
+        self.load_current_pitch_button.place(x=0, y=100)
+        self.msg = Label(self, text=self.language_dict['pitch shifter'][3])
+        self.msg.place(x=0, y=350)
+
+        self.default_pitch_entry = LineEdit(self,
+                                            width=70,
+                                            font=self.current_font)
+        self.default_pitch_entry.setText('C5')
+        self.default_pitch_entry.place(x=160, y=150)
+        self.change_default_pitch_button = Button(
+            self,
+            text=self.language_dict['pitch shifter'][4],
+            command=self.pitch_shifter_change_default_pitch)
+        self.change_default_pitch_button.place(x=0, y=150)
+        self.change_pitch_button = Button(
+            self,
+            text=self.language_dict['pitch shifter'][5],
+            command=self.pitch_shifter_change_pitch)
+        self.change_pitch_button.place(x=0, y=200)
+        self.pitch_entry = LineEdit(self, width=70, font=self.current_font)
+        self.pitch_entry.setText('C5')
+        self.pitch_entry.place(x=160, y=200)
+        self.has_load = False
+
+        self.play_button = Button(self,
+                                  text=self.language_dict['pitch shifter'][6],
+                                  command=self.pitch_shifter_play)
+        self.stop_button = Button(self,
+                                  text=self.language_dict['pitch shifter'][7],
+                                  command=self.pitch_shifter_stop)
+        self.play_button.place(x=250, y=150)
+        self.stop_button.place(x=350, y=150)
+        self.shifted_play_button = Button(
+            self,
+            text=self.language_dict['pitch shifter'][6],
+            command=self.pitch_shifter_play_shifted)
+        self.shifted_stop_button = Button(
+            self,
+            text=self.language_dict['pitch shifter'][7],
+            command=self.pitch_shifter_stop_shifted)
+        self.shifted_play_button.place(x=250, y=200)
+        self.shifted_stop_button.place(x=350, y=200)
+        self.pitch_shifter_playing = False
+        self.pitch_shifter_shifted_playing = False
+        self.current_pitch_note = N('C5')
+
+        self.shifted_export_button = Button(
+            self,
+            text=self.language_dict['export'],
+            command=self.pitch_shifter_export_shifted)
+        self.shifted_export_button.place(x=450, y=200)
+        self.export_sound_files_button = Button(
+            self,
+            text=self.language_dict['pitch shifter'][8],
+            command=self.pitch_shifter_export_sound_files)
+        self.export_sound_files_button.place(x=0, y=250)
+
+        self.export_sound_files_from = LineEdit(self,
+                                                width=70,
+                                                font=self.current_font)
+        self.export_sound_files_to = LineEdit(self,
+                                              width=70,
+                                              font=self.current_font)
+        self.export_sound_files_from.setText('A0')
+        self.export_sound_files_to.setText('C8')
+        self.export_sound_files_from.place(x=230, y=250)
+        self.export_sound_files_to.place(x=345, y=250)
+        self.export_sound_files_label = Label(
+            self, text=self.language_dict['pitch shifter'][9])
+        self.export_sound_files_label.place(x=315, y=255)
+
+        self.change_folder_name_button = Button(
+            self,
+            text=self.language_dict['pitch shifter'][10],
+            command=self.pitch_shifter_change_folder_name)
+        self.change_folder_name_button.place(x=0, y=300)
+        self.folder_name = LineEdit(self, width=210, font=self.current_font)
+        self.folder_name.setText(self.language_dict['Untitled'])
+        self.folder_name.place(x=280, y=300)
+        self.pitch_shifter_folder_name = self.language_dict['Untitled']
+        self.show()
+
+    def pitch_msg(self, text=''):
+        self.msg.setText(text)
+        self.msg.adjustSize()
+        self.msg.repaint()
+        app.processEvents()
+
+    def pitch_shifter_change_folder_name(self):
+        self.pitch_shifter_folder_name = self.folder_name.text()
+        self.pitch_msg(
+            f'{self.language_dict["msg"][38]}{self.pitch_shifter_folder_name}')
+
+    def pitch_shifter_export_sound_files(self):
+        if not self.has_load:
+            self.pitch_msg(self.language_dict["msg"][39])
+            return
+        try:
+            start = N(self.export_sound_files_from.text())
+            end = N(self.export_sound_files_to.text())
+        except:
+            self.pitch_msg(self.language_dict["msg"][40])
+            return
+        file_path = Dialog(caption=self.language_dict['title'][2],
+                           directory=self.parent.last_path,
+                           mode=1).directory
+        if not file_path:
+            return
+        self.parent.update_last_path(file_path)
+        self.current_pitch.export_sound_files(file_path,
+                                              self.pitch_shifter_folder_name,
+                                              start,
+                                              end,
+                                              pitch_shifter=True)
+        current_path = f'{file_path}/{self.pitch_shifter_folder_name}'
+        self.pitch_msg(f'{self.language_dict["msg"][24]}{current_path}')
+
+    def pitch_shifter_play(self):
+        if self.has_load:
+            if self.pitch_shifter_playing:
+                self.pitch_shifter_stop()
+            play_audio(self.current_pitch)
+            self.pitch_shifter_playing = True
+
+    def pitch_shifter_stop(self):
+        if self.pitch_shifter_playing:
+            pygame.mixer.stop()
+            self.pitch_shifter_playing = False
+
+    def pitch_shifter_play_shifted(self):
+        if self.has_load:
+            if self.pitch_shifter_shifted_playing:
+                self.pitch_shifter_stop_shifted()
+            play_audio(self.new_pitch)
+            self.pitch_shifter_shifted_playing = True
+
+    def pitch_shifter_stop_shifted(self):
+        if self.pitch_shifter_shifted_playing:
+            pygame.mixer.stop()
+            self.pitch_shifter_shifted_playing = False
+
+    def pitch_shifter_export_shifted(self):
+        export_audio_file_menubar = self.parent.get_menu(actions=[
+            self.parent.get_action(
+                text=self.language_dict['export audio formats'][0],
+                command=lambda: self.export_pitch_audio_file(mode='wav')),
+            self.parent.get_action(
+                text=self.language_dict['export audio formats'][1],
+                command=lambda: self.export_pitch_audio_file(mode='mp3')),
+            self.parent.get_action(
+                text=self.language_dict['export audio formats'][2],
+                command=lambda: self.export_pitch_audio_file(mode='ogg')),
+            self.parent.get_action(
+                text=self.language_dict['export audio formats'][3],
+                command=lambda: self.export_pitch_audio_file(mode='other'))
+        ])
+        export_audio_file_menubar.popup(QtGui.QCursor().pos())
+
+    def export_pitch_audio_file(self, mode='wav'):
+        if not self.has_load:
+            self.pitch_msg(self.language_dict["msg"][39])
+            return
+        if mode == 'other':
+            self.ask_other_format(mode=1)
+            return
+        filename = Dialog(
+            caption=self.language_dict['title'][3],
+            directory=self.parent.last_path,
+            filter=f"{self.language_dict['title'][1]} (*)",
+            default_filename=f"{self.language_dict['untitled']}.{mode}"
+        ).filename[0]
+        if not filename:
+            return
+        self.parent.update_last_path(filename)
+        self.pitch_msg(self.language_dict["msg"][41])
+        self.new_pitch.export(filename, format=mode)
+        self.pitch_msg(f'{self.language_dict["msg"][24]}{filename}')
+
+    def pitch_shifter_load_pitch(self):
+        file_path = Dialog(
+            caption=self.language_dict['title'][0],
+            directory=self.parent.last_path,
+            filter=f"{self.language_dict['title'][1]} (*)").filename[0]
+        if file_path:
+            self.parent.update_last_path(file_path)
+            self.pitch_msg(self.language_dict["msg"][42])
+            self.load_current_pitch_label.configure(
+                text=f'{self.language_dict["pitch shifter"][1]}{file_path}')
+
+            try:
+                default_pitch = self.default_pitch_entry.text()
+            except:
+                default_pitch = 'C5'
+            self.current_pitch = pitch(file_path, default_pitch)
+            self.pitch_msg(self.language_dict["msg"][1])
+            self.has_load = True
+            self.new_pitch = self.current_pitch.sounds
+
+    def pitch_shifter_change_default_pitch(self):
+        if self.has_load:
+            new_pitch = self.default_pitch_entry.text()
+            try:
+                self.current_pitch.set_note(new_pitch)
+                self.pitch_msg(f'{self.language_dict["msg"][43]}{new_pitch}')
+            except:
+                self.pitch_msg(self.language_dict["msg"][37])
+
+    def pitch_shifter_change_pitch(self):
+        if not self.has_load:
+            return
+
+        try:
+            new_pitch = N(self.pitch_entry.text())
+            current_msg = self.language_dict["msg"][44].split('|')
+            self.pitch_msg(f'{current_msg[0]}{new_pitch}{current_msg[1]}')
+            self.new_pitch = self.current_pitch + (
+                new_pitch.degree - self.current_pitch.note.degree)
+            self.pitch_msg(f'{self.language_dict["msg"][45]}{new_pitch}')
+        except Exception as e:
+            print(traceback.format_exc())
+            output(traceback.format_exc())
+            self.pitch_msg(self.language_dict["msg"][40])
+
+    def close_pitch_shifter_window(self, event):
+        self.close()
+        self.parent.open_pitch_shifter_window = False
 
 
 def open_main_window():
-    current_start_window.destroy()
-    global root
+    current_start_window.close()
+    global current_daw
     current_file = None
     argv = sys.argv
     if len(argv) > 1:
         current_file = argv[1]
-    root = Root(file=current_file)
-    root.lift()
-    root.attributes("-topmost", True)
-    root.focus_force()
-    root.attributes('-topmost', 0)
-    root.mainloop()
+    current_daw = Daw(file=current_file, dpi=dpi)
 
 
 def play_audio(audio, mode=0):
@@ -3520,28 +3727,28 @@ def get_wave(sound, mode='sine', bpm=120, volume=None):
             if mode == 'sine':
                 temp[i] = sine(
                     get_freq(current_note),
-                    root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i])
+                    current_daw.bar_to_real_time(current_note.duration, bpm,
+                                                 1), volume[i])
             elif mode == 'triangle':
                 temp[i] = triangle(
                     get_freq(current_note),
-                    root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i])
+                    current_daw.bar_to_real_time(current_note.duration, bpm,
+                                                 1), volume[i])
             elif mode == 'sawtooth':
                 temp[i] = sawtooth(
                     get_freq(current_note),
-                    root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i])
+                    current_daw.bar_to_real_time(current_note.duration, bpm,
+                                                 1), volume[i])
             elif mode == 'square':
                 temp[i] = square(
                     get_freq(current_note),
-                    root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i])
+                    current_daw.bar_to_real_time(current_note.duration, bpm,
+                                                 1), volume[i])
             else:
                 temp[i] = mode(
                     get_freq(current_note),
-                    root.bar_to_real_time(current_note.duration, bpm, 1),
-                    volume[i])
+                    current_daw.bar_to_real_time(current_note.duration, bpm,
+                                                 1), volume[i])
     return temp
 
 
@@ -3550,7 +3757,9 @@ def audio(obj, channel_num=0):
         obj = chord([obj])
     elif isinstance(obj, track):
         obj = build(obj, bpm=obj.bpm, name=obj.name)
-    result = root.export_audio_file(obj, action='get', channel_num=channel_num)
+    result = current_daw.export_audio_file(obj,
+                                           action='get',
+                                           channel_num=channel_num)
     return result
 
 
@@ -3585,17 +3794,17 @@ def play(current_chord,
     if bpm is not None and isinstance(bpm, (int, float)):
         if isinstance(bpm, float) and bpm.is_integer():
             bpm = int(bpm)
-        root.change_current_bpm_entry.delete(0, END)
-        root.change_current_bpm_entry.insert(END, bpm)
-        root.change_current_bpm(1)
-    root.play_musicpy_sounds(current_chord,
-                             bpm,
-                             channel,
-                             length=length,
-                             extra_length=extra_length,
-                             track_lengths=track_lengths,
-                             track_extra_lengths=track_extra_lengths,
-                             soundfont_args=soundfont_args)
+        current_daw.change_current_bpm_entry.clear()
+        current_daw.change_current_bpm_entry.setText(bpm)
+        current_daw.change_current_bpm(1)
+    current_daw.play_musicpy_sounds(current_chord,
+                                    bpm,
+                                    channel,
+                                    length=length,
+                                    extra_length=extra_length,
+                                    track_lengths=track_lengths,
+                                    track_extra_lengths=track_extra_lengths,
+                                    soundfont_args=soundfont_args)
 
 
 def export(current_chord,
@@ -3615,29 +3824,30 @@ def export(current_chord,
     if bpm is not None and isinstance(bpm, (int, float)):
         if isinstance(bpm, float) and bpm.is_integer():
             bpm = int(bpm)
-        root.change_current_bpm_entry.delete(0, END)
-        root.change_current_bpm_entry.insert(END, bpm)
-        root.change_current_bpm(1)
+        current_daw.change_current_bpm_entry.clear()
+        current_daw.change_current_bpm_entry.setText(bpm)
+        current_daw.change_current_bpm(1)
     if mode == 'mid' or mode == 'midi':
-        root.export_midi_file(current_chord, **write_args)
+        current_daw.export_midi_file(current_chord, **write_args)
     else:
-        root.export_audio_file(obj=current_chord,
-                               mode=mode,
-                               action=action,
-                               channel_num=channel,
-                               length=length,
-                               extra_length=extra_length,
-                               track_lengths=track_lengths,
-                               track_extra_lengths=track_extra_lengths,
-                               export_args=export_args,
-                               soundfont_args=soundfont_args)
+        current_daw.export_audio_file(obj=current_chord,
+                                      mode=mode,
+                                      action=action,
+                                      channel_num=channel,
+                                      length=length,
+                                      extra_length=extra_length,
+                                      track_lengths=track_lengths,
+                                      track_extra_lengths=track_extra_lengths,
+                                      export_args=export_args,
+                                      soundfont_args=soundfont_args)
 
 
 def output(*obj):
     result = ' '.join([str(i) for i in obj]) + '\n'
-    if root.is_open_debug_window:
-        root.debug_window.output_text.insert(END, result)
-        root.debug_window.focus_set()
+    if current_daw.is_open_debug_window:
+        current_daw.debug_window.output_text.insertPlainText(result)
+        current_daw.debug_window.activateWindow()
+        current_daw.debug_window.raise_()
 
 
 global_play = False
@@ -3654,5 +3864,7 @@ adsr = effect(adsr_func, 'adsr')
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
-    current_start_window = start_window()
-    current_start_window.mainloop()
+    app = QtWidgets.QApplication(sys.argv)
+    dpi = (app.screens()[0]).logicalDotsPerInch()
+    current_start_window = Start_window(dpi=dpi)
+    app.exec()

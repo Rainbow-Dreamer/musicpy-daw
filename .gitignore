@@ -6,6 +6,7 @@ extra-hooks
 start program.pyw
 *.exe
 musicpy daw test
+last_path.txt
 
 # Byte-compiled / optimized / DLL files
 *.py[co]
