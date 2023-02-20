@@ -3,23 +3,21 @@
         "set_musicpy_code_button": "Play Musicpy Code",
         "stop_button": "Stop",
         "change_current_bpm_button": "Change BPM",
-        "load_instrument_button": "Load Instrument",
+        "import_instrument_button": "Import Instrument",
         "change_settings_button": "Change Settings",
         "current_channel_name_label": "Channel Name",
-        "current_channel_sound_modules_label": "Channel Instrument",
+        "current_channel_instruments_label": "Channel Instrument",
         "change_current_channel_name_button": "Change Channel Name",
         "add_new_channel_button": "Add New Channel",
         "delete_new_channel_button": "Delete Channel",
         "clear_all_channels_button": "Clear All Channels",
         "clear_channel_button": "Clear Channel",
-        "change_channel_dict_button": "Change Channel Dict",
-        "load_channel_settings_button": "Load Channel Settings",
         "export_button": "Export",
         "file_top": "File",
         "file_top_options": "Options",
         "file_top_tools": "Tools",
         "import_musicpy_code_button": "Import Musicpy Code",
-        "configure_sf2_button": "Configure SoundFont",
+        "configure_instrument_button": "Configure Instrument",
         "clear_instrument_button": "Clear Instrument",
         "open_debug_window_button": "Open Debug Window"
     },
@@ -57,13 +55,17 @@
             "Import musicpy code",
             "Export",
             "Save as",
-            "New"
+            "New",
+            "Save parameters",
+            "Import Channel Settings"
         ],
         "option": [
             "Change settings",
             "Change channel dict",
             "Change Language",
-            "Change Skin"
+            "Change Skin",
+            "Open Mixer",
+            "Configure Python instrument"
         ],
         "tool": [
             "Make MDI file",
@@ -72,10 +74,12 @@
             "Import audio file as sample",
             "Pitch shifter"
         ],
-        "load_instrument": [
+        "import_instrument": [
             "Folder",
             "SoundFont",
-            "MDI"
+            "MDI",
+            "Python Instrument",
+            "mdparam"
         ],
         "init": [
             "Channel 1"
@@ -94,8 +98,8 @@
             "Clear All Notes",
             "Reset As Default"
         ],
-        "configure_sf2": [
-            "Configure SoundFont",
+        "configure_instrument": [
+            "Configure Instrument",
             "Bank Number",
             "Preset Number",
             "Change Bank",
@@ -187,6 +191,25 @@
             "Export Sound Files From Range",
             "To",
             "Change Export Sound Files Folder Name"
+        ],
+        "mixer": [
+            "Mixer",
+            "Import Effect",
+            "Error: not a valid effect",
+            "Change Parameter Value",
+            "Error: invalid parameter value",
+            "Remove Effect",
+            "Enable",
+            "Effects",
+            "Parameters",
+            "Parameter Value",
+            "Channels",
+            "Save Parameters",
+            "Replace Effect"
+        ],
+        "python instrument": [
+            "Python Instrument",
+            "Error: not a valid Python instrument"
         ],
         "ask other format": [
             "Other Format",

@@ -3,23 +3,21 @@
         "set_musicpy_code_button": "演奏musicpy代碼",
         "stop_button": "停止",
         "change_current_bpm_button": "改變BPM",
-        "load_instrument_button": "導入音源",
+        "import_instrument_button": "導入音源",
         "change_settings_button": "更改設置",
         "current_channel_name_label": "通道名稱",
-        "current_channel_sound_modules_label": "通道音源",
+        "current_channel_instruments_label": "通道音源",
         "change_current_channel_name_button": "更改通道名稱",
         "add_new_channel_button": "新增通道",
         "delete_new_channel_button": "刪除通道",
         "clear_all_channels_button": "清除所有通道",
         "clear_channel_button": "清除通道",
-        "change_channel_dict_button": "更改通道映射",
-        "load_channel_settings_button": "加載通道設定",
         "export_button": "導出",
         "file_top": "文件",
         "file_top_options": "選項",
         "file_top_tools": "工具",
         "import_musicpy_code_button": "導入musicpy代碼",
-        "configure_sf2_button": "設置SoundFont",
+        "configure_instrument_button": "設置音源",
         "clear_instrument_button": "清除樂器",
         "open_debug_window_button": "打開調試窗口"
     },
@@ -57,13 +55,17 @@
             "導入musicpy代碼",
             "導出",
             "保存為",
-            "新建"
+            "新建",
+            "保存當前樂器參數",
+            "導入通道設定"
         ],
         "option": [
             "更改設置",
             "更改通道映射",
             "更改語言",
-            "更改皮膚"
+            "更改皮膚",
+            "打開混音器",
+            "設置Python Instrument"
         ],
         "tool": [
             "製作MDI文件",
@@ -72,10 +74,12 @@
             "導入音頻文件為採樣",
             "變調器"
         ],
-        "load_instrument": [
+        "import_instrument": [
             "文件夾",
             "SoundFont",
-            "MDI"
+            "MDI",
+            "Python Instrument",
+            "mdparam"
         ],
         "init": [
             "通道 1"
@@ -94,7 +98,7 @@
             "清除所有音符",
             "重置為默認"
         ],
-        "configure_sf2": [
+        "configure_instrument": [
             "設置SoundFont",
             "群組編號",
             "預設編號",
@@ -102,23 +106,23 @@
             "改變預設",
             "試聽"
         ],
-        "error": "錯誤： ",
+        "error": "錯誤: ",
         "export": "導出",
         "msg": [
             "正在加載預設音源...",
             "加載完成",
-            "錯誤：語言配置文件 | 不存在",
+            "錯誤: 語言配置文件 | 不存在",
             "你需要至少一個加載了音源的通道來播放",
-            "錯誤：不合語法的musicpy代碼或者結果不是和弦/樂曲類型",
-            "錯誤：不是一個音頻",
-            "錯誤：沒有音頻文件用來製作MDI文件",
+            "錯誤: 不合語法的musicpy代碼或者結果不是和弦/樂曲類型",
+            "錯誤: 不是一個音頻",
+            "錯誤: 沒有音頻文件用來製作MDI文件",
             "成功製作MDI文件:",
             "請先選擇一個通道",
             "加載 ",
             "成功加載音源 | 到通道 |",
             "解壓 | 成功",
-            "錯誤：不是一個有效的文本文件",
-            "錯誤： 不是一個有效的文本文件或工程文件",
+            "錯誤: 不是一個有效的文本文件",
+            "錯誤: 不是一個有效的文本文件或工程文件",
             "成功加載當前工程文件",
             "成功保存為工程文件",
             "成功加載設定 | 到通道 |",
@@ -135,23 +139,23 @@
             "轉換進度: |%",
             "正在加載音源 ",
             "| 的音源路徑已經改變",
-            "錯誤：音源路徑不存在或音源格式錯誤",
-            "錯誤：這個MIDI文件不存在",
+            "錯誤: 音源路徑不存在或音源格式錯誤",
+            "錯誤: 這個MIDI文件不存在",
             "MIDI文件已成功導入",
             "正在加載音源 ",
             "設置BPM為 ",
-            "錯誤：無效的BPM",
+            "錯誤: 無效的BPM",
             "開始演奏音符",
-            "錯誤：無效的音符名稱",
+            "錯誤: 無效的音符名稱",
             "更改音源輸出文件夾名為 ",
             "請先加載一個音頻文件",
-            "錯誤：無效的音符名稱",
+            "錯誤: 無效的音符名稱",
             "開始輸出...",
             "加載音頻文件...",
             "更改默認音高為 ",
             "正在修改當前音頻文件的音高為 |, 請稍等...",
             "已將當前音頻文件的音高修改為 ",
-            "錯誤：無效的MDI文件"
+            "錯誤: 無效的MDI文件"
         ],
         "title": [
             "選擇一個音頻文件",
@@ -187,6 +191,25 @@
             "輸出音源音域範圍",
             "到",
             "更改輸出音源文件夾名稱"
+        ],
+        "mixer": [
+            "混音器",
+            "導入效果器",
+            "錯誤: 不是有效的效果器",
+            "更改參數值",
+            "錯誤: 無效的參數值",
+            "移除效果器",
+            "啟用",
+            "效果器",
+            "參數",
+            "參數值",
+            "通道",
+            "保存參數",
+            "替換效果器"
+        ],
+        "python instrument": [
+            "Python Instrument",
+            "錯誤: 不是有效的Python instrument"
         ],
         "ask other format": [
             "其他格式",

@@ -2,8 +2,11 @@ import traceback
 import json
 import multiprocessing
 import threading
+from pydoc import importfile
+import fractions
 from scripts.change_settings import change_parameter, config_window, json_module
 
+sys.path.append('scripts/effects')
 settings_path = 'scripts/settings.json'
 current_settings = json_module(settings_path)
 icon_path = 'resources/images/musicpy daw.png'
@@ -32,11 +35,12 @@ class Daw(QtWidgets.QMainWindow):
         current_settings.text_area_font_size = self.current_text_area_font.pointSize(
         )
         self.change_language(current_settings.default_language)
-        self.init_menu()
         self.init_screen()
         self.init_parameters()
         for each, value in self.main_window_language_dict.items():
-            vars(self)[each].setText(value)
+            current_widget = vars(self)[each]
+            current_widget.setText(value)
+            current_widget.adjustSize()
         if file is not None:
             self.after(10, lambda: self.initialize(mode=1, file=file))
         else:
@@ -128,7 +132,6 @@ class Daw(QtWidgets.QMainWindow):
         try:
             self.init_skin(current_settings.current_skin)
         except:
-            print(traceback.format_exc())
             current_settings.current_skin = 'default'
             self.init_skin(current_settings.current_skin)
 
@@ -141,6 +144,26 @@ class Daw(QtWidgets.QMainWindow):
             text='Play Musicpy Code',
             command=self.play_current_musicpy_code)
         self.set_musicpy_code_button.place(x=0, y=310)
+
+        self.file_top = Button(
+            self,
+            text='File',
+            command=lambda: self.file_top_make_menu(mode='file'))
+        self.file_top.place(x=0, y=0)
+
+        self.file_top_options = Button(
+            self,
+            text='Options',
+            command=lambda: self.file_top_make_menu(mode='options'))
+        self.file_top_options.place(x=70, y=0)
+
+        self.file_top_tools = Button(
+            self,
+            text='Tools',
+            command=lambda: self.file_top_make_menu(mode='tools'))
+        self.file_top_tools.place(x=160, y=0)
+
+        self.init_menu()
 
         self.set_musicpy_code_text = CustomTextEdit(
             self,
@@ -195,10 +218,10 @@ class Daw(QtWidgets.QMainWindow):
         self.msg = Label(self, text='')
         self.msg.place(x=130, y=630)
 
-        self.load_instrument_button = Button(self,
-                                             text='Load Instrument',
-                                             command=self.load_instrument)
-        self.load_instrument_button.place(x=550, y=210)
+        self.import_instrument_button = Button(self,
+                                               text='Import Instrument',
+                                               command=self.import_instrument)
+        self.import_instrument_button.place(x=550, y=210)
 
         self.change_settings_button = Button(self,
                                              text='Change Settings',
@@ -235,14 +258,14 @@ class Daw(QtWidgets.QMainWindow):
         self.current_channel_name_entry.addAction(
             self.get_action(shortcut='Return',
                             command=self.change_current_channel_name))
-        self.current_channel_sound_modules_label = Label(
+        self.current_channel_instruments_label = Label(
             self, text='Channel Instrument')
-        self.current_channel_sound_modules_entry = LineEdit(
+        self.current_channel_instruments_entry = LineEdit(
             self, width=500, x=410, y=105, font=self.current_font)
-        self.current_channel_sound_modules_entry.addAction(
+        self.current_channel_instruments_entry.addAction(
             self.get_action(shortcut='Return',
-                            command=self.load_instrument_func))
-        self.current_channel_sound_modules_label.place(x=250, y=110)
+                            command=self.import_instrument_func))
+        self.current_channel_instruments_label.place(x=250, y=110)
 
         self.change_current_channel_name_button = Button(
             self,
@@ -269,26 +292,17 @@ class Daw(QtWidgets.QMainWindow):
                                            command=self.clear_current_channel)
         self.clear_channel_button.place(x=400, y=210)
 
-        self.change_channel_dict_button = Button(
-            self, text='Change Channel Dict', command=self.change_channel_dict)
-        self.change_channel_dict_button.place(x=710, y=160)
-
-        self.load_channel_settings_button = Button(
+        self.configure_instrument_button = Button(
             self,
-            text='Load Channel Settings',
-            command=self.load_channel_settings)
-        self.load_channel_settings_button.place(x=710, y=210)
-
-        self.configure_sf2_button = Button(self,
-                                           text='Configure SoundFont',
-                                           command=self.configure_sf2_file)
-        self.configure_sf2_button.place(x=880, y=210)
+            text='Configure Instrument',
+            command=self.configure_instrument)
+        self.configure_instrument_button.place(x=710, y=210)
 
         self.clear_instrument_button = Button(
             self,
             text='Clear Instrument',
             command=self.clear_current_instrument)
-        self.clear_instrument_button.place(x=880, y=160)
+        self.clear_instrument_button.place(x=710, y=160)
         self.export_button = Button(self,
                                     text='Export',
                                     command=self.open_export_menu)
@@ -296,6 +310,17 @@ class Daw(QtWidgets.QMainWindow):
         self.import_musicpy_code_button = Button(
             self, text='Import Musicpy Code', command=self.import_musicpy_code)
         self.import_musicpy_code_button.place(x=0, y=410)
+
+        self.check_enable_label = Label(self,
+                                        text=self.language_dict['mixer'][6],
+                                        x=680,
+                                        y=60)
+        self.check_enable_button = CheckBox(self,
+                                            value=False,
+                                            command=self.change_enabled,
+                                            x=730,
+                                            y=60)
+
         self.show()
 
     def init_parameters(self):
@@ -303,17 +328,15 @@ class Daw(QtWidgets.QMainWindow):
         self.font_size = current_settings.text_area_font_size
         self.current_bpm = 120
         self.current_playing = []
-        self.open_settings = False
-        self.is_open_debug_window = False
         self.piece_playing = []
-        self.open_change_channel_dict = False
-        self.open_pitch_shifter_window = False
-        self.open_configure_sf2_file = False
         self.default_load = False
         self.project_name = 'untitled.mdp'
-        self.opening_project_name = None
+        self.project_name_file_path = None
         self.channel_names = [self.language_dict['init'][0]]
-        self.channel_sound_modules_name = [current_settings.sound_path]
+        self.channel_instrument_names = [current_settings.sound_path]
+        self.channel_effects = [[]]
+        self.master_effects = []
+        self.channel_enabled = [True]
         self.channel_num = 1
         self.channel_list_focus = False
         self.project_dict = {}
@@ -324,26 +347,12 @@ class Daw(QtWidgets.QMainWindow):
             with open('last_path.txt', encoding='utf-8') as f:
                 self.last_path = f.read()
         self.pitch_shifter_window = None
+        self.debug_window = None
+        self.configure_soundfont_file_window = None
+        self.change_dict_window = None
+        self.current_config_window = None
 
     def init_menu(self):
-        self.file_top = Button(
-            self,
-            text='File',
-            command=lambda: self.file_top_make_menu(mode='file'))
-        self.file_top.place(x=0, y=0)
-
-        self.file_top_options = Button(
-            self,
-            text='Options',
-            command=lambda: self.file_top_make_menu(mode='options'))
-        self.file_top_options.place(x=120, y=0)
-
-        self.file_top_tools = Button(
-            self,
-            text='Tools',
-            command=lambda: self.file_top_make_menu(mode='tools'))
-        self.file_top_tools.place(x=240, y=0)
-
         self.export_audio_menubar = self.get_menu(
             text=self.language_dict['export audio formats'][4],
             actions=[
@@ -407,7 +416,11 @@ class Daw(QtWidgets.QMainWindow):
                             command=self.save_current_musicpy_code),
             self.get_action(text=self.language_dict['file'][4],
                             command=self.import_musicpy_code),
-            self.export_menubar
+            self.export_menubar,
+            self.get_action(text=self.language_dict['file'][8],
+                            command=self.save_current_instrument_parameters),
+            self.get_action(text=self.language_dict['file'][9],
+                            command=self.import_channel_settings)
         ])
 
         self.options_menu = self.get_menu(actions=[
@@ -444,6 +457,9 @@ class Daw(QtWidgets.QMainWindow):
                     command=lambda e, each=each: self.change_skin(each)))
 
         self.options_menu.addMenu(self.change_skin_menu)
+        self.options_menu.addAction(
+            self.get_action(text=self.language_dict['option'][4],
+                            command=self.open_mixer))
 
         self.tools_menu = self.get_menu(actions=[
             self.get_action(text=self.language_dict['tool'][0],
@@ -458,36 +474,47 @@ class Daw(QtWidgets.QMainWindow):
                             command=self.open_pitch_shifter)
         ])
 
-        self.load_instrument_menubar = self.get_menu(actions=[
-            self.get_action(text=self.language_dict['load_instrument'][0],
-                            command=self.load_instrument_folder),
-            self.get_action(text=self.language_dict['load_instrument'][1],
-                            command=self.load_sf2_file),
-            self.get_action(text=self.language_dict['load_instrument'][2],
-                            command=self.import_mdi_file)
+        self.import_instrument_menubar = self.get_menu(actions=[
+            self.get_action(text=self.language_dict['import_instrument'][0],
+                            command=self.import_instrument_folder),
+            self.get_action(text=self.language_dict['import_instrument'][1],
+                            command=self.import_soundfont_file),
+            self.get_action(text=self.language_dict['import_instrument'][2],
+                            command=self.import_mdi_file),
+            self.get_action(text=self.language_dict['import_instrument'][3],
+                            command=self.import_python_instrument),
+            self.get_action(text=self.language_dict['import_instrument'][4],
+                            command=self.import_instrument_parameters)
+        ])
+
+        self.configure_instrument_menubar = self.get_menu(actions=[
+            self.get_action(text=self.language_dict["import_instrument"][1],
+                            command=self.configure_soundfont_file),
+            self.get_action(text=self.language_dict["import_instrument"][3],
+                            command=self.configure_python_instrument)
         ])
 
     def initialize(self, mode=0, file=None):
         if mode == 0:
             self.channel_dict = [copy(current_settings.notedict)]
-            self.channel_sound_modules = [None]
+            self.channel_instruments = [None]
             if os.path.exists(current_settings.sound_path):
                 self.show_msg(self.language_dict['msg'][0])
-                self.load_default_instrument()
+                self.import_default_instrument()
             else:
                 self.default_load = True
         elif mode == 1:
             self.channel_dict = []
-            self.channel_sound_modules = []
+            self.channel_instruments = []
             self.default_load = True
             self.project_dict = self.get_project_dict()
             self.check_if_edited()
             self.open_project_file(file)
 
-    def load_default_instrument(self):
+    def import_default_instrument(self):
         if os.path.isfile(current_settings.sound_path):
-            self.load_sf2_file(current_ind=0,
-                               sound_path=current_settings.sound_path)
+            self.import_soundfont_file(current_ind=0,
+                                       sound_path=current_settings.sound_path)
             self.default_load = True
             self.project_dict = self.get_project_dict()
             self.check_if_edited()
@@ -512,21 +539,19 @@ class Daw(QtWidgets.QMainWindow):
                     current_queue, current_ind, current_mode, sound_path))
         else:
             if current_ind is None:
-                self.channel_sound_modules = [current_queue.get()]
+                self.channel_instruments = [current_queue.get()]
                 self.show_msg(self.language_dict['msg'][1])
                 self.default_load = True
                 self.project_dict = self.get_project_dict()
                 self.check_if_edited()
                 self.current_loading_num -= 1
             else:
-                self.channel_sound_modules[current_ind] = current_queue.get()
+                self.channel_instruments[current_ind] = current_queue.get()
                 if not current_mode:
-                    self.current_channel_sound_modules_entry.clear()
-                    self.current_channel_sound_modules_entry.setText(
-                        sound_path)
-                    self.current_channel_sound_modules_entry.setCursorPosition(
-                        0)
-                    self.channel_sound_modules_name[current_ind] = sound_path
+                    self.current_channel_instruments_entry.clear()
+                    self.current_channel_instruments_entry.setText(sound_path)
+                    self.current_channel_instruments_entry.setCursorPosition(0)
+                    self.channel_instrument_names[current_ind] = sound_path
                 current_msg = self.language_dict["msg"][10].split('|')
                 self.show_msg(
                     f'{current_msg[0]}{os.path.basename(sound_path)}{current_msg[1]}{current_ind+1}'
@@ -562,12 +587,15 @@ class Daw(QtWidgets.QMainWindow):
     def open_new_project_file(self):
         self.current_project_name.configure(text='untitled.mdp')
         self.project_name = 'untitled.mdp'
-        self.opening_project_name = None
+        self.project_name_file_path = None
         self.clear_all_channels(1)
         self.set_musicpy_code_text.clear()
         self.choose_channels.addItem(self.language_dict['init'][0])
         self.channel_names = [self.language_dict['init'][0]]
-        self.channel_sound_modules_name = [current_settings.sound_path]
+        self.channel_instrument_names = [current_settings.sound_path]
+        self.channel_effects = [[]]
+        self.master_effects.clear()
+        self.channel_enabled = [True]
         self.channel_num = 1
         self.channel_list_focus = True
         self.change_current_bpm_entry.clear()
@@ -593,15 +621,17 @@ class Daw(QtWidgets.QMainWindow):
             self.language_dict = data['other']
             if mode == 1:
                 self.reload_language()
+                change_parameter('default_language', language, settings_path)
         except Exception as e:
-            print(traceback.format_exc())
             current_msg = self.language_dict['msg'][2].split('|')
             self.show_msg(f'{current_msg[0]}{language}.py{current_msg[1]}')
 
     def reload_language(self):
-        for each, value in self.main_window_language_dict.items():
-            vars(self)[each].setText(value)
         self.init_menu()
+        for each, value in self.main_window_language_dict.items():
+            current_widget = vars(self)[each]
+            current_widget.setText(value)
+            current_widget.adjustSize()
         self.set_musicpy_code_text = CustomTextEdit(
             self,
             pairing_symbols=current_settings.pairing_symbols,
@@ -643,18 +673,26 @@ class Daw(QtWidgets.QMainWindow):
             return
 
     def open_pitch_shifter(self):
-        if self.open_pitch_shifter_window:
-            self.pitch_shifter_window.activateWindow()
-            return
+        self.pitch_shifter_window = Pitch_shifter_window(self)
+
+    def open_mixer(self):
+        self.mixer_window = Mixer_window(self)
+
+    def configure_python_instrument(self):
+        current_ind = self.choose_channels.currentIndex().row()
+        if current_ind < self.channel_num and self.channel_list_focus:
+            current_instrument = self.channel_instruments[current_ind]
+            if current_instrument.__class__.__name__ == 'Synth':
+                self.current_instrument_window = Python_instrument_window(
+                    self, current_ind=current_ind)
         else:
-            self.open_pitch_shifter_window = True
-            self.pitch_shifter_window = Pitch_shifter_window(self)
+            self.show_msg(self.language_dict['msg'][8])
 
     def play_selected_musicpy_code(self):
         if not self.default_load:
             return
         self.show_msg('')
-        if not self.channel_sound_modules:
+        if not self.channel_instruments:
             self.show_msg(self.language_dict['msg'][3])
             return
         try:
@@ -686,7 +724,6 @@ class Daw(QtWidgets.QMainWindow):
         try:
             exec(current_notes, globals(), globals())
         except Exception as e:
-            print(traceback.format_exc())
             self.show_msg(self.language_dict["msg"][4])
             output(traceback.format_exc())
             return
@@ -721,7 +758,6 @@ class Daw(QtWidgets.QMainWindow):
             self.play_musicpy_sounds(current_chord, current_bpm,
                                      current_channel_num)
         except Exception as e:
-            print(traceback.format_exc())
             self.show_msg(self.language_dict["msg"][4])
             output(traceback.format_exc())
 
@@ -740,11 +776,10 @@ class Daw(QtWidgets.QMainWindow):
         except:
             pass
         try:
-            current_audio = eval(current_notes, globals(), globals())
+            current_audio = eval(current_notes)
             pygame.mixer.stop()
             play_audio(current_audio)
         except Exception as e:
-            print(traceback.format_exc())
             output(traceback.format_exc())
             self.show_msg(self.language_dict['msg'][5])
 
@@ -808,7 +843,7 @@ class Daw(QtWidgets.QMainWindow):
                     return
                 self.update_last_path(sound_path)
             else:
-                sound_path = self.current_channel_sound_modules_entry.text()
+                sound_path = self.current_channel_instruments_entry.text()
         original_sound_path = sound_path
         if not os.path.exists(sound_path):
             sound_path = os.path.join(self.current_project_file_path,
@@ -835,7 +870,7 @@ class Daw(QtWidgets.QMainWindow):
             ]
             self.channel_dict[current_ind] = copy(current_settings.notedict)
             if channel_settings is not None:
-                self.load_channel_settings(text=channel_settings)
+                self.import_channel_settings(text=channel_settings)
             current_dict = self.channel_dict[current_ind]
             filenames = [os.path.splitext(i)[0] for i in filenames]
             result_audio = {
@@ -845,15 +880,15 @@ class Daw(QtWidgets.QMainWindow):
         except:
             self.show_msg(self.language_dict['msg'][46])
             return
-        self.channel_sound_modules[current_ind] = {
+        self.channel_instruments[current_ind] = {
             i: (result_audio[current_dict[i]]
                 if current_dict[i] in result_audio else None)
             for i in current_dict
         }
-        self.channel_sound_modules_name[current_ind] = original_sound_path
-        self.current_channel_sound_modules_entry.clear()
-        self.current_channel_sound_modules_entry.setText(original_sound_path)
-        self.current_channel_sound_modules_entry.setCursorPosition(0)
+        self.channel_instrument_names[current_ind] = original_sound_path
+        self.current_channel_instruments_entry.clear()
+        self.current_channel_instruments_entry.setText(original_sound_path)
+        self.current_channel_instruments_entry.setCursorPosition(0)
         current_msg = self.language_dict["msg"][10].split('|')
         self.show_msg(
             f'{current_msg[0]}{os.path.basename(sound_path)}{current_msg[1]}{current_ind+1}'
@@ -892,6 +927,125 @@ class Daw(QtWidgets.QMainWindow):
             f'{current_msg[0]}{os.path.basename(file_path)}{current_msg[1]}')
         os.chdir(abs_path)
 
+    def import_python_instrument(self,
+                                 mode=0,
+                                 current_ind=None,
+                                 sound_path=None):
+        has_current_ind = False
+        if current_ind is not None:
+            has_current_ind = True
+        else:
+            current_ind = self.choose_channels.currentIndex().row()
+        if current_ind < self.channel_num and (self.channel_list_focus
+                                               or has_current_ind):
+            self.show_msg('')
+            if sound_path is not None:
+                original_sound_path = sound_path
+                if not os.path.exists(sound_path):
+                    sound_path = os.path.join(self.current_project_file_path,
+                                              sound_path)
+                self.show_msg(
+                    f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
+                )
+                try:
+                    current_instrument = importfile(sound_path).Synth()
+                    self.channel_instrument_names[current_ind] = sound_path
+                    self.channel_instruments[current_ind] = current_instrument
+                    self.current_channel_instruments_entry.clear()
+                    self.current_channel_instruments_entry.setText(sound_path)
+                    self.current_channel_instruments_entry.setCursorPosition(0)
+                except:
+                    self.show_msg(self.language_dict["python instrument"][1])
+                    return
+                self.channel_instruments[current_ind] = current_instrument
+                self.channel_instrument_names[
+                    current_ind] = original_sound_path
+                current_msg = self.language_dict["msg"][10].split('|')
+                self.show_msg(
+                    f'{current_msg[0]}{os.path.basename(sound_path)}{current_msg[1]}{current_ind+1}'
+                )
+            else:
+                if mode == 0:
+                    filename = Dialog(
+                        caption=self.language_dict['title'][17],
+                        directory=self.last_path,
+                        filter=
+                        f'python (*.py);;{self.language_dict["title"][1]} (*)'
+                    ).filename[0]
+                    if filename:
+                        self.update_last_path(filename)
+                else:
+                    filename = self.current_channel_instruments_entry.text()
+                original_filename = filename
+                if not os.path.exists(filename):
+                    filename = os.path.join(self.current_project_file_path,
+                                            filename)
+                if filename and os.path.exists(filename):
+                    try:
+                        current_instrument = importfile(filename).Synth()
+                        self.channel_instrument_names[current_ind] = filename
+                        self.channel_instruments[
+                            current_ind] = current_instrument
+                        self.current_channel_instruments_entry.clear()
+                        self.current_channel_instruments_entry.setText(
+                            filename)
+                        self.current_channel_instruments_entry.setCursorPosition(
+                            0)
+                        current_msg = self.language_dict["msg"][10].split('|')
+                        self.show_msg(
+                            f'{current_msg[0]}{os.path.basename(filename)}{current_msg[1]}{current_ind+1}'
+                        )
+                    except:
+                        self.show_msg(
+                            self.language_dict["python instrument"][1])
+        else:
+            self.show_msg(self.language_dict['msg'][8])
+
+    def import_instrument_parameters(self):
+        current_ind = self.choose_channels.currentRow()
+        if current_ind < 0 or not self.channel_list_focus:
+            self.show_msg(self.language_dict['msg'][8])
+            return
+        filename = Dialog(
+            caption=self.language_dict['title'][17],
+            directory=self.last_path,
+            filter=
+            f'Musicpy Daw parameters (*.mdparam);;{self.language_dict["title"][1]} (*)'
+        ).filename[0]
+        if filename:
+            self.update_last_path(filename)
+            try:
+                with open(filename, encoding='utf-8') as f:
+                    data = json.load(f)
+                file_path = data['file_path']
+                self.channel_dict[current_ind] = data['channel_dict']
+                self.channel_instrument_names[current_ind] = file_path
+                self.reload_channel_sounds(current_ind)
+                current_instrument = self.channel_instruments[current_ind]
+                current_type = data['type']
+                if current_type == 'SoundFont':
+                    current_soundfont_info = data['SoundFont parameters']
+                    current_instrument.change(
+                        channel=current_soundfont_info['channel'],
+                        sfid=current_soundfont_info['sfid'],
+                        bank=current_soundfont_info['bank'],
+                        preset=current_soundfont_info['preset'])
+                elif current_type == 'python instrument':
+                    current_python_instrument_info = data[
+                        'python instrument parameters']
+                    current_instrument.instrument_parameters.update(
+                        current_python_instrument_info['instrument_parameters']
+                    )
+                    current_instrument.effect_parameters.update(
+                        current_python_instrument_info['effect_parameters'])
+                    current_instrument.enabled = current_python_instrument_info[
+                        'enabled']
+                self.current_channel_instruments_entry.setText(
+                    self.channel_instrument_names[current_ind])
+            except:
+                output(traceback.format_exc())
+                self.show_msg(self.language_dict["msg"][30])
+
     def import_musicpy_code(self):
         filename = Dialog(
             caption=self.language_dict['title'][9],
@@ -908,6 +1062,59 @@ class Daw(QtWidgets.QMainWindow):
             except:
                 self.set_musicpy_code_text.clear()
                 self.show_msg(self.language_dict["msg"][12])
+
+    def save_current_instrument_parameters(self):
+        current_ind = self.choose_channels.currentRow()
+        if current_ind < 0 or not self.channel_list_focus:
+            self.show_msg(self.language_dict['msg'][8])
+            return
+        filename = Dialog(
+            caption=self.language_dict['file'][8],
+            directory=self.last_path,
+            filter=
+            f"Musicpy Daw Parameters (*.mdparam);; {self.language_dict['title'][1]} (*)",
+            default_filename=f"{self.language_dict['untitled']}.mdparam",
+            mode=2).filename[0]
+        if filename:
+            current_instrument = self.channel_instruments[current_ind]
+            if current_instrument is None:
+                return
+            current_instrument_name = self.channel_instrument_names[
+                current_ind]
+            parameter_dict = {}
+            parameter_dict['file_path'] = current_instrument_name
+            if isinstance(current_instrument, dict):
+                parameter_dict['type'] = 'folder'
+            elif isinstance(current_instrument, rs.sf2_loader):
+                parameter_dict['type'] = 'SoundFont'
+                current_info = {
+                    'channel': current_instrument.current_channel,
+                    'sfid': current_instrument.current_sfid,
+                    'bank': current_instrument.current_bank,
+                    'preset': current_instrument.current_preset
+                }
+                parameter_dict['SoundFont parameters'] = copy(current_info)
+            elif isinstance(current_instrument, mdi):
+                parameter_dict['type'] = 'mdi'
+            elif current_instrument.__class__.__name__ == 'Synth':
+                parameter_dict['type'] = 'python instrument'
+                parameter_dict['python instrument parameters'] = {
+                    'instrument_parameters':
+                    current_instrument.instrument_parameters,
+                    'effect_parameters': current_instrument.effect_parameters,
+                    'enabled': current_instrument.enabled
+                }
+            else:
+                return
+            current_channel_dict = self.channel_dict[current_ind]
+            parameter_dict['channel_dict'] = current_channel_dict
+            self.update_last_path(filename)
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(parameter_dict,
+                          f,
+                          indent=4,
+                          separators=(',', ': '),
+                          ensure_ascii=False)
 
     def cut(self):
         self.set_musicpy_code_text.cut()
@@ -944,7 +1151,6 @@ class Daw(QtWidgets.QMainWindow):
                 with open(filename, encoding='utf-8', errors='ignore') as f:
                     self.project_dict = json.load(f)
             except:
-                print(traceback.format_exc())
                 self.set_musicpy_code_text.clear()
                 self.show_msg(self.language_dict["msg"][13])
                 return
@@ -952,12 +1158,14 @@ class Daw(QtWidgets.QMainWindow):
         else:
             return
         self.default_load = False
+        self.channel_list_focus = False
         self.clear_all_channels(1)
         self.channel_num = self.project_dict['channel_num']
         self.init_channels(self.channel_num)
         self.channel_names = self.project_dict['channel_names']
-        self.channel_sound_modules_name = self.project_dict[
-            'channel_sound_modules_name']
+        self.channel_instrument_names = self.project_dict[
+            'channel_instrument_names']
+        self.channel_enabled = self.project_dict['channel_enabled']
         self.channel_dict = self.project_dict['channel_dict']
         self.current_bpm = self.project_dict['current_bpm']
         if isinstance(self.current_bpm,
@@ -982,25 +1190,62 @@ class Daw(QtWidgets.QMainWindow):
             self.after(200,
                        lambda: self.waiting_for_open_project_file(filename))
         else:
-            self.current_channel_sound_modules_entry.clear()
+            self.current_channel_instruments_entry.clear()
             self.choose_channels.clearSelection()
             current_project_name = os.path.basename(filename)
             self.current_project_name.configure(text=current_project_name)
             self.project_name = current_project_name
-            self.opening_project_name = filename
+            self.project_name_file_path = filename
             current_soundfonts = self.project_dict['soundfont']
             for each in current_soundfonts:
-                current_sf2 = self.channel_sound_modules[int(each)]
-                if current_sf2:
-                    current_sf2_info = current_soundfonts[each]
-                    current_bank = current_sf2_info[2]
-                    current_sf2.change_bank(current_bank)
+                current_soundfont = self.channel_instruments[int(each)]
+                if current_soundfont:
+                    current_soundfont_info = current_soundfonts[each]
+                    current_bank = current_soundfont_info['bank']
+                    current_soundfont.change_bank(current_bank)
                     try:
-                        current_sf2.current_preset_name, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
+                        current_soundfont.current_preset_name, current_soundfont.current_preset_ind = current_soundfont.get_all_instrument_names(
                             get_ind=True, mode=1, return_mode=1)
                     except:
-                        current_sf2.current_preset_name, current_sf2.current_preset_ind = [], []
-                    current_sf2.change(*current_sf2_info)
+                        current_soundfont.current_preset_name, current_soundfont.current_preset_ind = [], []
+                    current_soundfont.change(
+                        channel=current_soundfont_info['channel'],
+                        sfid=current_soundfont_info['sfid'],
+                        bank=current_soundfont_info['bank'],
+                        preset=current_soundfont_info['preset'])
+            current_python_instruments = self.project_dict[
+                'python instruments']
+            for each in current_python_instruments:
+                current_python_instrument = self.channel_instruments[int(each)]
+                current_python_instrument_info = current_python_instruments[
+                    each]
+                current_python_instrument.instrument_parameters.update(
+                    current_python_instrument_info['instrument_parameters'])
+                current_python_instrument.effect_parameters.update(
+                    current_python_instrument_info['effect_parameters'])
+            current_mixer_effects = self.project_dict['mixer']
+            current_master_mixer_effects = current_mixer_effects['master']
+            current_channel_mixer_effects = current_mixer_effects['channels']
+            for i, each in enumerate(current_channel_mixer_effects):
+                for j in each:
+                    current_file_path = j['file_path']
+                    current_effect = importfile(current_file_path).Synth()
+                    current_effect.file_path = current_file_path
+                    current_effect.instrument_parameters.update(
+                        j['instrument_parameters'])
+                    current_effect.effect_parameters.update(
+                        j['effect_parameters'])
+                    current_effect.enabled = j['enabled']
+                    self.channel_effects[i].append(current_effect)
+            for j in current_master_mixer_effects:
+                current_file_path = j['file_path']
+                current_effect = importfile(current_file_path).Synth()
+                current_effect.file_path = current_file_path
+                current_effect.instrument_parameters.update(
+                    j['instrument_parameters'])
+                current_effect.effect_parameters.update(j['effect_parameters'])
+                current_effect.enabled = j['enabled']
+                self.master_effects.append(current_effect)
             self.show_msg(self.language_dict["msg"][14])
             self.default_load = True
             self.project_dict = self.get_project_dict()
@@ -1009,27 +1254,48 @@ class Daw(QtWidgets.QMainWindow):
         project_dict = {}
         project_dict['channel_num'] = copy(self.channel_num)
         project_dict['channel_names'] = copy(self.channel_names)
-        project_dict['channel_sound_modules_name'] = copy(
-            self.channel_sound_modules_name)
+        project_dict['channel_instrument_names'] = copy(
+            self.channel_instrument_names)
         project_dict['channel_dict'] = copy(self.channel_dict)
+        project_dict['channel_enabled'] = copy(self.channel_enabled)
         project_dict['current_bpm'] = copy(self.current_bpm)
         project_dict['current_musicpy_code'] = copy(
             self.set_musicpy_code_text.toPlainText())
-        current_soundfonts = {
-            i: self.channel_sound_modules[i]
-            for i in range(len(self.channel_sound_modules))
-        }
         project_dict['soundfont'] = {}
-        for i in range(len(self.channel_sound_modules)):
-            current_sound_modules = self.channel_sound_modules[i]
-            if isinstance(current_sound_modules, rs.sf2_loader):
-                current_info = [
-                    current_sound_modules.current_channel,
-                    current_sound_modules.current_sfid,
-                    current_sound_modules.current_bank,
-                    current_sound_modules.current_preset
-                ]
+        project_dict['python instruments'] = {}
+        for i in range(len(self.channel_instruments)):
+            current_instrument = self.channel_instruments[i]
+            if isinstance(current_instrument, rs.sf2_loader):
+                current_info = {
+                    'channel': current_instrument.current_channel,
+                    'sfid': current_instrument.current_sfid,
+                    'bank': current_instrument.current_bank,
+                    'preset': current_instrument.current_preset
+                }
                 project_dict['soundfont'][i] = copy(current_info)
+            elif current_instrument.__class__.__name__ == 'Synth':
+                project_dict['python instruments'][i] = {
+                    'instrument_parameters':
+                    copy(current_instrument.instrument_parameters),
+                    'effect_parameters':
+                    copy(current_instrument.effect_parameters)
+                }
+        current_master_effects = [{
+            'file_path': k.file_path,
+            'instrument_parameters': k.instrument_parameters,
+            'effect_parameters': k.effect_parameters,
+            'enabled': k.enabled
+        } for k in copy(self.master_effects)]
+        current_channel_effects = [[{
+            'file_path': k.file_path,
+            'instrument_parameters': k.instrument_parameters,
+            'effect_parameters': k.effect_parameters,
+            'enabled': k.enabled
+        } for k in each] for each in copy(self.channel_effects)]
+        project_dict['mixer'] = {
+            'master': current_master_effects,
+            'channels': current_channel_effects
+        }
         return project_dict
 
     def save_as_project_file(self, new=False):
@@ -1037,8 +1303,8 @@ class Daw(QtWidgets.QMainWindow):
             return
         self.show_msg('')
         self.project_dict = self.get_project_dict()
-        if not new and self.opening_project_name:
-            with open(self.opening_project_name, 'w', encoding='utf-8') as f:
+        if not new and self.project_name_file_path:
+            with open(self.project_name_file_path, 'w', encoding='utf-8') as f:
                 json.dump(self.project_dict,
                           f,
                           indent=4,
@@ -1067,13 +1333,13 @@ class Daw(QtWidgets.QMainWindow):
                 current_project_name = os.path.basename(filename)
                 self.current_project_name.configure(text=current_project_name)
                 self.project_name = current_project_name
-                self.opening_project_name = filename
+                self.project_name_file_path = filename
 
     def save_current_musicpy_code(self):
         filename = Dialog(
             caption=self.language_dict['title'][13],
             directory=self.last_path,
-            filter=f"{self.language_dict['title'][1]}, (*)",
+            filter=f"{self.language_dict['title'][1]} (*)",
             default_filename=f"{self.language_dict['untitled']}.txt",
             mode=2).filename[0]
         if filename:
@@ -1089,7 +1355,7 @@ class Daw(QtWidgets.QMainWindow):
         elif mode == 'tools':
             self.tools_menu.popup(QtGui.QCursor().pos())
 
-    def load_channel_settings(self, event, text=None):
+    def import_channel_settings(self, event, text=None):
         current_ind = self.choose_channels.currentIndex().row()
         if current_ind < self.channel_num and self.channel_list_focus:
             if text is None:
@@ -1124,11 +1390,14 @@ class Daw(QtWidgets.QMainWindow):
                 f'{current_msg[0]}{os.path.basename(filename)}{current_msg[1]}{current_ind+1}'
             )
 
-    def load_sf2_file(self, mode=0, current_ind=None, sound_path=None):
-        if current_ind is None:
+    def import_soundfont_file(self, mode=0, current_ind=None, sound_path=None):
+        has_current_ind = False
+        if current_ind is not None:
+            has_current_ind = True
+        else:
             current_ind = self.choose_channels.currentIndex().row()
-        if current_ind < self.channel_num and (self.channel_list_focus or
-                                               (current_ind is not None)):
+        if current_ind < self.channel_num and (self.channel_list_focus
+                                               or has_current_ind):
             self.show_msg('')
             if sound_path is not None:
                 original_sound_path = sound_path
@@ -1139,21 +1408,21 @@ class Daw(QtWidgets.QMainWindow):
                     f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
                 )
                 try:
-                    current_sf2 = rs.sf2_loader(sound_path)
-                    current_sf2.all_instruments_dict = current_sf2.all_instruments(
+                    current_soundfont = rs.sf2_loader(sound_path)
+                    current_soundfont.all_instruments_dict = current_soundfont.all_instruments(
                     )
-                    current_sf2.all_available_banks = list(
-                        current_sf2.all_instruments_dict.keys())
+                    current_soundfont.all_available_banks = list(
+                        current_soundfont.all_instruments_dict.keys())
                     try:
-                        current_sf2.current_preset_name, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
+                        current_soundfont.current_preset_name, current_soundfont.current_preset_ind = current_soundfont.get_all_instrument_names(
                             get_ind=True, return_mode=1)
                     except:
-                        current_sf2.current_preset_name, current_sf2.current_preset_ind = [], []
+                        current_soundfont.current_preset_name, current_soundfont.current_preset_ind = [], []
                 except:
                     self.show_msg(self.language_dict["msg"][30])
                     return
-                self.channel_sound_modules[current_ind] = current_sf2
-                self.channel_sound_modules_name[
+                self.channel_instruments[current_ind] = current_soundfont
+                self.channel_instrument_names[
                     current_ind] = original_sound_path
                 current_msg = self.language_dict["msg"][10].split('|')
                 self.show_msg(
@@ -1171,8 +1440,7 @@ class Daw(QtWidgets.QMainWindow):
                         return
                     self.update_last_path(sound_path)
                 else:
-                    sound_path = self.current_channel_sound_modules_entry.text(
-                    )
+                    sound_path = self.current_channel_instruments_entry.text()
                 original_sound_path = sound_path
                 if not os.path.exists(sound_path):
                     sound_path = os.path.join(self.current_project_file_path,
@@ -1182,23 +1450,24 @@ class Daw(QtWidgets.QMainWindow):
                         self.show_msg(
                             f'{self.language_dict["msg"][33]}{self.channel_names[current_ind]} ...'
                         )
-                        current_sf2 = rs.sf2_loader(sound_path)
-                        current_sf2.all_instruments_dict = current_sf2.all_instruments(
+                        current_soundfont = rs.sf2_loader(sound_path)
+                        current_soundfont.all_instruments_dict = current_soundfont.all_instruments(
                         )
-                        current_sf2.all_available_banks = list(
-                            current_sf2.all_instruments_dict.keys())
+                        current_soundfont.all_available_banks = list(
+                            current_soundfont.all_instruments_dict.keys())
                         try:
-                            current_sf2.current_preset_name, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
+                            current_soundfont.current_preset_name, current_soundfont.current_preset_ind = current_soundfont.get_all_instrument_names(
                                 get_ind=True, return_mode=1)
                         except:
-                            current_sf2.current_preset_name, current_sf2.current_preset_ind = [], []
-                        self.channel_sound_modules[current_ind] = current_sf2
-                        self.channel_sound_modules_name[
+                            current_soundfont.current_preset_name, current_soundfont.current_preset_ind = [], []
+                        self.channel_instruments[
+                            current_ind] = current_soundfont
+                        self.channel_instrument_names[
                             current_ind] = original_sound_path
-                        self.current_channel_sound_modules_entry.clear()
-                        self.current_channel_sound_modules_entry.setText(
+                        self.current_channel_instruments_entry.clear()
+                        self.current_channel_instruments_entry.setText(
                             original_sound_path)
-                        self.current_channel_sound_modules_entry.setCursorPosition(
+                        self.current_channel_instruments_entry.setCursorPosition(
                             0)
                         current_msg = self.language_dict["msg"][10].split('|')
                         self.show_msg(
@@ -1206,7 +1475,6 @@ class Daw(QtWidgets.QMainWindow):
                         )
                         self.choose_channels.setCurrentRow(current_ind)
                     except Exception as e:
-                        print(traceback.format_exc())
                         output(traceback.format_exc())
                         self.show_msg(self.language_dict["msg"][30])
                         return
@@ -1215,22 +1483,22 @@ class Daw(QtWidgets.QMainWindow):
         else:
             self.show_msg(self.language_dict['msg'][8])
 
-    def configure_sf2_file(self):
-        if self.open_configure_sf2_file:
-            self.configure_sf2_file_window.activateWindow()
-            return
+    def configure_soundfont_file(self):
+        if self.configure_soundfont_file_window is not None and self.configure_soundfont_file_window.isVisible(
+        ):
+            self.configure_soundfont_file_window.activateWindow()
         else:
             current_ind = self.choose_channels.currentIndex().row()
             if current_ind < self.channel_num and self.channel_list_focus:
-                current_sf2 = self.channel_sound_modules[current_ind]
-                if not isinstance(current_sf2, rs.sf2_loader):
-                    return
-                self.open_configure_sf2_file = True
-                self.configure_sf2_file_window = SoundFont_window(
-                    self, current_sf2=current_sf2)
+                current_soundfont = self.channel_instruments[current_ind]
+                if isinstance(current_soundfont, rs.sf2_loader):
+                    self.configure_soundfont_file_window = SoundFont_window(
+                        self, current_soundfont=current_soundfont)
             else:
                 self.show_msg(self.language_dict['msg'][8])
-                return
+
+    def configure_instrument(self):
+        self.configure_instrument_menubar.popup(QtGui.QCursor().pos())
 
     def open_export_menu(self):
         self.export_menubar.popup(QtGui.QCursor().pos())
@@ -1253,7 +1521,7 @@ class Daw(QtWidgets.QMainWindow):
             self.ask_other_format()
             return
         self.show_msg('')
-        if not self.channel_sound_modules:
+        if not self.channel_instruments:
             if action == 'export':
                 self.show_msg(self.language_dict["msg"][17])
                 return
@@ -1301,16 +1569,17 @@ class Daw(QtWidgets.QMainWindow):
                         len(each), current_bpm)
                     each.volume = 127
 
-            current_sound_modules = self.channel_sound_modules[
-                current_channel_num]
+            current_instruments = self.channel_instruments[current_channel_num]
+            if not self.channel_enabled[current_channel_num]:
+                current_chord.set_volume(0)
             if not all_has_audio(current_chord) and isinstance(
-                    current_sound_modules, rs.sf2_loader):
+                    current_instruments, rs.sf2_loader):
                 if action == 'export':
                     current_msg = self.language_dict["msg"][27].split('|')
                     self.show_msg(
                         f'{current_msg[0]}{self.language_dict["track"]} 1/1 {self.language_dict["channel"]} {current_channel_num + 1} (soundfont) '
                     )
-                silent_audio = current_sound_modules.export_chord(
+                silent_audio = current_instruments.export_chord(
                     current_chord,
                     bpm=current_bpm,
                     start_time=current_chord.start_time,
@@ -1320,29 +1589,42 @@ class Daw(QtWidgets.QMainWindow):
                     length=length,
                     extra_length=extra_length,
                     **soundfont_args)
+                current_effects = self.channel_effects[current_channel_num]
+                for each_effect in current_effects:
+                    if each_effect.enabled:
+                        try:
+                            silent_audio = each_effect.apply_effect(
+                                silent_audio)
+                        except:
+                            output(traceback.format_exc())
             else:
-                apply_fadeout_obj = self.apply_fadeout(current_chord,
-                                                       current_bpm)
-                if length:
-                    whole_duration = length * 1000
-                else:
-                    whole_duration = apply_fadeout_obj.eval_time(
-                        current_bpm,
-                        mode='number',
-                        audio_mode=1,
-                        start_time=current_chord.start_time) * 1000
-                    if extra_length:
-                        whole_duration += extra_length * 1000
-                silent_audio = AudioSegment.silent(duration=whole_duration)
-                silent_audio = self.channel_to_audio(
+                current_silent_audio = self.channel_to_audio(
                     current_chord,
-                    current_channel_num,
-                    silent_audio,
-                    current_bpm,
+                    current_channel_num=current_channel_num,
+                    current_bpm=current_bpm,
                     mode=action,
                     length=length,
-                    extra_length=extra_length,
-                    current_start_time=current_chord.start_time)
+                    extra_length=extra_length)
+                current_effects = self.channel_effects[current_channel_num]
+                for each_effect in current_effects:
+                    if each_effect.enabled:
+                        try:
+                            current_silent_audio = each_effect.apply_effect(
+                                current_silent_audio)
+                        except:
+                            output(traceback.format_exc())
+                current_start_time = self.bar_to_real_time(
+                    current_chord.start_time, current_bpm, 1)
+                silent_audio = AudioSegment.silent(
+                    duration=len(current_silent_audio) + current_start_time)
+                silent_audio = silent_audio.overlay(
+                    current_silent_audio, position=current_start_time)
+            for each_effect in self.master_effects:
+                if each_effect.enabled:
+                    try:
+                        silent_audio = each_effect.apply_effect(silent_audio)
+                    except:
+                        output(traceback.format_exc())
             try:
                 if action == 'export':
                     silent_audio.export(filename, format=mode, **export_args)
@@ -1381,29 +1663,23 @@ class Daw(QtWidgets.QMainWindow):
                             len(each), current_bpm)
                         each.volume = 127
                 current_chord.tracks[i] = each_channel
-            apply_fadeout_obj = self.apply_fadeout(current_chord, current_bpm)
-            if length:
-                whole_duration = length * 1000
-            else:
-                whole_duration = apply_fadeout_obj.eval_time(
-                    current_bpm, mode='number', audio_mode=1) * 1000
-                if extra_length:
-                    whole_duration += extra_length * 1000
-            silent_audio = AudioSegment.silent(duration=whole_duration)
-            sound_modules_num = len(self.channel_sound_modules)
+            instruments_num = len(self.channel_instruments)
             track_number = len(current_chord)
+            silent_audio = None
             for i in range(track_number):
                 current_channel_number = current_channels[i]
-                if current_channel_number >= sound_modules_num:
+                if current_channel_number >= instruments_num:
                     self.show_msg(
                         f'{self.language_dict["track"]} {i+1} : {self.language_dict["msg"][25]}{current_channel_number+1}'
                     )
                     continue
-                current_sound_modules = self.channel_sound_modules[
+                current_instruments = self.channel_instruments[
                     current_channel_number]
                 current_track = current_tracks[i]
+                if not self.channel_enabled[current_channel_number]:
+                    current_track.set_volume(0)
                 if not all_has_audio(current_track) and isinstance(
-                        current_sound_modules, rs.sf2_loader):
+                        current_instruments, rs.sf2_loader):
                     if action == 'export':
                         current_msg = self.language_dict["msg"][27].split('|')
                         self.show_msg(
@@ -1411,14 +1687,13 @@ class Daw(QtWidgets.QMainWindow):
                         )
                     current_instrument = current_chord.instruments_numbers[i]
                     current_channel = current_chord.channels[
-                        i] if current_chord.channels else current_sound_modules.current_channel
-                    current_sfid, current_bank, current_preset = current_sound_modules.channel_info(
+                        i] if current_chord.channels else current_instruments.current_channel
+                    current_sfid, current_bank, current_preset = current_instruments.channel_info(
                         current_channel)
                     if current_sfid == 0:
-                        current_sound_modules.change_sfid(
-                            current_sound_modules.sfid_list[0],
-                            current_channel)
-                        current_sfid, current_bank, current_preset = current_sound_modules.channel_info(
+                        current_instruments.change_sfid(
+                            current_instruments.sfid_list[0], current_channel)
+                        current_sfid, current_bank, current_preset = current_instruments.channel_info(
                             current_channel)
                     if isinstance(current_instrument, int):
                         current_instrument = [
@@ -1427,55 +1702,84 @@ class Daw(QtWidgets.QMainWindow):
                     else:
                         current_instrument = [current_instrument[0] - 1
                                               ] + current_instrument[1:]
-                    current_sound_modules.change(
+                    current_instruments.change(
                         channel=current_channel,
                         sfid=(current_instrument[2]
                               if len(current_instrument) > 2 else None),
                         bank=current_instrument[1],
                         preset=current_instrument[0],
                         mode=1)
-                    silent_audio = silent_audio.overlay(
-                        current_sound_modules.export_chord(
-                            current_track,
-                            bpm=current_bpm,
-                            get_audio=True,
-                            channel=current_channel,
-                            effects=current_track.effects
-                            if check_effect(current_track) else None,
-                            pan=current_pan[i],
-                            volume=current_volume[i],
-                            length=None
-                            if not track_lengths else track_lengths[i],
-                            extra_length=None if not track_extra_lengths else
-                            track_extra_lengths[i],
-                            **soundfont_args),
-                        position=self.bar_to_real_time(
-                            current_start_times[i] + current_track.start_time,
-                            current_bpm, 1))
-                    current_sound_modules.change(current_channel,
-                                                 current_sfid,
-                                                 current_bank,
-                                                 current_preset,
-                                                 mode=1)
-                else:
-                    silent_audio = self.channel_to_audio(
+                    current_silent_audio = current_instruments.export_chord(
                         current_track,
-                        current_channels[i],
-                        silent_audio,
-                        current_bpm,
-                        current_pan[i],
-                        current_volume[i],
-                        current_start_times[i] + current_track.start_time,
+                        bpm=current_bpm,
+                        get_audio=True,
+                        channel=current_channel,
+                        effects=current_track.effects
+                        if check_effect(current_track) else None,
+                        pan=current_pan[i],
+                        volume=current_volume[i],
+                        length=None if not track_lengths else track_lengths[i],
+                        extra_length=None
+                        if not track_extra_lengths else track_extra_lengths[i],
+                        **soundfont_args)
+                    current_instruments.change(current_channel,
+                                               current_sfid,
+                                               current_bank,
+                                               current_preset,
+                                               mode=1)
+
+                else:
+                    current_silent_audio = self.channel_to_audio(
+                        current_track,
+                        current_channel_num=current_channel_number,
+                        current_bpm=current_bpm,
+                        current_pan=current_pan[i],
+                        current_volume=current_volume[i],
                         mode=action,
                         length=None if not track_lengths else track_lengths[i],
                         extra_length=None
                         if not track_extra_lengths else track_extra_lengths[i],
                         track_ind=i,
                         whole_track_number=track_number)
+                current_effects = self.channel_effects[current_channel_number]
+                for each_effect in current_effects:
+                    if each_effect.enabled:
+                        try:
+                            current_silent_audio = each_effect.apply_effect(
+                                current_silent_audio)
+                        except:
+                            output(traceback.format_exc())
+                current_start_time = self.bar_to_real_time(
+                    current_start_times[i] + current_track.start_time,
+                    current_bpm, 1)
+                current_audio_duration = current_start_time + len(
+                    current_silent_audio)
+                if silent_audio is None:
+                    new_whole_duration = current_audio_duration
+                    silent_audio = AudioSegment.silent(
+                        duration=new_whole_duration)
+                    silent_audio = silent_audio.overlay(
+                        current_silent_audio, position=current_start_time)
+                else:
+                    silent_audio_duration = len(silent_audio)
+                    new_whole_duration = max(current_audio_duration,
+                                             silent_audio_duration)
+                    new_silent_audio = AudioSegment.silent(
+                        duration=new_whole_duration)
+                    new_silent_audio = new_silent_audio.overlay(silent_audio)
+                    new_silent_audio = new_silent_audio.overlay(
+                        current_silent_audio, position=current_start_time)
+                    silent_audio = new_silent_audio
             if check_effect(current_chord):
                 silent_audio = process_effect(silent_audio,
                                               current_chord.effects,
                                               bpm=current_bpm)
+            for each_effect in self.master_effects:
+                if each_effect.enabled:
+                    try:
+                        silent_audio = each_effect.apply_effect(silent_audio)
+                    except:
+                        output(traceback.format_exc())
             try:
                 if action == 'export':
                     silent_audio.export(filename, format=mode, **export_args)
@@ -1514,17 +1818,15 @@ class Daw(QtWidgets.QMainWindow):
     def channel_to_audio(self,
                          current_chord,
                          current_channel_num=0,
-                         silent_audio=None,
                          current_bpm=None,
                          current_pan=None,
                          current_volume=None,
-                         current_start_time=0,
                          mode='export',
                          length=None,
                          extra_length=None,
                          track_ind=0,
                          whole_track_number=1):
-        if len(self.channel_sound_modules) <= current_channel_num:
+        if len(self.channel_instruments) <= current_channel_num:
             self.show_msg(
                 f'{self.language_dict["msg"][25]}{current_channel_num+1}')
             return
@@ -1542,11 +1844,8 @@ class Daw(QtWidgets.QMainWindow):
         current_durations = current_chord.get_duration()
         current_volumes = current_chord.get_volume()
         current_dict = self.channel_dict[current_channel_num]
-        current_sounds = self.channel_sound_modules[current_channel_num]
-        current_sound_path = self.channel_sound_modules_name[
-            current_channel_num]
-        current_start_time = self.bar_to_real_time(current_start_time,
-                                                   current_bpm, 1)
+        current_instrument = self.channel_instruments[current_channel_num]
+        current_sound_path = self.channel_instrument_names[current_channel_num]
         current_position = 0
         whole_length = len(current_chord)
         if current_settings.show_convert_progress:
@@ -1573,16 +1872,20 @@ class Daw(QtWidgets.QMainWindow):
                 if isinstance(each, AudioSegment):
                     current_sound = each[:duration]
                 else:
-                    each_name = str(each)
-                    if each_name not in current_sounds:
-                        each_name = str(~each)
-                    if each_name not in current_sounds:
-                        current_position += interval
-                        continue
-                    current_sound = current_sounds[each_name]
-                    if current_sound is None:
-                        current_position += interval
-                        continue
+                    if current_instrument.__class__.__name__ == 'Synth':
+                        current_sound = current_instrument.generate_sound(
+                            each, current_bpm)
+                    else:
+                        each_name = str(each)
+                        if each_name not in current_instrument:
+                            each_name = str(~each)
+                        if each_name not in current_instrument:
+                            current_position += interval
+                            continue
+                        current_sound = current_instrument[each_name]
+                        if current_sound is None:
+                            current_position += interval
+                            continue
                     current_max_time = min(len(current_sound),
                                            duration + current_fadeout_time)
                     current_max_fadeout_time = min(len(current_sound),
@@ -1644,9 +1947,7 @@ class Daw(QtWidgets.QMainWindow):
             current_silent_audio = process_effect(current_silent_audio,
                                                   current_chord.effects,
                                                   bpm=current_bpm)
-        silent_audio = silent_audio.overlay(current_silent_audio,
-                                            position=current_start_time)
-        return silent_audio
+        return current_silent_audio
 
     def export_midi_file(self, event, current_chord=None, write_args={}):
         self.show_msg('')
@@ -1674,14 +1975,16 @@ class Daw(QtWidgets.QMainWindow):
             self.choose_channels.insertItem(current_ind,
                                             f'Channel {current_ind+1}')
             self.channel_names[current_ind] = f'Channel {current_ind+1}'
-            self.channel_sound_modules_name[current_ind] = ''
-            current_instrument = self.channel_sound_modules[current_ind]
+            self.channel_instrument_names[current_ind] = ''
+            current_instrument = self.channel_instruments[current_ind]
             if isinstance(current_instrument, rs.sf2_loader):
                 current_instrument.synth.delete()
-            self.channel_sound_modules[current_ind] = None
+            self.channel_instruments[current_ind] = None
+            self.channel_effects[current_ind].clear()
+            self.channel_enabled[current_ind] = True
             self.channel_dict[current_ind] = copy(current_settings.notedict)
             self.current_channel_name_entry.clear()
-            self.current_channel_sound_modules_entry.clear()
+            self.current_channel_instruments_entry.clear()
         else:
             self.show_msg(self.language_dict['msg'][8])
             return
@@ -1689,13 +1992,13 @@ class Daw(QtWidgets.QMainWindow):
     def clear_current_instrument(self):
         current_ind = self.choose_channels.currentIndex().row()
         if current_ind < self.channel_num and self.channel_list_focus:
-            self.channel_sound_modules_name[current_ind] = ''
-            current_instrument = self.channel_sound_modules[current_ind]
+            self.channel_instrument_names[current_ind] = ''
+            current_instrument = self.channel_instruments[current_ind]
             if isinstance(current_instrument, rs.sf2_loader):
                 current_instrument.synth.delete()
-            self.channel_sound_modules[current_ind] = None
+            self.channel_instruments[current_ind] = None
             self.channel_dict[current_ind] = copy(current_settings.notedict)
-            self.current_channel_sound_modules_entry.clear()
+            self.current_channel_instruments_entry.clear()
         else:
             self.show_msg(self.language_dict['msg'][8])
             return
@@ -1715,15 +2018,19 @@ class Daw(QtWidgets.QMainWindow):
             self.stop_playing()
             self.choose_channels.clear()
             self.channel_names.clear()
-            self.channel_sound_modules_name.clear()
-            for i in self.channel_sound_modules:
+            self.channel_instrument_names.clear()
+            for i in self.channel_instruments:
                 if isinstance(i, rs.sf2_loader):
                     i.synth.delete()
-            self.channel_sound_modules.clear()
+            self.channel_instruments.clear()
             self.channel_dict.clear()
+            self.channel_effects.clear()
+            self.master_effects.clear()
+            self.channel_enabled.clear()
             self.channel_num = 0
             self.current_channel_name_entry.clear()
-            self.current_channel_sound_modules_entry.clear()
+            self.current_channel_instruments_entry.clear()
+            self.check_enable_button.setChecked(False)
 
     def delete_channel(self):
         current_ind = self.choose_channels.currentIndex().row()
@@ -1733,18 +2040,20 @@ class Daw(QtWidgets.QMainWindow):
             self.choose_channels.setCurrentRow(self.choose_channels.count() -
                                                1)
             del self.channel_names[current_ind]
-            del self.channel_sound_modules_name[current_ind]
-            current_instrument = self.channel_sound_modules[current_ind]
+            del self.channel_instrument_names[current_ind]
+            current_instrument = self.channel_instruments[current_ind]
             if isinstance(current_instrument, rs.sf2_loader):
                 current_instrument.synth.delete()
-            del self.channel_sound_modules[current_ind]
+            del self.channel_instruments[current_ind]
             del self.channel_dict[current_ind]
+            del self.channel_effects[current_ind]
+            del self.channel_enabled[current_ind]
             self.channel_num -= 1
             if self.channel_num > 0:
                 self.show_current_channel()
             else:
                 self.current_channel_name_entry.clear()
-                self.current_channel_sound_modules_entry.clear()
+                self.current_channel_instruments_entry.clear()
         else:
             self.show_msg(self.language_dict['msg'][8])
             return
@@ -1756,9 +2065,11 @@ class Daw(QtWidgets.QMainWindow):
         self.choose_channels.clearSelection()
         self.choose_channels.setCurrentRow(self.choose_channels.count() - 1)
         self.channel_names.append(current_channel_name)
-        self.channel_sound_modules_name.append('')
-        self.channel_sound_modules.append(None)
+        self.channel_instrument_names.append('')
+        self.channel_instruments.append(None)
         self.channel_dict.append(copy(current_settings.notedict))
+        self.channel_effects.append([])
+        self.channel_enabled.append(True)
         self.show_current_channel()
 
     def init_channels(self, num=1):
@@ -1767,19 +2078,20 @@ class Daw(QtWidgets.QMainWindow):
             current_channel_name = f'{self.language_dict["channel"]} {i+1}'
             self.choose_channels.insertItem(i, current_channel_name)
             self.channel_names.append(current_channel_name)
-            self.channel_sound_modules_name.append('')
-            self.channel_sound_modules.append(None)
+            self.channel_instrument_names.append('')
+            self.channel_instruments.append(None)
             self.channel_dict.append(copy(current_settings.notedict))
+            self.channel_effects.append([])
+            self.channel_enabled.append(True)
 
     def change_channel_dict(self):
-        if self.open_change_channel_dict:
+        if self.change_dict_window is not None and self.change_dict_window.isVisible(
+        ):
             self.change_dict_window.activateWindow()
-            return
         else:
             current_ind = self.choose_channels.currentIndex().row()
             self.current_channel_dict_num = current_ind
             if current_ind < self.channel_num and self.channel_list_focus:
-                self.open_change_channel_dict = True
                 self.change_dict_window = Channel_dict_window(
                     self, current_ind)
             else:
@@ -1820,7 +2132,7 @@ class Daw(QtWidgets.QMainWindow):
             current_mode = 1
         self.show_msg('')
         current_ind = self.current_channel_dict_num if not current_mode else current_ind
-        sound_path = self.channel_sound_modules_name[current_ind]
+        sound_path = self.channel_instrument_names[current_ind]
         original_sound_path = sound_path
         if not os.path.exists(sound_path):
             sound_path = os.path.join(self.current_project_file_path,
@@ -1828,12 +2140,16 @@ class Daw(QtWidgets.QMainWindow):
             if not os.path.exists(sound_path):
                 return
         if os.path.isfile(sound_path):
-            if os.path.splitext(sound_path)[1][1:].lower() == 'mdi':
+            current_extension = os.path.splitext(sound_path)[1][1:].lower()
+            if current_extension == 'mdi':
                 self.import_mdi_file(current_ind=current_ind,
                                      sound_path=original_sound_path)
-            else:
-                self.load_sf2_file(current_ind=current_ind,
-                                   sound_path=original_sound_path)
+            elif current_extension in ['sf2', 'sf3', 'dls']:
+                self.import_soundfont_file(current_ind=current_ind,
+                                           sound_path=original_sound_path)
+            elif current_extension == 'py':
+                self.import_python_instrument(current_ind=current_ind,
+                                              sound_path=original_sound_path)
         else:
             try:
                 self.show_msg(
@@ -1851,7 +2167,6 @@ class Daw(QtWidgets.QMainWindow):
                                                  current_mode,
                                                  original_sound_path)
             except Exception as e:
-                print(traceback.format_exc())
                 output(traceback.format_exc())
                 self.show_msg(self.language_dict["msg"][30])
 
@@ -1875,17 +2190,20 @@ class Daw(QtWidgets.QMainWindow):
             self.current_channel_name_entry.clear()
             self.current_channel_name_entry.setText(
                 self.channel_names[current_ind])
-            self.current_channel_sound_modules_entry.clear()
-            self.current_channel_sound_modules_entry.setText(
-                self.channel_sound_modules_name[current_ind])
-            self.current_channel_sound_modules_entry.setCursorPosition(0)
+            self.current_channel_instruments_entry.clear()
+            self.current_channel_instruments_entry.setText(
+                self.channel_instrument_names[current_ind])
+            self.current_channel_instruments_entry.setCursorPosition(0)
+            self.check_enable_button.setChecked(
+                self.channel_enabled[current_ind])
 
     def cancel_choose_channels(self):
         self.choose_channels.clearSelection()
         self.current_channel_name_entry.clear()
-        self.current_channel_sound_modules_entry.clear()
+        self.current_channel_instruments_entry.clear()
         self.current_channel_name_label.activateWindow()
         self.channel_list_focus = False
+        self.check_enable_button.setChecked(False)
 
     def import_midi_file_func(self):
         self.show_msg('')
@@ -1906,27 +2224,28 @@ class Daw(QtWidgets.QMainWindow):
             self.set_musicpy_code_text.activateWindow()
             self.set_musicpy_code_text.moveCursor(QtGui.QTextCursor.End)
 
-    def load_instrument_func(self):
-        sound_path = self.current_channel_sound_modules_entry.text()
+    def import_instrument_func(self):
+        sound_path = self.current_channel_instruments_entry.text()
         if not os.path.exists(sound_path):
             sound_path = os.path.join(self.current_project_file_path,
                                       sound_path)
         if os.path.isdir(sound_path):
-            self.load_instrument_folder(1)
+            self.import_instrument_folder(1)
         elif os.path.isfile(sound_path):
-            if os.path.splitext(sound_path)[1][1:].lower() == 'mdi':
+            current_extension = os.path.splitext(sound_path)[1][1:].lower()
+            if current_extension == 'mdi':
                 self.import_mdi_file(1)
-            elif os.path.splitext(sound_path)[1][1:].lower() in [
-                    'sf2', 'sf3', 'dls'
-            ]:
-                self.load_sf2_file(1)
+            elif current_extension in ['sf2', 'sf3', 'dls']:
+                self.import_soundfont_file(1)
+            elif current_extension == 'py':
+                self.import_python_instrument(1)
         else:
             self.show_msg(self.language_dict["msg"][30])
 
-    def load_instrument(self, mode=0):
-        self.load_instrument_menubar.popup(QtGui.QCursor().pos())
+    def import_instrument(self, mode=0):
+        self.import_instrument_menubar.popup(QtGui.QCursor().pos())
 
-    def load_instrument_folder(self, mode=0):
+    def import_instrument_folder(self, mode=0):
         current_ind = self.choose_channels.currentIndex().row()
         if current_ind < self.channel_num and self.channel_list_focus:
             self.show_msg('')
@@ -1938,7 +2257,7 @@ class Daw(QtWidgets.QMainWindow):
                     return
                 self.update_last_path(sound_path)
             else:
-                sound_path = self.current_channel_sound_modules_entry.text()
+                sound_path = self.current_channel_instruments_entry.text()
             original_sound_path = sound_path
             if not os.path.exists(sound_path):
                 sound_path = os.path.join(self.current_project_file_path,
@@ -1960,12 +2279,10 @@ class Daw(QtWidgets.QMainWindow):
                                                      current_ind, None,
                                                      original_sound_path)
                 except Exception as e:
-                    print(traceback.format_exc())
                     output(traceback.format_exc())
                     self.show_msg(self.language_dict["msg"][30])
         else:
             self.show_msg(self.language_dict['msg'][8])
-            return
 
     def bar_to_real_time(self, bar, bpm, mode=0):
         # return time in ms
@@ -1990,7 +2307,9 @@ class Daw(QtWidgets.QMainWindow):
                 self.show_msg(self.language_dict["msg"][35])
 
     def play_note_func(self, name, duration, volume, channel=0):
-        note_sounds = self.channel_sound_modules[channel]
+        if not self.channel_enabled[channel]:
+            return
+        note_sounds = self.channel_instruments[channel]
         if name in note_sounds:
             current_sound = note_sounds[name]
             if current_sound:
@@ -2030,7 +2349,7 @@ class Daw(QtWidgets.QMainWindow):
         if not self.default_load:
             return
         self.show_msg('')
-        if not self.channel_sound_modules:
+        if not self.channel_instruments:
             self.show_msg(self.language_dict["msg"][18])
             return
 
@@ -2058,7 +2377,6 @@ class Daw(QtWidgets.QMainWindow):
         try:
             exec(current_notes, globals(), globals())
         except Exception as e:
-            print(traceback.format_exc())
             self.show_msg(self.language_dict["msg"][4])
             output(traceback.format_exc())
             return
@@ -2089,7 +2407,6 @@ class Daw(QtWidgets.QMainWindow):
                 self.play_musicpy_sounds(current_chord, current_bpm,
                                          current_channel_num)
             except Exception as e:
-                print(traceback.format_exc())
                 if not global_play:
                     self.show_msg(self.language_dict["msg"][4])
                     output(traceback.format_exc())
@@ -2111,9 +2428,11 @@ class Daw(QtWidgets.QMainWindow):
                 isinstance(i, chord) for i in current_chord):
             current_chord = concat(current_chord, mode='|')
         if isinstance(current_chord, chord):
+            current_instrument = self.channel_instruments[current_channel_num]
             if check_special(current_chord) or isinstance(
-                    self.channel_sound_modules[current_channel_num],
-                    rs.sf2_loader):
+                    current_instrument, rs.sf2_loader
+            ) or current_instrument.__class__.__name__ == 'Synth' or self.channel_effects[
+                    current_channel_num]:
                 self.export_audio_file(action='play',
                                        channel_num=current_channel_num,
                                        obj=current_chord,
@@ -2152,8 +2471,10 @@ class Daw(QtWidgets.QMainWindow):
                 i for i in range(len(current_chord))
             ]
             if check_special(current_chord) or any(
-                    isinstance(self.channel_sound_modules[i], rs.sf2_loader)
-                    for i in current_channel_nums):
+                    isinstance(self.channel_instruments[i], rs.sf2_loader) or
+                    self.channel_instruments[i].__class__.__name__ == 'Synth'
+                    for i in current_channel_nums) or any(
+                        i for i in self.channel_effects):
                 self.export_audio_file(action='play',
                                        obj=current_chord,
                                        length=length,
@@ -2163,33 +2484,34 @@ class Daw(QtWidgets.QMainWindow):
                                        soundfont_args=soundfont_args)
                 self.show_msg(self.language_dict["msg"][22])
                 return
-            current_tracks = current_chord.tracks
-            current_start_times = current_chord.start_times
-            if isinstance(current_bpm, float) and current_bpm.is_integer():
-                current_bpm = int(current_bpm)
-            self.change_current_bpm_entry.clear()
-            self.change_current_bpm_entry.setText(str(current_bpm))
-            self.change_current_bpm(1)
-            for each in range(len(current_chord)):
-                current_time = self.bar_to_real_time(
-                    current_start_times[each] +
-                    current_tracks[each].start_time,
-                    self.current_bpm,
-                    mode=1)
-                current_id = threading.Timer(
-                    current_time / 1000,
-                    lambda each=each: self.play_channel(
-                        current_tracks[each], current_channel_nums[each]))
-                current_id.start()
-                self.piece_playing.append(current_id)
+            else:
+                current_tracks = current_chord.tracks
+                current_start_times = current_chord.start_times
+                if isinstance(current_bpm, float) and current_bpm.is_integer():
+                    current_bpm = int(current_bpm)
+                self.change_current_bpm_entry.clear()
+                self.change_current_bpm_entry.setText(str(current_bpm))
+                self.change_current_bpm(1)
+                for each in range(len(current_chord)):
+                    current_time = self.bar_to_real_time(
+                        current_start_times[each] +
+                        current_tracks[each].start_time,
+                        self.current_bpm,
+                        mode=1)
+                    current_id = threading.Timer(
+                        current_time / 1000,
+                        lambda each=each: self.play_channel(
+                            current_tracks[each], current_channel_nums[each]))
+                    current_id.start()
+                    self.piece_playing.append(current_id)
         self.show_msg(self.language_dict["msg"][22])
 
     def play_channel(self, current_chord, current_channel_num=0, start_time=0):
-        if len(self.channel_sound_modules) <= current_channel_num:
+        if len(self.channel_instruments) <= current_channel_num:
             self.show_msg(
                 f'{self.language_dict["msg"][25]}{current_channel_num+1}')
             return
-        if not self.channel_sound_modules[current_channel_num]:
+        if not self.channel_instruments[current_channel_num]:
             self.show_msg(
                 f'{self.language_dict["channel"]}{current_channel_num+1} {self.language_dict["msg"][26]}'
             )
@@ -2214,28 +2536,23 @@ class Daw(QtWidgets.QMainWindow):
                                                       self.current_bpm, 1)
 
     def open_change_settings(self):
-        if not self.open_settings:
-            self.open_settings = True
+        if self.current_config_window is not None and self.current_config_window.isVisible(
+        ):
+            self.current_config_window.activateWindow()
+        else:
             os.chdir(abs_path)
             self.current_config_window = config_window(
                 config_path=settings_path, dpi=self.dpi, parent=self)
             self.current_config_window.setStyleSheet(self.get_stylesheet())
-        else:
-            self.current_config_window.activateWindow()
 
-    def modules(self, ind):
-        return self.channel_sound_modules[ind]
+    def instruments(self, ind):
+        return self.channel_instruments[ind]
 
-    def module_names(self, ind):
-        return self.channel_sound_modules_name[ind]
+    def instrument_names(self, ind):
+        return self.channel_instrument_names[ind]
 
     def open_debug_window(self):
-        if self.is_open_debug_window:
-            self.debug_window.activateWindow()
-            return
-        else:
-            self.is_open_debug_window = True
-            self.debug_window = Debug_window(self)
+        self.debug_window = Debug_window(self)
 
     def init_skin(self, skin):
         os.chdir(abs_path)
@@ -2256,6 +2573,12 @@ class Daw(QtWidgets.QMainWindow):
 
         current_settings.current_skin = skin
         change_parameter('current_skin', skin, settings_path)
+
+    def change_enabled(self):
+        current_ind = self.choose_channels.currentIndex().row()
+        if current_ind >= 0:
+            self.channel_enabled[
+                current_ind] = self.check_enable_button.isChecked()
 
 
 class mdi:
@@ -2430,7 +2753,7 @@ class pitch:
             current_note_name = str(start + i)
             converting_note = current_daw.language_dict['Converting note']
             if pitch_shifter:
-                current_daw.pitch_shifter_window.pitch_msg(
+                current_daw.pitch_shifter_window.show_msg(
                     f'{converting_note} {current_note_name} ...')
             else:
                 current_daw.show_msg(
@@ -2461,7 +2784,7 @@ class pitch:
         Exporting = current_daw.language_dict['Exporting']
         for each in current_dict:
             if pitch_shifter:
-                current_daw.pitch_shifter_window.pitch_msg(
+                current_daw.pitch_shifter_window.show_msg(
                     f'{Exporting} {each} ...')
             current_dict[each].export(f'{each}.{format}', format=format)
         os.chdir(abs_path)
@@ -2509,12 +2832,6 @@ class sound:
 
     def stop(self):
         pygame.mixer.stop()
-
-
-def set_font(font, dpi):
-    if dpi != 96.0:
-        font.setPointSize(int(font.pointSize() * (96.0 / dpi)))
-    return font
 
 
 class Dialog(QtWidgets.QMainWindow):
@@ -2754,6 +3071,7 @@ class CustomTextEdit(QtWidgets.QPlainTextEdit):
             current_row = current_whole_text.split('\n')[-1].replace(' ', '')
             current_word = current_row.split(',')[-1]
             try:
+                exec(current_whole_text, globals(), globals())
                 words = dir(eval(current_word))
                 super().keyPressEvent(e)
                 self._completer.setModel(
@@ -2778,6 +3096,10 @@ class CustomTextEdit(QtWidgets.QPlainTextEdit):
                                or len(completionPrefix) < 1
                                or current_text[-1] in self.special_words):
             self._completer.popup().hide()
+            if self.current_completion_words != function_names:
+                self._completer.setModel(
+                    QtCore.QStringListModel(function_names, self._completer))
+                self.current_completion_words = function_names
             return
 
         if completionPrefix != self._completer.completionPrefix():
@@ -2822,6 +3144,7 @@ class Start_window(QtWidgets.QMainWindow):
     def __init__(self, dpi=None):
         super().__init__()
         self.dpi = dpi
+        self.setWindowIcon(QtGui.QIcon(icon_path))
         self.setStyleSheet('background-color: gainsboro;')
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint
                             | QtCore.Qt.WindowStaysOnTopHint)
@@ -2852,7 +3175,6 @@ class Channel_dict_window(QtWidgets.QMainWindow):
         self.setWindowIcon(QtGui.QIcon(icon_path))
         self.setStyleSheet(
             f'background-color: {current_settings.background_color}')
-        self.closeEvent = self.close_change_dict_window
         self.setWindowTitle(self.language_dict['change_channel_dict'][0])
         self.setMinimumSize(500, 300)
         self.activateWindow()
@@ -2922,10 +3244,6 @@ class Channel_dict_window(QtWidgets.QMainWindow):
             command=self.clear_all_notes)
         self.clear_all_notes_button.place(x=350, y=200)
         self.show()
-
-    def close_change_dict_window(self, event):
-        self.close()
-        self.parent.open_change_channel_dict = False
 
     def show_current_dict_configs(self):
         current_note = self.dict_configs.currentItem().text()
@@ -3005,15 +3323,14 @@ class Channel_dict_window(QtWidgets.QMainWindow):
 
 class SoundFont_window(QtWidgets.QMainWindow):
 
-    def __init__(self, parent=None, current_sf2=None):
+    def __init__(self, parent=None, current_soundfont=None):
         super().__init__()
         self.parent = parent
         self.current_font = self.parent.current_font
         self.language_dict = self.parent.language_dict
         self.setWindowIcon(QtGui.QIcon(icon_path))
         self.setStyleSheet(self.parent.get_stylesheet())
-        self.closeEvent = self.close_configure_sf2_file_window
-        self.setWindowTitle(self.language_dict['configure_sf2'][0])
+        self.setWindowTitle(self.language_dict['configure_instrument'][0])
         self.setMinimumSize(700, 300)
         self.activateWindow()
         self.preset_configs = QtWidgets.QListWidget(self)
@@ -3026,47 +3343,48 @@ class SoundFont_window(QtWidgets.QMainWindow):
         self.bank_configs.move(0, 30)
         self.bank_configs.setFont(self.current_font)
         self.bank_configs.clicked.connect(self.show_current_bank_configs)
-        self.current_all_available_banks = current_sf2.all_available_banks
-        self.current_preset_ind = current_sf2.current_preset_ind
-        self.preset_configs.addItems(current_sf2.current_preset_name)
+        self.current_all_available_banks = current_soundfont.all_available_banks
+        self.current_preset_ind = current_soundfont.current_preset_ind
+        self.preset_configs.addItems(current_soundfont.current_preset_name)
         self.bank_configs.addItems(
-            [str(i) for i in current_sf2.all_available_banks])
-        self.current_bank = Label(self,
-                                  text=self.language_dict['configure_sf2'][1])
+            [str(i) for i in current_soundfont.all_available_banks])
+        self.current_bank = Label(
+            self, text=self.language_dict['configure_instrument'][1])
         self.current_bank.place(x=400, y=30)
         self.current_bank_entry = LineEdit(self,
                                            width=70,
                                            font=self.current_font)
-        self.current_bank_entry.setText(str(current_sf2.current_bank))
+        self.current_bank_entry.setText(str(current_soundfont.current_bank))
         self.current_bank_entry.place(x=500, y=30)
         self.current_preset = Label(
-            self, text=self.language_dict['configure_sf2'][2])
+            self, text=self.language_dict['configure_instrument'][2])
         self.current_preset.place(x=400, y=80)
         self.current_preset_entry = LineEdit(self,
                                              width=70,
                                              font=self.current_font)
-        self.current_preset_entry.setText(str(current_sf2.current_preset + 1))
+        self.current_preset_entry.setText(
+            str(current_soundfont.current_preset + 1))
         self.current_preset_entry.place(x=500, y=80)
-        if current_sf2.current_preset in current_sf2.current_preset_ind:
-            current_preset_ind = current_sf2.current_preset_ind.index(
-                current_sf2.current_preset)
+        if current_soundfont.current_preset in current_soundfont.current_preset_ind:
+            current_preset_ind = current_soundfont.current_preset_ind.index(
+                current_soundfont.current_preset)
             self.preset_configs.clearSelection()
             self.preset_configs.setCurrentRow(current_preset_ind)
             self.bank_configs.clearSelection()
             self.bank_configs.setCurrentRow(
-                current_sf2.all_available_banks.index(
-                    current_sf2.current_bank))
+                current_soundfont.all_available_banks.index(
+                    current_soundfont.current_bank))
         self.change_current_bank_button = Button(
             self,
-            text=self.language_dict['configure_sf2'][3],
+            text=self.language_dict['configure_instrument'][3],
             command=self.change_current_bank)
         self.change_current_preset_button = Button(
             self,
-            text=self.language_dict['configure_sf2'][4],
+            text=self.language_dict['configure_instrument'][4],
             command=self.change_current_preset)
         self.listen_preset_button = Button(
             self,
-            text=self.language_dict['configure_sf2'][5],
+            text=self.language_dict['configure_instrument'][5],
             command=self.listen_preset)
         self.change_current_bank_button.place(x=400, y=130)
         self.change_current_preset_button.place(x=520, y=130)
@@ -3076,10 +3394,6 @@ class SoundFont_window(QtWidgets.QMainWindow):
         self.bank_label = Label(self, text='Banks')
         self.bank_label.place(x=0, y=0)
         self.show()
-
-    def close_configure_sf2_file_window(self, event):
-        self.close()
-        self.parent.open_configure_sf2_file = False
 
     def change_current_bank(self, mode=0):
         current_ind = self.parent.choose_channels.currentIndex().row()
@@ -3092,22 +3406,22 @@ class SoundFont_window(QtWidgets.QMainWindow):
         elif mode == 1:
             current_bank_ind = self.bank_configs.currentRow()
             current_bank = self.current_all_available_banks[current_bank_ind]
-        current_sf2 = self.parent.channel_sound_modules[current_ind]
-        if current_bank == current_sf2.current_bank:
+        current_soundfont = self.parent.channel_instruments[current_ind]
+        if current_bank == current_soundfont.current_bank:
             return
-        current_sf2.change(bank=current_bank, preset=0, correct=False)
+        current_soundfont.change(bank=current_bank, preset=0, correct=False)
         try:
-            current_sf2.current_preset_name, current_sf2.current_preset_ind = current_sf2.get_all_instrument_names(
+            current_soundfont.current_preset_name, current_soundfont.current_preset_ind = current_soundfont.get_all_instrument_names(
                 get_ind=True, mode=1, return_mode=1)
         except:
-            current_sf2.current_preset_name, current_sf2.current_preset_ind = [], []
-        self.current_preset_ind = current_sf2.current_preset_ind
+            current_soundfont.current_preset_name, current_soundfont.current_preset_ind = [], []
+        self.current_preset_ind = current_soundfont.current_preset_ind
         self.current_preset_entry.clear()
         self.current_preset_entry.setText(
-            '1' if not current_sf2.current_preset_ind else str(
-                current_sf2.current_preset_ind[0] + 1))
+            '1' if not current_soundfont.current_preset_ind else str(
+                current_soundfont.current_preset_ind[0] + 1))
         self.preset_configs.clear()
-        self.preset_configs.addItems(current_sf2.current_preset_name)
+        self.preset_configs.addItems(current_soundfont.current_preset_name)
         self.preset_configs.clearSelection()
         self.preset_configs.setCurrentRow(0)
 
@@ -3118,20 +3432,20 @@ class SoundFont_window(QtWidgets.QMainWindow):
                 self.current_preset_ind[self.preset_configs.currentRow()] + 1)
         else:
             current_preset = self.current_preset_entry.text()
-        current_sf2 = self.parent.channel_sound_modules[current_ind]
+        current_soundfont = self.parent.channel_instruments[current_ind]
         if current_preset.isdigit():
             current_preset = int(current_preset)
-            current_sf2.change(preset=current_preset - 1)
-            if current_preset - 1 in current_sf2.current_preset_ind:
+            current_soundfont.change(preset=current_preset - 1)
+            if current_preset - 1 in current_soundfont.current_preset_ind:
                 self.preset_configs.clearSelection()
-                current_preset_ind = current_sf2.current_preset_ind.index(
+                current_preset_ind = current_soundfont.current_preset_ind.index(
                     current_preset - 1)
                 self.preset_configs.setCurrentRow(current_preset_ind)
 
     def listen_preset(self):
         current_ind = self.parent.choose_channels.currentIndex().row()
-        current_sf2 = self.parent.channel_sound_modules[current_ind]
-        current_sf2.play_note('C5')
+        current_soundfont = self.parent.channel_instruments[current_ind]
+        current_soundfont.play_note('C5')
 
     def show_current_preset_configs(self):
         current_ind = self.preset_configs.currentIndex().row()
@@ -3173,6 +3487,7 @@ class Ask_save_window(QtWidgets.QMainWindow):
         self.save_button.place(x=0, y=100)
         self.not_save_button.place(x=90, y=100)
         self.cancel_button.place(x=200, y=100)
+        self.activateWindow()
         self.show()
 
     def close_all(self):
@@ -3222,7 +3537,8 @@ class Ask_other_format_window(QtWidgets.QMainWindow):
         current_format = self.ask_other_format_entry.text()
         self.close()
         if current_format:
-            self.parent.export_pitch_audio_file(mode=current_format)
+            self.parent.pitch_shifter_window.export_pitch_audio_file(
+                mode=current_format)
 
 
 class Debug_window(QtWidgets.QMainWindow):
@@ -3234,7 +3550,6 @@ class Debug_window(QtWidgets.QMainWindow):
         self.language_dict = self.parent.language_dict
         self.setStyleSheet(self.parent.get_stylesheet())
         self.setWindowIcon(QtGui.QIcon(icon_path))
-        self.closeEvent = self.close_debug_window
         self.setWindowTitle(self.language_dict['debug window'])
         self.setMinimumSize(700, 400)
         self.activateWindow()
@@ -3248,10 +3563,6 @@ class Debug_window(QtWidgets.QMainWindow):
         self.clear_text_button.place(x=600, y=350)
         self.show()
 
-    def close_debug_window(self, event):
-        self.close()
-        self.parent.is_open_debug_window = False
-
 
 class Pitch_shifter_window(QtWidgets.QMainWindow):
 
@@ -3262,19 +3573,18 @@ class Pitch_shifter_window(QtWidgets.QMainWindow):
         self.language_dict = self.parent.language_dict
         self.setStyleSheet(self.parent.get_stylesheet())
         self.setWindowIcon(QtGui.QIcon(icon_path))
-        self.closeEvent = self.close_pitch_shifter_window
         self.setWindowTitle(self.language_dict['pitch shifter'][0])
         self.setMinimumSize(700, 400)
         self.activateWindow()
 
-        self.load_current_pitch_label = Label(
+        self.import_current_pitch_label = Label(
             self, text=self.language_dict['pitch shifter'][1])
-        self.load_current_pitch_label.place(x=0, y=50)
-        self.load_current_pitch_button = Button(
+        self.import_current_pitch_label.place(x=0, y=50)
+        self.import_current_pitch_button = Button(
             self,
             text=self.language_dict['pitch shifter'][2],
-            command=self.pitch_shifter_load_pitch)
-        self.load_current_pitch_button.place(x=0, y=100)
+            command=self.pitch_shifter_import_pitch)
+        self.import_current_pitch_button.place(x=0, y=100)
         self.msg = Label(self, text=self.language_dict['pitch shifter'][3])
         self.msg.place(x=0, y=350)
 
@@ -3356,7 +3666,7 @@ class Pitch_shifter_window(QtWidgets.QMainWindow):
         self.pitch_shifter_folder_name = self.language_dict['Untitled']
         self.show()
 
-    def pitch_msg(self, text=''):
+    def show_msg(self, text=''):
         self.msg.setText(text)
         self.msg.adjustSize()
         self.msg.repaint()
@@ -3364,18 +3674,18 @@ class Pitch_shifter_window(QtWidgets.QMainWindow):
 
     def pitch_shifter_change_folder_name(self):
         self.pitch_shifter_folder_name = self.folder_name.text()
-        self.pitch_msg(
+        self.show_msg(
             f'{self.language_dict["msg"][38]}{self.pitch_shifter_folder_name}')
 
     def pitch_shifter_export_sound_files(self):
         if not self.has_load:
-            self.pitch_msg(self.language_dict["msg"][39])
+            self.show_msg(self.language_dict["msg"][39])
             return
         try:
             start = N(self.export_sound_files_from.text())
             end = N(self.export_sound_files_to.text())
         except:
-            self.pitch_msg(self.language_dict["msg"][40])
+            self.show_msg(self.language_dict["msg"][40])
             return
         file_path = Dialog(caption=self.language_dict['title'][2],
                            directory=self.parent.last_path,
@@ -3389,7 +3699,7 @@ class Pitch_shifter_window(QtWidgets.QMainWindow):
                                               end,
                                               pitch_shifter=True)
         current_path = f'{file_path}/{self.pitch_shifter_folder_name}'
-        self.pitch_msg(f'{self.language_dict["msg"][24]}{current_path}')
+        self.show_msg(f'{self.language_dict["msg"][24]}{current_path}')
 
     def pitch_shifter_play(self):
         if self.has_load:
@@ -3434,41 +3744,51 @@ class Pitch_shifter_window(QtWidgets.QMainWindow):
 
     def export_pitch_audio_file(self, mode='wav'):
         if not self.has_load:
-            self.pitch_msg(self.language_dict["msg"][39])
+            self.show_msg(self.language_dict["msg"][39])
             return
         if mode == 'other':
-            self.ask_other_format(mode=1)
+            self.parent.ask_other_format(mode=1)
             return
         filename = Dialog(
             caption=self.language_dict['title'][3],
             directory=self.parent.last_path,
             filter=f"{self.language_dict['title'][1]} (*)",
-            default_filename=f"{self.language_dict['untitled']}.{mode}"
-        ).filename[0]
+            default_filename=f"{self.language_dict['untitled']}.{mode}",
+            mode=2).filename[0]
         if not filename:
             return
         self.parent.update_last_path(filename)
-        self.pitch_msg(self.language_dict["msg"][41])
-        self.new_pitch.export(filename, format=mode)
-        self.pitch_msg(f'{self.language_dict["msg"][24]}{filename}')
+        self.show_msg(self.language_dict["msg"][41])
+        try:
+            self.new_pitch.export(filename, format=mode)
+            self.show_msg(f'{self.language_dict["msg"][24]}{filename}')
+        except:
+            self.show_msg(
+                f'{self.language_dict["error"]}{mode}{self.language_dict["msg"][23]}'
+            )
 
-    def pitch_shifter_load_pitch(self):
+    def pitch_shifter_import_pitch(self):
         file_path = Dialog(
             caption=self.language_dict['title'][0],
             directory=self.parent.last_path,
             filter=f"{self.language_dict['title'][1]} (*)").filename[0]
         if file_path:
             self.parent.update_last_path(file_path)
-            self.pitch_msg(self.language_dict["msg"][42])
-            self.load_current_pitch_label.configure(
-                text=f'{self.language_dict["pitch shifter"][1]}{file_path}')
-
+            self.show_msg(self.language_dict["msg"][42])
             try:
                 default_pitch = self.default_pitch_entry.text()
             except:
                 default_pitch = 'C5'
-            self.current_pitch = pitch(file_path, default_pitch)
-            self.pitch_msg(self.language_dict["msg"][1])
+            try:
+                self.current_pitch = pitch(file_path, default_pitch)
+            except:
+                self.show_msg(
+                    f'{self.language_dict["error"][:-1]}{self.language_dict["msg"][23]}'
+                )
+                return
+            self.import_current_pitch_label.configure(
+                text=f'{self.language_dict["pitch shifter"][1]}{file_path}')
+            self.show_msg(self.language_dict["msg"][1])
             self.has_load = True
             self.new_pitch = self.current_pitch.sounds
 
@@ -3477,9 +3797,9 @@ class Pitch_shifter_window(QtWidgets.QMainWindow):
             new_pitch = self.default_pitch_entry.text()
             try:
                 self.current_pitch.set_note(new_pitch)
-                self.pitch_msg(f'{self.language_dict["msg"][43]}{new_pitch}')
+                self.show_msg(f'{self.language_dict["msg"][43]}{new_pitch}')
             except:
-                self.pitch_msg(self.language_dict["msg"][37])
+                self.show_msg(self.language_dict["msg"][37])
 
     def pitch_shifter_change_pitch(self):
         if not self.has_load:
@@ -3488,18 +3808,403 @@ class Pitch_shifter_window(QtWidgets.QMainWindow):
         try:
             new_pitch = N(self.pitch_entry.text())
             current_msg = self.language_dict["msg"][44].split('|')
-            self.pitch_msg(f'{current_msg[0]}{new_pitch}{current_msg[1]}')
+            self.show_msg(f'{current_msg[0]}{new_pitch}{current_msg[1]}')
             self.new_pitch = self.current_pitch + (
                 new_pitch.degree - self.current_pitch.note.degree)
-            self.pitch_msg(f'{self.language_dict["msg"][45]}{new_pitch}')
+            self.show_msg(f'{self.language_dict["msg"][45]}{new_pitch}')
         except Exception as e:
-            print(traceback.format_exc())
             output(traceback.format_exc())
-            self.pitch_msg(self.language_dict["msg"][40])
+            self.show_msg(self.language_dict["msg"][40])
 
-    def close_pitch_shifter_window(self, event):
-        self.close()
-        self.parent.open_pitch_shifter_window = False
+
+class Mixer_window(QtWidgets.QMainWindow):
+
+    def __init__(self, parent=None):
+        super().__init__()
+        self.parent = parent
+        self.current_font = self.parent.current_font
+        self.language_dict = self.parent.language_dict
+        self.setStyleSheet(self.parent.get_stylesheet())
+        self.setWindowIcon(QtGui.QIcon(icon_path))
+        self.setWindowTitle(self.language_dict['mixer'][0])
+        self.setMinimumSize(700, 400)
+        self.activateWindow()
+
+        self.import_effect_button = Button(self,
+                                           text=self.language_dict['mixer'][1],
+                                           command=self.import_effect,
+                                           x=20,
+                                           y=20)
+
+        self.save_effect_button = Button(self,
+                                         text=self.language_dict['mixer'][11],
+                                         command=self.save_effect_parameters,
+                                         x=170,
+                                         y=20)
+
+        self.replace_effect_button = Button(
+            self,
+            text=self.language_dict['mixer'][12],
+            command=self.replace_effect,
+            x=320,
+            y=20)
+
+        self.change_parameter_value_button = Button(
+            self,
+            text=self.language_dict['mixer'][3],
+            command=self.change_parameter_value,
+            x=470,
+            y=20)
+
+        self.remove_effect_button = Button(self,
+                                           text=self.language_dict['mixer'][5],
+                                           command=self.remove_effect,
+                                           x=470,
+                                           y=200)
+
+        self.check_enable_label = Label(self,
+                                        text=self.language_dict['mixer'][6],
+                                        x=600,
+                                        y=100)
+        self.check_enable_button = CheckBox(self,
+                                            value=False,
+                                            command=self.change_enabled,
+                                            x=650,
+                                            y=100)
+
+        self.current_channel_window = QtWidgets.QListWidget(self)
+        self.current_channel_window.setFont(self.current_font)
+        self.current_channel_window.clicked.connect(self.show_current_channel)
+        self.current_channel_window.setFixedSize(120, 150)
+        self.current_channel_window.move(20, 100)
+        self.current_channel_label = Label(
+            self, text=self.language_dict['mixer'][10], x=20, y=70)
+        self.current_channel_window.addItem('Master')
+        self.current_channel_window.addItems(self.parent.channel_names)
+
+        self.current_effect_window = QtWidgets.QListWidget(self)
+        self.current_effect_window.setFont(self.current_font)
+        self.current_effect_window.clicked.connect(self.show_current_effect)
+        self.current_effect_window.setFixedSize(120, 150)
+        self.current_effect_window.move(170, 100)
+        self.current_effect_label = Label(self,
+                                          text=self.language_dict['mixer'][7],
+                                          x=170,
+                                          y=70)
+
+        self.current_effect_parameters_window = QtWidgets.QListWidget(self)
+        self.current_effect_parameters_window.setFont(self.current_font)
+        self.current_effect_parameters_window.clicked.connect(
+            self.show_current_effect_parameters)
+        self.current_effect_parameters_window.setFixedSize(120, 150)
+        self.current_effect_parameters_window.move(320, 100)
+        self.current_effect_parameters_label = Label(
+            self, text=self.language_dict['mixer'][8], x=320, y=70)
+
+        self.current_effect_parameter_entry = LineEdit(self,
+                                                       width=100,
+                                                       x=470,
+                                                       y=100,
+                                                       font=self.current_font)
+        self.current_effect_parameter_label = Label(
+            self, text=self.language_dict['mixer'][9], x=470, y=70)
+
+        self.show()
+
+    def import_effect(self):
+        current_ind = self.current_channel_window.currentRow()
+        if current_ind < 0:
+            return
+        filename = Dialog(
+            caption=self.language_dict['mixer'][1],
+            directory=self.parent.last_path,
+            filter=
+            f'python (*.py);;Musicpy Daw parameters (*.mdparam);;{self.language_dict["title"][1]} (*)'
+        ).filename[0]
+        if filename:
+            self.parent.update_last_path(filename)
+            try:
+                if os.path.splitext(filename)[1][1:].lower() == 'mdparam':
+                    with open(filename, encoding='utf-8') as f:
+                        data = json.load(f)
+                    file_path = data['file_path']
+                    current_effect = importfile(file_path).Synth()
+                    current_effect.file_path = file_path
+                    current_effect.instrument_parameters.update(
+                        data['python instrument parameters']
+                        ['instrument_parameters'])
+                    current_effect.effect_parameters.update(
+                        data['python instrument parameters']
+                        ['effect_parameters'])
+                    current_effect.enabled = data[
+                        'python instrument parameters']['enabled']
+                else:
+                    current_effect = importfile(filename).Synth()
+                    current_effect.file_path = filename
+                self.current_effect_window.addItem(current_effect.name)
+                if current_ind == 0:
+                    self.parent.master_effects.append(current_effect)
+                else:
+                    self.parent.channel_effects[current_ind -
+                                                1].append(current_effect)
+            except:
+                self.parent.show_msg(self.language_dict["mixer"][2])
+                output(traceback.format_exc())
+
+    def show_current_channel(self):
+        current_ind = self.current_channel_window.currentRow()
+        if current_ind == 0:
+            current_effects = self.parent.master_effects
+        else:
+            current_effects = self.parent.channel_effects[current_ind - 1]
+        self.current_effect_parameters_window.clear()
+        self.current_effect_parameter_entry.clear()
+        self.check_enable_button.setChecked(False)
+        self.current_effect_window.clear()
+        self.current_effect_window.addItems([i.name for i in current_effects])
+
+    def show_current_effect(self):
+        current_ind = self.current_channel_window.currentRow()
+        if current_ind < 0:
+            return
+        current_effect_ind = self.current_effect_window.currentRow()
+        if current_ind == 0:
+            current_effects = self.parent.master_effects
+        else:
+            current_effects = self.parent.channel_effects[current_ind - 1]
+        current_effect = current_effects[current_effect_ind]
+        self.current_effect_parameters_window.clear()
+        self.current_effect_parameters_window.addItems(
+            list(current_effect.effect_parameters.keys()))
+        self.current_effect_parameter_entry.clear()
+        self.check_enable_button.setChecked(current_effect.enabled)
+
+    def show_current_effect_parameters(self):
+        current_ind = self.current_channel_window.currentRow()
+        if current_ind < 0:
+            return
+        current_effect_parameter = self.current_effect_parameters_window.currentItem(
+        ).text()
+        current_effect_ind = self.current_effect_window.currentRow()
+        if current_ind == 0:
+            current_effects = self.parent.master_effects
+        else:
+            current_effects = self.parent.channel_effects[current_ind - 1]
+        current_effect = current_effects[current_effect_ind]
+        current_effect_parameter_value = current_effect.effect_parameters[
+            current_effect_parameter]
+        self.current_effect_parameter_entry.clear()
+        self.current_effect_parameter_entry.setText(
+            str(current_effect_parameter_value))
+
+    def change_parameter_value(self):
+        current_ind = self.current_channel_window.currentRow()
+        if current_ind < 0:
+            return
+        try:
+            current_value = get_value(
+                self.current_effect_parameter_entry.text())
+        except:
+            self.parent.show_msg(self.language_dict["mixer"][2])
+            return
+        current_effect_ind = self.current_effect_window.currentRow()
+        if current_effect_ind >= 0:
+            current_parameter_name = self.current_effect_parameters_window.currentItem(
+            )
+            if current_parameter_name is not None:
+                current_effect_parameter = current_parameter_name.text()
+                if current_ind == 0:
+                    current_effects = self.parent.master_effects
+                else:
+                    current_effects = self.parent.channel_effects[current_ind -
+                                                                  1]
+                current_effect = current_effects[current_effect_ind]
+                current_effect.effect_parameters[
+                    current_effect_parameter] = current_value
+
+    def remove_effect(self):
+        current_ind = self.current_channel_window.currentRow()
+        if current_ind < 0:
+            return
+        current_effect_ind = self.current_effect_window.currentRow()
+        if current_effect_ind >= 0:
+            if current_ind == 0:
+                current_effects = self.parent.master_effects
+            else:
+                current_effects = self.parent.channel_effects[current_ind - 1]
+            del current_effects[current_effect_ind]
+            self.current_effect_window.takeItem(current_effect_ind)
+            self.current_effect_parameters_window.clear()
+            self.current_effect_parameter_entry.clear()
+            self.check_enable_button.setChecked(False)
+
+    def change_enabled(self):
+        current_ind = self.current_channel_window.currentRow()
+        if current_ind < 0:
+            return
+        current_effect_ind = self.current_effect_window.currentRow()
+        if current_effect_ind >= 0:
+            if current_ind == 0:
+                current_effects = self.parent.master_effects
+            else:
+                current_effects = self.parent.channel_effects[current_ind - 1]
+            current_effect = current_effects[current_effect_ind]
+            current_effect.enabled = self.check_enable_button.isChecked()
+
+    def save_effect_parameters(self):
+        current_ind = self.current_channel_window.currentRow()
+        if current_ind < 0:
+            return
+        current_effect_ind = self.current_effect_window.currentRow()
+        if current_effect_ind < 0:
+            return
+        if current_ind == 0:
+            current_effects = self.parent.master_effects
+        else:
+            current_effects = self.parent.channel_effects[current_ind - 1]
+        current_effect = current_effects[current_effect_ind]
+        filename = Dialog(
+            caption=self.language_dict['file'][8],
+            directory=self.parent.last_path,
+            filter=
+            f"Musicpy Daw Parameters (*.mdparam);; {self.language_dict['title'][1]} (*)",
+            default_filename=f"{self.language_dict['untitled']}.mdparam",
+            mode=2).filename[0]
+        if filename:
+            current_effect_name = current_effect.file_path
+            parameter_dict = {}
+            parameter_dict['file_path'] = current_effect_name
+            parameter_dict['type'] = 'effect'
+            parameter_dict['python instrument parameters'] = {
+                'instrument_parameters': current_effect.instrument_parameters,
+                'effect_parameters': current_effect.effect_parameters,
+                'enabled': current_effect.enabled
+            }
+            self.parent.update_last_path(filename)
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(parameter_dict,
+                          f,
+                          indent=4,
+                          separators=(',', ': '),
+                          ensure_ascii=False)
+
+    def replace_effect(self):
+        current_ind = self.current_channel_window.currentRow()
+        if current_ind < 0:
+            return
+        current_effect_ind = self.current_effect_window.currentRow()
+        if current_effect_ind < 0:
+            return
+        if current_ind == 0:
+            current_effects = self.parent.master_effects
+        else:
+            current_effects = self.parent.channel_effects[current_ind - 1]
+        filename = Dialog(
+            caption=self.language_dict['mixer'][1],
+            directory=self.parent.last_path,
+            filter=
+            f'python (*.py);;Musicpy Daw parameters (*.mdparam);;{self.language_dict["title"][1]} (*)'
+        ).filename[0]
+        if filename:
+            self.parent.update_last_path(filename)
+            try:
+                if os.path.splitext(filename)[1][1:].lower() == 'mdparam':
+                    with open(filename, encoding='utf-8') as f:
+                        data = json.load(f)
+                    file_path = data['file_path']
+                    current_effect = importfile(file_path).Synth()
+                    current_effect.file_path = file_path
+                    current_effect.instrument_parameters.update(
+                        data['python instrument parameters']
+                        ['instrument_parameters'])
+                    current_effect.effect_parameters.update(
+                        data['python instrument parameters']
+                        ['effect_parameters'])
+                    current_effect.enabled = data[
+                        'python instrument parameters']['enabled']
+                else:
+                    current_effect = importfile(filename).Synth()
+                    current_effect.file_path = filename
+                self.current_effect_window.currentItem().setText(
+                    current_effect.name)
+                self.current_effect_parameters_window.clear()
+                self.current_effect_parameter_entry.clear()
+                self.check_enable_button.setChecked(False)
+                current_effects[current_effect_ind] = current_effect
+            except:
+                self.parent.show_msg(self.language_dict["mixer"][2])
+                output(traceback.format_exc())
+
+
+class Python_instrument_window(QtWidgets.QMainWindow):
+
+    def __init__(self, parent=None, current_ind=0):
+        super().__init__()
+        self.parent = parent
+        self.current_ind = current_ind
+        self.current_font = self.parent.current_font
+        self.language_dict = self.parent.language_dict
+        self.setStyleSheet(self.parent.get_stylesheet())
+        self.setWindowIcon(QtGui.QIcon(icon_path))
+        self.setWindowTitle(self.language_dict['python instrument'][0])
+        self.setMinimumSize(500, 300)
+        self.current_instrument = self.parent.channel_instruments[
+            self.current_ind]
+
+        self.current_instrument_parameters_window = QtWidgets.QListWidget(self)
+        self.current_instrument_parameters_window.setFont(self.current_font)
+        self.current_instrument_parameters_window.clicked.connect(
+            self.show_current_instrument_parameters)
+        self.current_instrument_parameters_window.setFixedSize(120, 150)
+        self.current_instrument_parameters_window.move(20, 100)
+        self.current_instrument_parameters_window.addItems(
+            list(self.current_instrument.instrument_parameters.keys()))
+        self.current_instrument_label = Label(
+            self, text=self.language_dict['mixer'][8], x=20, y=70)
+
+        self.current_instrument_parameter_entry = LineEdit(
+            self, width=100, x=170, y=100, font=self.current_font)
+        self.current_instrument_label = Label(
+            self, text=self.language_dict['mixer'][9], x=170, y=70)
+
+        self.change_parameter_value_button = Button(
+            self,
+            text=self.language_dict['mixer'][3],
+            command=self.change_parameter_value,
+            x=20,
+            y=20)
+
+        self.activateWindow()
+        self.show()
+
+    def show_current_instrument_parameters(self):
+        current_instrument_parameter = self.current_instrument_parameters_window.currentItem(
+        ).text()
+        current_instrument_parameter_value = self.current_instrument.instrument_parameters[
+            current_instrument_parameter]
+        self.current_instrument_parameter_entry.clear()
+        self.current_instrument_parameter_entry.setText(
+            str(current_instrument_parameter_value))
+
+    def change_parameter_value(self):
+        try:
+            current_value = get_value(
+                self.current_instrument_parameter_entry.text())
+        except:
+            self.parent.show_msg(self.language_dict["mixer"][2])
+            return
+        current_parameter_name = self.current_instrument_parameters_window.currentItem(
+        )
+        if current_parameter_name is not None:
+            current_instrument_parameter = current_parameter_name.text()
+            self.current_instrument.instrument_parameters[
+                current_instrument_parameter] = current_value
+
+
+def set_font(font, dpi):
+    if dpi != 96.0:
+        font.setPointSize(int(font.pointSize() * (96.0 / dpi)))
+    return font
 
 
 def open_main_window():
@@ -3844,10 +4549,22 @@ def export(current_chord,
 
 def output(*obj):
     result = ' '.join([str(i) for i in obj]) + '\n'
-    if current_daw.is_open_debug_window:
+    if current_daw.debug_window is not None and current_daw.debug_window.isVisible(
+    ):
         current_daw.debug_window.output_text.insertPlainText(result)
         current_daw.debug_window.activateWindow()
         current_daw.debug_window.raise_()
+
+
+def get_value(value):
+    try:
+        result = literal_eval(value)
+    except:
+        try:
+            result = float(fractions.Fraction(value))
+        except:
+            result = value
+    return result
 
 
 global_play = False

@@ -7,6 +7,7 @@ start program.pyw
 *.exe
 musicpy daw test
 last_path.txt
+test_musicpy_daw_synth.py
 
 # Byte-compiled / optimized / DLL files
 *.py[co]
