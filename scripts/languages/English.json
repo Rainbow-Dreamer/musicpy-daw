@@ -1,7 +1,9 @@
 {
     "main_window": {
-        "set_musicpy_code_button": "Play Musicpy Code",
+        "play_musicpy_code_button": "Play",
+        "pause_musicpy_code_button": "Pause",
         "stop_button": "Stop",
+        "play_musicpy_code_loop_button": "Play Loop",
         "change_current_bpm_button": "Change BPM",
         "import_instrument_button": "Import Instrument",
         "change_settings_button": "Change Settings",
@@ -26,6 +28,8 @@
         "Untitled": "Untitled",
         "untitled": "untitled",
         "Exporting": "Exporting",
+        "Unpause": "Unpause",
+        "Start rendering": "Start rendering",
         "export audio formats": [
             "Wave File",
             "MP3 File",
@@ -113,7 +117,7 @@
             "Loading complete",
             "Error: Language config file of | does not exist",
             "You need at least 1 channel with loaded instrument to play",
-            "Error: invalid musicpy code or not result in a chord/piece instance",
+            "Error: invalid musicpy code or unacceptable data structures",
             "Error: Not an audio",
             "Error: There are no sound files to make MDI files",
             "Successfully made MDI file:",
@@ -205,7 +209,8 @@
             "Parameter Value",
             "Channels",
             "Save Parameters",
-            "Replace Effect"
+            "Replace Effect",
+            "Show VST Editor"
         ],
         "python instrument": [
             "Python Instrument",

@@ -1,7 +1,9 @@
 {
     "main_window": {
-        "set_musicpy_code_button": "演奏musicpy代码",
+        "play_musicpy_code_button": "演奏",
+        "pause_musicpy_code_button": "暂停",
         "stop_button": "停止",
+        "play_musicpy_code_loop_button": "循环演奏",
         "change_current_bpm_button": "改变BPM",
         "import_instrument_button": "导入音源",
         "change_settings_button": "更改设置",
@@ -26,6 +28,8 @@
         "Untitled": "未命名",
         "untitled": "未命名",
         "Exporting": "正在导出",
+        "Unpause": "继续",
+        "Start rendering": "开始渲染",
         "export audio formats": [
             "Wave文件",
             "MP3文件",
@@ -114,7 +118,7 @@
             "加载完成",
             "错误: 语言配置文件 | 不存在",
             "你需要至少一个加载了音源的通道来播放",
-            "错误: 不合语法的musicpy代码或者结果不是和弦/乐曲类型",
+            "错误: 不合语法的musicpy代码或者不能接受的数据结构",
             "错误: 不是一个音频",
             "错误: 没有音频文件用来制作MDI文件",
             "成功制作MDI文件:",
@@ -206,7 +210,8 @@
             "参数值",
             "通道",
             "保存参数",
-            "替换效果器"
+            "替换效果器",
+            "打開VST界面"
         ],
         "python instrument": [
             "Python Instrument",

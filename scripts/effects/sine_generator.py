@@ -13,7 +13,7 @@ class Synth:
 
     def __init__(self):
         self.name = 'sine generator'
-        self.author = 'rainbow'
+        self.author = 'Rainbow Dreamer'
         self.description = ''
         self.instrument_parameters = {'volume level': 0.1}
         self.effect_parameters = {}
@@ -34,9 +34,7 @@ class Synth:
         return result
 
     def apply_effect(self, data: AudioSegment) -> AudioSegment:
-        duration = self.effect_parameters['duration']
-        current_sound = data.fade_in(duration)
-        return current_sound
+        pass
 
     def __repr__(self):
         return f'[Synth]\nname: {self.name}\nauthor: {self.author}\ndescription: {self.description}'

@@ -10,7 +10,7 @@ class Synth:
 
     def __init__(self):
         self.name = 'fade in'
-        self.author = 'rainbow'
+        self.author = 'Rainbow Dreamer'
         self.description = ''
         self.instrument_parameters = {}
         self.effect_parameters = {'duration': 2000}

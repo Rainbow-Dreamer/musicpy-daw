@@ -14,6 +14,9 @@ from pydub.generators import Sine, Triangle, Sawtooth, Square, WhiteNoise, Pulse
 import librosa
 import soundfile
 import py
+from scipy.io import wavfile
+import pedalboard
+from pedalboard.io import AudioFile
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(abs_path)

@@ -21,7 +21,7 @@ class Synth:
 
     def __init__(self):
         self.name = 'reverb2'
-        self.author = 'rainbow'
+        self.author = 'Rainbow Dreamer'
         self.description = ''
         self.instrument_parameters = {}
         self.effect_parameters = dict(reverb_seconds=0.5,

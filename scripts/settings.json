@@ -12,7 +12,6 @@
     "channel": 2,
     "buffer": 1024,
     "maxinum_channels": 1000,
-    "fadeout_time": 100,
     "export_audio_fadeout_time_ratio": 0.5,
     "export_audio_fadeout_time": 500,
     "export_fadeout_use_ratio": false,
@@ -32,6 +31,10 @@
         "''",
         "\"\""
     ],
+    "audio_samples_play_render": false,
+    "soundfont_play_render": true,
+    "python_instrument_play_render": true,
+    "has_audio_play_render": true,
     "notedict": {
         "A0": "A0",
         "A#0": "A#0",

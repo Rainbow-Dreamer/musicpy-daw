@@ -11,7 +11,7 @@ class Synth:
 
     def __init__(self):
         self.name = 'high low pass filter'
-        self.author = 'rainbow'
+        self.author = 'Rainbow Dreamer'
         self.description = ''
         self.instrument_parameters = {}
         self.effect_parameters = {
