@@ -1903,7 +1903,7 @@ class Daw(QtWidgets.QMainWindow):
                                                   bpm=current_bpm)
         return current_silent_audio
 
-    def export_midi_file(self, event, current_chord=None, write_args={}):
+    def export_midi_file(self, event=None, current_chord=None, write_args={}):
         self.show_msg('')
         filename = Dialog(
             caption=self.language_dict['title'][15],
@@ -1918,10 +1918,10 @@ class Daw(QtWidgets.QMainWindow):
         current_bpm = self.current_bpm
         if current_chord is None:
             current_result = self.play_current_musicpy_code(mode=1)
-        if current_result is None:
-            return
-        else:
-            current_chord = self.convert_types(*current_result)
+            if current_result is None:
+                return
+            else:
+                current_chord = self.convert_types(*current_result)
         try:
             write(current_chord, name=filename, **write_args)
             self.show_msg(f'{self.language_dict["msg"][24]}{filename}')
@@ -4730,11 +4730,13 @@ def play(current_chord,
          soundfont_args=None):
     global global_play
     global_play = True
-    if bpm is not None and isinstance(bpm, (int, float)):
+    if bpm is None:
+        bpm = current_daw.current_bpm
+    if isinstance(bpm, (int, float)):
         if isinstance(bpm, float) and bpm.is_integer():
             bpm = int(bpm)
         current_daw.change_current_bpm_entry.clear()
-        current_daw.change_current_bpm_entry.setText(bpm)
+        current_daw.change_current_bpm_entry.setText(str(bpm))
         current_daw.change_current_bpm(1)
     current_daw.play_musicpy_sounds(current_chord,
                                     bpm,
@@ -4760,14 +4762,18 @@ def export(current_chord,
            write_args={}):
     global global_play
     global_play = True
-    if bpm is not None and isinstance(bpm, (int, float)):
+    if bpm is None:
+        bpm = current_daw.current_bpm
+    if isinstance(bpm, (int, float)):
         if isinstance(bpm, float) and bpm.is_integer():
             bpm = int(bpm)
         current_daw.change_current_bpm_entry.clear()
-        current_daw.change_current_bpm_entry.setText(bpm)
+        current_daw.change_current_bpm_entry.setText(str(bpm))
         current_daw.change_current_bpm(1)
+    current_chord = current_daw.convert_types(current_chord, bpm, channel)
     if mode == 'mid' or mode == 'midi':
-        current_daw.export_midi_file(current_chord, **write_args)
+        current_daw.export_midi_file(current_chord=current_chord,
+                                     write_args=write_args)
     else:
         current_daw.export_audio_file(current_chord=current_chord,
                                       mode=mode,
