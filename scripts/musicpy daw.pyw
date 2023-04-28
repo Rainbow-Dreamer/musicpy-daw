@@ -2454,6 +2454,10 @@ class Daw(QtWidgets.QMainWindow):
                               daw_channels=[current_channel_num],
                               start_times=[current_chord.start_time],
                               bpm=current_bpm)
+            current_instrument = self.instruments(current_channel_num)
+            if isinstance(current_instrument, rs.sf2_loader):
+                current_chord.change_instruments(
+                    [current_instrument.current_preset + 1])
         elif isinstance(current_chord, track):
             has_effect = False
             if check_effect(current_chord):
