@@ -1652,8 +1652,7 @@ class Daw(QtWidgets.QMainWindow):
                     self.show_msg(
                         f'{current_msg[0]}{self.language_dict["track"]} {i+1}/{track_number} {self.language_dict["channel"]} {current_channels[i] + 1} (soundfont)'
                     )
-                current_instrument_number = current_chord.instruments_numbers[
-                    i]
+                current_instrument_number = current_chord.instruments[i]
                 current_channel = current_chord.channels[
                     i] if current_chord.channels else current_instrument.current_channel
                 current_sfid, current_bank, current_preset = current_instrument.channel_info(
@@ -2529,8 +2528,7 @@ class Daw(QtWidgets.QMainWindow):
                             current_instrument.sfid_list[0], current_channel)
                         current_sfid, current_bank, current_preset = current_instrument.channel_info(
                             current_channel)
-                    current_instrument_number = current_chord.instruments_numbers[
-                        i]
+                    current_instrument_number = current_chord.instruments[i]
                     if isinstance(current_instrument_number, int):
                         current_instrument_number = [
                             current_instrument_number - 1, current_bank
