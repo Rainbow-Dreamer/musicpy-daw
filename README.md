@@ -32,7 +32,7 @@ This is a plaintext daw to make music with [musicpy](https://github.com/Rainbow-
 
 ## Download
 
-You can download the latest version of musicpy daw from [here](https://www.jianguoyun.com/p/DdoSSv4QhPG0CBir3fMEIAA)
+You can download the latest version of musicpy daw from [here](https://www.jianguoyun.com/p/DeTfvFAQt43aDBitycoFIAA)
 
 
 
@@ -140,7 +140,7 @@ Update (2021/10/12): Now there is a debug window, you can open the debug window 
 
 ## 下载
 
-你可以从[这里](https://www.jianguoyun.com/p/DdoSSv4QhPG0CBir3fMEIAA)下载musicpy daw的最新版本
+你可以从[这里](https://www.jianguoyun.com/p/DeTfvFAQt43aDBitycoFIAA)下载musicpy daw的最新版本
 
 
 
