@@ -701,6 +701,8 @@ class Daw(QtWidgets.QMainWindow):
 
     def configure_python_instrument(self):
         current_ind = self.choose_channels.currentRow()
+        if current_ind < 0:
+            return        
         if self.channel_list_focus:
             current_instrument = self.channel_instruments[current_ind]
             if current_instrument.__class__.__name__ == 'Synth':
@@ -857,6 +859,8 @@ class Daw(QtWidgets.QMainWindow):
             return
         if current_ind is None:
             current_ind = self.choose_channels.currentRow()
+            if current_ind < 0:
+                return            
         abs_path = os.getcwd()
         if sound_path is None:
             if mode == 0:
@@ -968,6 +972,8 @@ class Daw(QtWidgets.QMainWindow):
             return
         if current_ind is None:
             current_ind = self.choose_channels.currentRow()
+            if current_ind < 0:
+                return            
         if sound_path is None:
             if mode == 0:
                 sound_path = Dialog(
@@ -1019,6 +1025,8 @@ class Daw(QtWidgets.QMainWindow):
             return
         if current_ind is None:
             current_ind = self.choose_channels.currentRow()
+            if current_ind < 0:
+                return            
         if sound_path is None:
             if mode == 0:
                 sound_path = Dialog(
@@ -1087,6 +1095,8 @@ class Daw(QtWidgets.QMainWindow):
 
     def save_current_instrument_parameters(self):
         current_ind = self.choose_channels.currentRow()
+        if current_ind < 0:
+            return        
         if not self.channel_list_focus:
             self.show_msg(self.language_dict['msg'][8])
             return
@@ -1433,6 +1443,8 @@ class Daw(QtWidgets.QMainWindow):
 
     def import_channel_settings(self, event=None, text=None, filename=None):
         current_ind = self.choose_channels.currentRow()
+        if current_ind < 0:
+            return        
         if self.channel_list_focus:
             if text is None:
                 if filename is None:
@@ -1480,6 +1492,8 @@ class Daw(QtWidgets.QMainWindow):
             return
         if current_ind is None:
             current_ind = self.choose_channels.currentRow()
+            if current_ind < 0:
+                return            
         if sound_path is None:
             if mode == 0:
                 sound_path = Dialog(
@@ -1533,6 +1547,8 @@ class Daw(QtWidgets.QMainWindow):
             self.configure_soundfont_file_window.activateWindow()
         else:
             current_ind = self.choose_channels.currentRow()
+            if current_ind < 0:
+                return            
             if self.channel_list_focus:
                 current_soundfont = self.channel_instruments[current_ind]
                 if isinstance(current_soundfont, rs.sf2_loader):
@@ -1544,6 +1560,8 @@ class Daw(QtWidgets.QMainWindow):
     def configure_instrument(self):
         if self.channel_list_focus:
             current_ind = self.choose_channels.currentRow()
+            if current_ind < 0:
+                return            
             current_instrument = self.channel_instruments[current_ind]
             if isinstance(current_instrument, rs.sf2_loader):
                 self.configure_soundfont_file()
@@ -1929,6 +1947,8 @@ class Daw(QtWidgets.QMainWindow):
 
     def clear_current_channel(self):
         current_ind = self.choose_channels.currentRow()
+        if current_ind < 0:
+            return        
         if self.channel_list_focus:
             self.choose_channels.currentItem().setText(
                 f'Channel {current_ind+1}')
@@ -1950,6 +1970,8 @@ class Daw(QtWidgets.QMainWindow):
 
     def clear_current_instrument(self):
         current_ind = self.choose_channels.currentRow()
+        if current_ind < 0:
+            return        
         if self.channel_list_focus:
             self.channel_instrument_names[current_ind] = ''
             current_instrument = self.channel_instruments[current_ind]
@@ -1993,6 +2015,8 @@ class Daw(QtWidgets.QMainWindow):
 
     def delete_channel(self):
         current_ind = self.choose_channels.currentRow()
+        if current_ind < 0:
+            return        
         if not self.channel_list_focus:
             self.show_msg(self.language_dict['msg'][8])
             return
@@ -2047,6 +2071,8 @@ class Daw(QtWidgets.QMainWindow):
             self.change_dict_window.activateWindow()
         else:
             current_ind = self.choose_channels.currentRow()
+            if current_ind < 0:
+                return            
             self.current_channel_dict_num = current_ind
             if self.channel_list_focus:
                 self.change_dict_window = Channel_dict_window(
@@ -2119,6 +2145,8 @@ class Daw(QtWidgets.QMainWindow):
 
     def change_current_channel_name(self):
         current_ind = self.choose_channels.currentRow()
+        if current_ind < 0:
+            return        
         if self.channel_list_focus:
             current_channel_name = self.current_channel_name_entry.text()
             self.choose_channels.takeItem(current_ind)
@@ -2133,6 +2161,8 @@ class Daw(QtWidgets.QMainWindow):
     def show_current_channel(self):
         self.channel_list_focus = True
         current_ind = self.choose_channels.currentRow()
+        if current_ind < 0:
+            return        
         if self.channel_list_focus:
             self.current_channel_name_entry.clear()
             self.current_channel_name_entry.setText(
@@ -2227,6 +2257,8 @@ class Daw(QtWidgets.QMainWindow):
             return
         if current_ind is None:
             current_ind = self.choose_channels.currentRow()
+            if current_ind < 0:
+                return            
         if sound_path is None:
             if mode == 0:
                 sound_path = Dialog(caption=self.language_dict['title'][17],
@@ -2670,6 +2702,8 @@ class Daw(QtWidgets.QMainWindow):
 
     def change_enabled(self):
         current_ind = self.choose_channels.currentRow()
+        if current_ind < 0:
+            return        
         if self.channel_list_focus:
             self.channel_enabled[
                 current_ind] = self.check_enable_button.isChecked()
