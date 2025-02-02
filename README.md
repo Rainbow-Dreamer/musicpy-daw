@@ -106,6 +106,10 @@ Update (2021/9/5): Now soundfonts files are supported, you can load any .sf2, .s
 
 Update (2021/10/12): Now there is a debug window, you can open the debug window first and then write `output(object1, object2, ...)` in the input text area, when you run the code, the objects in the `output` function will be printed in the debug window, the usage is like `print` function.
 
+Update (2025/2/2): For Python 3.13, if you tries to run the program, when importing pydub module, it will raise an error "builtins.ModuleNotFoundError: No module named 'pyaudioop'", currently I find a solution: "pip install audioop-lts" which will fix the import error.
+
+
+
 # musicpy daw
 
 [[English](#musicpy-daw)] [中文]
@@ -213,4 +217,6 @@ Update (2021/10/12): Now there is a debug window, you can open the debug window 
 更新 (2021/9/5): 现在已经添加对于soundfonts音源文件的支持, 你可以加载任何的.sf2, .sf3, .dls 音源文件到这个宿主中来播放和导出音频文件, 用soundfonts音源文件和musicpy来制作音乐。
 
 更新 (2021/10/12): 新增调试窗口, 你可以打开调试窗口, 然后在输入文本区写 `output(object1, object2, ...)`, 当你运行代码, 在 `output` 函数里的对象会被打印到调试窗口中, 用法与 `print` 函数相同。
+
+更新 (2025/2/2)： 对于 Python 3.13，如果尝试运行程序，当导入 pydub 模块时，会出现错误 "buildins.ModuleNotFoundError： No module named 'pyaudioop'"，目前我找到了一个解决方案：“pip install audioop-lts”，它可以修复导入错误。
 
