@@ -1660,7 +1660,7 @@ class Daw(QtWidgets.QMainWindow):
             each_channel = current_chord.tracks[i]
             for each in each_channel:
                 if isinstance(each, AudioSegment):
-                    each.duration = real_time_to_bar(len(each), current_bpm)
+                    each.duration = mp.real_time_to_bar(len(each), current_bpm)
                     each.volume = 127
             current_chord.tracks[i] = each_channel
         instruments_num = len(self.channel_instruments)
@@ -1751,7 +1751,7 @@ class Daw(QtWidgets.QMainWindow):
                             current_silent_audio)
                     except:
                         output(traceback.format_exc())
-            current_start_time = bar_to_real_time(
+            current_start_time = mp.bar_to_real_time(
                 current_start_times[i] + current_track.start_time, current_bpm,
                 1)
             silent_audio = overlay_append(silent_audio, current_silent_audio,
@@ -1791,7 +1791,7 @@ class Daw(QtWidgets.QMainWindow):
                     if current_settings.export_fadeout_use_ratio:
                         current_fadeout_time = each.duration * current_settings.export_audio_fadeout_time_ratio
                     else:
-                        current_fadeout_time = real_time_to_bar(
+                        current_fadeout_time = mp.real_time_to_bar(
                             current_settings.export_audio_fadeout_time, bpm)
                     each.duration += current_fadeout_time
             return temp
@@ -1843,9 +1843,9 @@ class Daw(QtWidgets.QMainWindow):
                 counter += 1
             each = current_chord.notes[i]
             if isinstance(each, (note, AudioSegment)):
-                interval = bar_to_real_time(current_intervals[i], current_bpm,
-                                            1)
-                duration = bar_to_real_time(
+                interval = mp.bar_to_real_time(current_intervals[i],
+                                               current_bpm, 1)
+                duration = mp.bar_to_real_time(
                     current_durations[i], current_bpm,
                     1) if not isinstance(each, AudioSegment) else len(each)
                 volume = velocity_to_db(current_volumes[i])
@@ -1893,7 +1893,7 @@ class Daw(QtWidgets.QMainWindow):
                 current_position += interval
         if current_pan:
             pan_ranges = [
-                bar_to_real_time(i.start_time, current_bpm, 1)
+                mp.bar_to_real_time(i.start_time, current_bpm, 1)
                 for i in current_pan
             ]
             pan_values = [i.get_pan_value() for i in current_pan]
@@ -1912,7 +1912,7 @@ class Daw(QtWidgets.QMainWindow):
 
         if current_volume:
             volume_ranges = [
-                bar_to_real_time(i.start_time, current_bpm, 1)
+                mp.bar_to_real_time(i.start_time, current_bpm, 1)
                 for i in current_volume
             ]
             volume_values = [
@@ -2340,13 +2340,13 @@ class Daw(QtWidgets.QMainWindow):
                        channel=0,
                        midi_channel=0):
         if not self.channel_enabled[channel]:
-            duration_time = bar_to_real_time(duration, self.current_bpm, 1)
+            duration_time = mp.bar_to_real_time(duration, self.current_bpm, 1)
             current_timer = Timer(duration_time / 1000, lambda: None)
             current_timer.start()
             self.current_playing.append(current_timer)
             return
         current_instrument = self.channel_instruments[channel]
-        duration_time = bar_to_real_time(duration, self.current_bpm, mode=1)
+        duration_time = mp.bar_to_real_time(duration, self.current_bpm, mode=1)
         if isinstance(name, AudioSegment):
             current_sound = name[:duration_time]
             current_sound = pygame.mixer.Sound(buffer=current_sound.raw_data)
@@ -2619,10 +2619,10 @@ class Daw(QtWidgets.QMainWindow):
             for i in range(len(current_chord)):
                 current_channel = current_channels[
                     i] if current_channels is not None else i
-                current_time = bar_to_real_time(current_start_times[i] +
-                                                current_tracks[i].start_time,
-                                                self.current_bpm,
-                                                mode=1)
+                current_time = mp.bar_to_real_time(
+                    current_start_times[i] + current_tracks[i].start_time,
+                    self.current_bpm,
+                    mode=1)
                 current_timer = Timer(
                     current_time / 1000,
                     lambda i=i, current_channel=current_channel: self.
@@ -2671,7 +2671,7 @@ class Daw(QtWidgets.QMainWindow):
                         current_time / 1000,
                         lambda each=each, duration=duration, volume=volume:
                         self.play_note_func(
-                            name=f'{standardize_note(each.name)}{each.num}'
+                            name=f'{mp.standardize_note(each.name)}{each.num}'
                             if isinstance(each, note) else each,
                             duration=duration,
                             volume=volume,
@@ -2679,8 +2679,8 @@ class Daw(QtWidgets.QMainWindow):
                             midi_channel=channel))
                     current_timer.start()
                     self.current_playing.append(current_timer)
-                    current_time += bar_to_real_time(current_intervals[i],
-                                                     self.current_bpm, 1)
+                    current_time += mp.bar_to_real_time(
+                        current_intervals[i], self.current_bpm, 1)
         elif isinstance(current_instrument, rs.sf2_loader):
             current_sound = pygame.mixer.Sound(
                 buffer=self.pre_rendered_audio[ind].raw_data)
@@ -4583,12 +4583,6 @@ def load_audiosegments(current_dict, current_sound_path, current_queue=None):
     return current_sounds
 
 
-def standardize_note(i):
-    if i in database.standard_dict:
-        i = database.standard_dict[i]
-    return i
-
-
 def velocity_to_db(vol):
     if vol == 0:
         return -100
@@ -4599,16 +4593,6 @@ def percentage_to_db(vol):
     if vol == 0:
         return -100
     return math.log(abs(vol / 100), 10) * 20
-
-
-def bar_to_real_time(bar, bpm, mode=0):
-    # return time in ms
-    return int(
-        (60000 / bpm) * (bar * 4)) if mode == 0 else (60000 / bpm) * (bar * 4)
-
-
-def real_time_to_bar(time, bpm):
-    return (time / (60000 / bpm)) / 4
 
 
 def check_pan_or_volume(sound):
@@ -4735,25 +4719,30 @@ def get_wave(sound, mode='sine', bpm=120, volume=None):
         current_note = temp[i]
         if isinstance(current_note, note):
             if mode == 'sine':
-                temp[i] = sine(get_freq(current_note),
-                               bar_to_real_time(current_note.duration, bpm, 1),
-                               volume[i])
+                temp[i] = sine(
+                    get_freq(current_note),
+                    mp.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i])
             elif mode == 'triangle':
                 temp[i] = triangle(
                     get_freq(current_note),
-                    bar_to_real_time(current_note.duration, bpm, 1), volume[i])
+                    mp.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i])
             elif mode == 'sawtooth':
                 temp[i] = sawtooth(
                     get_freq(current_note),
-                    bar_to_real_time(current_note.duration, bpm, 1), volume[i])
+                    mp.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i])
             elif mode == 'square':
                 temp[i] = square(
                     get_freq(current_note),
-                    bar_to_real_time(current_note.duration, bpm, 1), volume[i])
+                    mp.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i])
             else:
-                temp[i] = mode(get_freq(current_note),
-                               bar_to_real_time(current_note.duration, bpm, 1),
-                               volume[i])
+                temp[i] = mode(
+                    get_freq(current_note),
+                    mp.bar_to_real_time(current_note.duration, bpm, 1),
+                    volume[i])
     return temp
 
 
@@ -4899,7 +4888,7 @@ def update_dict(dict1, dict2):
 
 global_play = False
 reverse = effect(lambda s: s.reverse(), 'reverse')
-offset = effect(lambda s, bar, bpm: s[bar_to_real_time(bar, bpm, 1):],
+offset = effect(lambda s, bar, bpm: s[mp.bar_to_real_time(bar, bpm, 1):],
                 'offset',
                 unknown_args={'bpm': None})
 fade_in = effect(lambda s, duration: s.fade_in(duration), 'fade in')
